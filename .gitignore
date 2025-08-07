@@ -1,5 +1,5 @@
 # Créer le .gitignore pour exclure les fichiers volumineux
-echo "# FailDaily - Ionic Angular Project
+# FailDaily - Ionic Angular Project
 
 # Dependencies
 node_modules/
