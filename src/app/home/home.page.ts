@@ -43,20 +43,24 @@ export class HomePage implements OnInit {
   async loadInitialData() {
     this.isLoading = true;
 
-    // Générer des fails de démo si aucun fail n'existe
-    this.fails$.subscribe(async (fails) => {
-      if (fails.length === 0) {
-        await this.failService.generateDemoFails();
-      }
-      this.isLoading = false;
-    });
+    // Charger les fails depuis Supabase
+    try {
+      await this.failService.refreshFails();
+    } catch (error) {
+      console.error('Error loading fails:', error);
+    }
+
+    this.isLoading = false;
   }
 
   async handleRefresh(event: RefresherCustomEvent) {
-    // Simule un refresh des données
-    setTimeout(() => {
+    try {
+      await this.failService.refreshFails();
       event.target.complete();
-    }, 1500);
+    } catch (error) {
+      console.error('Error refreshing fails:', error);
+      event.target.complete();
+    }
   }
 
   goToPostFail() {

@@ -64,71 +64,14 @@ export class BadgesPage implements OnInit {
     // Message d'encouragement fixe
     encouragementMessage = '';
 
-    // Mock data pour la démonstration
-    private mockBadges: Badge[] = [
-        {
-            id: 'first-fail',
-            name: 'Premier Pas',
-            description: 'Félicitations pour votre premier fail partagé !',
-            icon: 'footsteps-outline',
-            category: BadgeCategory.COURAGE,
-            rarity: 'common',
-            unlockedDate: new Date()
-        },
-        {
-            id: 'daily-streak-7',
-            name: 'Persévérant',
-            description: '7 jours de partage consécutifs',
-            icon: 'calendar-outline',
-            category: BadgeCategory.PERSEVERANCE,
-            rarity: 'rare'
-        },
-        {
-            id: 'courage-hearts-50',
-            name: 'Cœur Courageux',
-            description: 'Recevoir 50 cœurs de courage',
-            icon: 'heart-outline',
-            category: BadgeCategory.COURAGE,
-            rarity: 'epic'
-        },
-        {
-            id: 'community-helper',
-            name: 'Ange Gardien',
-            description: 'Aider 25 membres de la communauté',
-            icon: 'people-outline',
-            category: BadgeCategory.ENTRAIDE,
-            rarity: 'legendary'
-        },
-        {
-            id: 'funny-fail',
-            name: 'Roi du Rire',
-            description: 'Un fail qui a fait rire 100 personnes',
-            icon: 'happy-outline',
-            category: BadgeCategory.HUMOUR,
-            rarity: 'epic',
-            unlockedDate: new Date(Date.now() - 86400000 * 3) // Il y a 3 jours
-        },
-        {
-            id: 'early-adopter',
-            name: 'Pionnier',
-            description: 'Membre des 1000 premiers utilisateurs',
-            icon: 'flag-outline',
-            category: BadgeCategory.SPECIAL,
-            rarity: 'legendary',
-            unlockedDate: new Date(Date.now() - 86400000 * 30) // Il y a 30 jours
-        }
-    ];
-
     constructor(
         private authService: AuthService,
         private badgeService: BadgeService,
         private failService: FailService,
         private router: Router
     ) {
-        // Pour la démo, on utilise les badges mockés
-        this.allBadges$ = new Observable(subscriber => {
-            subscriber.next(this.mockBadges);
-        });
+        // Utilisation des vraies données de la base
+        this.allBadges$ = this.badgeService.getAllAvailableBadges();
 
         this.userBadges$ = combineLatest([this.currentUser$, this.allBadges$]).pipe(
             map(([user, badges]) => badges.filter(badge => badge.unlockedDate))
@@ -269,15 +212,18 @@ export class BadgesPage implements OnInit {
     }
 
     getNextBadgeProgress(category: BadgeCategory): BadgeProgress {
-        // Simulation d'un système de progression
-        const mockProgress = {
-            current: Math.floor(Math.random() * 80) + 10,
-            required: 100,
+        // Récupérer la progression réelle depuis le service Badge
+        // Pour l'instant, on renvoie un objet par défaut
+        // À améliorer en fonction des badges disponibles dans cette catégorie
+        const defaultProgress = {
+            current: 0,
+            required: 1,
             progress: 0
         };
-        mockProgress.progress = mockProgress.current / mockProgress.required;
 
-        return mockProgress;
+        // TODO: Implémenter la logique pour trouver le prochain badge à débloquer
+        // dans la catégorie donnée et récupérer sa progression réelle
+        return defaultProgress;
     }
 
     // Méthodes pour le dropdown de catégories
@@ -312,13 +258,19 @@ export class BadgesPage implements OnInit {
     }
 
     getAllBadgesCount(): number {
-        return this.mockBadges.filter(badge => badge.unlockedDate).length;
+        // Utilise userBadges$ pour compter les badges débloqués
+        let count = 0;
+        this.userBadges$.subscribe(badges => count = badges.length).unsubscribe();
+        return count;
     }
 
     getCategorySpecificBadgeCount(category: BadgeCategory): number {
-        return this.mockBadges.filter(badge =>
-            badge.category === category && badge.unlockedDate
-        ).length;
+        // Utilise userBadges$ filtrés par catégorie
+        let count = 0;
+        this.userBadges$.subscribe(badges =>
+            count = badges.filter(badge => badge.category === category).length
+        ).unsubscribe();
+        return count;
     }
 
     shareBadgeCollection() {

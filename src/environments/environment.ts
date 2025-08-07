@@ -5,7 +5,13 @@
 export const environment = {
   production: false,
 
-  // Configuration Firebase (développement)
+  // Configuration Supabase (développement)
+  supabase: {
+    url: 'https://wzvhqygjkdxqfgwakyjy.supabase.co',
+    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6dmhxeWdqa2R4cWZnd2FreWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NzA2NjAsImV4cCI6MjA3MDE0NjY2MH0.zJ5wfeVqP2H-WsYkS1hbRCUawrSKS5P-sDs1rvCgUMo'
+  },
+
+  // Configuration Firebase (désactivée - utilise Supabase)
   firebase: {
     apiKey: 'your-dev-api-key',
     authDomain: 'faildaily-dev.firebaseapp.com',

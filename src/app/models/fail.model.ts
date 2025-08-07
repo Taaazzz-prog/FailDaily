@@ -1,9 +1,10 @@
 import { FailCategory } from './enums';
 
 export interface FailReactions {
-  courageHearts: number;
-  laughs: number;
-  supports: number;
+  courage: number;
+  empathy: number;
+  laugh: number;
+  support: number;
 }
 
 export interface FailAuthor {
@@ -14,11 +15,15 @@ export interface FailAuthor {
 
 export interface Fail {
   id: string;
-  content: string;
+  title: string;
+  description: string;
   category: FailCategory;
-  image?: string;
-  author: FailAuthor;
-  createdAt: Date;
+  imageUrl?: string;
+  authorName: string;
+  authorAvatar: string;
   reactions: FailReactions;
-  isAnonymous: boolean;
+  commentsCount: number;
+  isPublic: boolean;
+  createdAt: Date;
+  encouragementMessage?: string;
 }

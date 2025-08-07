@@ -45,7 +45,7 @@ export class LoginPage implements OnInit {
 
       try {
         const { email, password } = this.loginForm.value;
-        await this.authService.login(email, password).toPromise();
+        await this.authService.login({ email, password }).toPromise();
 
         const toast = await this.toastController.create({
           message: 'Connexion réussie !',

@@ -100,14 +100,14 @@ export class ProfilePage implements OnInit {
     ) {
         this.userBadges$ = this.badgeService.getBadges();
         this.userFails$ = this.failService.getFails().pipe(
-            map(fails => fails.filter(fail => {
+            map((fails: Fail[]) => fails.filter((fail: Fail) => {
                 const currentUser = this.authService.getCurrentUser();
-                return currentUser && fail.author.id === currentUser.id;
+                return currentUser && fail.authorName === currentUser.displayName;
             }))
         );
 
         this.recentFails$ = this.userFails$.pipe(
-            map(fails => fails.slice(0, 3)) // 3 derniers fails
+            map((fails: Fail[]) => fails.slice(0, 3)) // 3 derniers fails
         );
 
         this.profileStats$ = combineLatest([
@@ -123,8 +123,11 @@ export class ProfilePage implements OnInit {
 
     async handleRefresh(event: RefresherCustomEvent) {
         // Rafraîchit les données utilisateur
-        await this.authService.loadUserFromStorage();
-        await this.failService.loadFailsFromStorage();
+        try {
+            await this.failService.refreshFails();
+        } catch (error) {
+            console.error('Error refreshing data:', error);
+        }
 
         setTimeout(() => {
             event.target.complete();
@@ -144,7 +147,7 @@ export class ProfilePage implements OnInit {
         }
 
         const totalReactions = fails.reduce((sum, fail) =>
-            sum + fail.reactions.courageHearts + fail.reactions.laughs + fail.reactions.supports, 0
+            sum + fail.reactions.courage + fail.reactions.laugh + fail.reactions.empathy + fail.reactions.support, 0
         );
 
         const joinedDaysAgo = Math.floor(

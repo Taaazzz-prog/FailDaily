@@ -168,15 +168,16 @@
                             [class]="'category-' + fail.category"></ion-icon>
                     </div>
                     <div class="fail-content">
+                        <h4 class="fail-title">{{ fail.title }}</h4>
                         <p class="comfort-text">
-                            {{ fail.content.substring(0, 60) }}{{ fail.content.length > 60 ? '...' : '' }}
+                            {{ fail.description.substring(0, 60) }}{{ fail.description.length > 60 ? '...' : '' }}
                         </p>
                         <div class="fail-meta">
                             <span class="time-ago comfort-text">{{ fail.createdAt | timeAgo }}</span>
                             <div class="reactions-count">
                                 <ion-icon name="heart" color="danger"></ion-icon>
-                                <span class="comfort-text">{{ fail.reactions.courageHearts + fail.reactions.laughs +
-                                    fail.reactions.supports }}</span>
+                                <span class="comfort-text">{{ fail.reactions.courage + fail.reactions.laugh +
+                                    fail.reactions.empathy + fail.reactions.support }}</span>
                             </div>
                         </div>
                     </div>

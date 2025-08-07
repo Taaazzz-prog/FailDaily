@@ -1,109 +1,129 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, from, map, switchMap, catchError, of } from 'rxjs';
+import { SupabaseService } from './supabase.service';
 import { Fail } from '../models/fail.model';
+import { User } from '@supabase/supabase-js';
 import { FailCategory } from '../models/enums';
-import { Preferences } from '@capacitor/preferences';
 
-@Injectable({ providedIn: 'root' })
+export interface CreateFailData {
+  title: string;
+  description: string;
+  category: FailCategory;
+  image?: File;
+  isPublic: boolean;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
 export class FailService {
-  private failsSubject = new BehaviorSubject<Fail[]>([]);
-  public fails$ = this.failsSubject.asObservable();
+  constructor(private supabaseService: SupabaseService) { }
 
-  constructor() {
-    this.loadFailsFromStorage();
-  }
-
-  async loadFailsFromStorage() {
-    const { value } = await Preferences.get({ key: 'fails' });
-    if (value) {
-      const fails = JSON.parse(value).map((fail: any) => ({
-        ...fail,
-        createdAt: new Date(fail.createdAt)
-      }));
-      this.failsSubject.next(fails);
+  async createFail(failData: CreateFailData): Promise<void> {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) {
+      throw new Error('Utilisateur non connecté');
     }
+
+    let imageUrl = null;
+    if (failData.image) {
+      imageUrl = await this.supabaseService.uploadFile(
+        'fails',
+        `${user.id}/${Date.now()}`,
+        failData.image
+      );
+    }
+
+    await this.supabaseService.createFail({
+      title: failData.title,
+      description: failData.description,
+      category: failData.category,
+      image_url: imageUrl,
+      is_public: failData.isPublic,
+      user_id: user.id
+    });
   }
 
-  getFails(): Observable<Fail[]> {
-    return this.fails$;
-  }
-
-  async addFail(fail: Fail): Promise<void> {
-    const currentFails = this.failsSubject.value;
-    const updatedFails = [fail, ...currentFails]; // Nouveau fail en premier
-
-    await this.saveFailsToStorage(updatedFails);
-    this.failsSubject.next(updatedFails);
-  }
-
-  async updateFail(failId: string, updates: Partial<Fail>): Promise<void> {
-    const currentFails = this.failsSubject.value;
-    const updatedFails = currentFails.map(fail =>
-      fail.id === failId ? { ...fail, ...updates } : fail
+  getAllFails(): Observable<Fail[]> {
+    return from(this.supabaseService.getFails()).pipe(
+      map((fails: any[]) => {
+        return fails.map(fail => this.formatFail(fail));
+      }),
+      catchError(error => {
+        console.error('Erreur lors de la récupération des fails:', error);
+        return of([]);
+      })
     );
-
-    await this.saveFailsToStorage(updatedFails);
-    this.failsSubject.next(updatedFails);
   }
 
-  async addReaction(failId: string, reactionType: 'courageHearts' | 'laughs' | 'supports'): Promise<void> {
-    const currentFails = this.failsSubject.value;
-    const updatedFails = currentFails.map(fail => {
-      if (fail.id === failId) {
-        return {
-          ...fail,
-          reactions: {
-            ...fail.reactions,
-            [reactionType]: (fail.reactions as any)[reactionType] + 1
-          }
-        };
+  getFailsByCategory(category: FailCategory): Observable<Fail[]> {
+    return from(this.supabaseService.getFails()).pipe(
+      map((fails: any[]) => {
+        return fails
+          .filter(fail => fail.category === category)
+          .map(fail => this.formatFail(fail));
+      }),
+      catchError(error => {
+        console.error('Erreur lors de la récupération des fails par catégorie:', error);
+        return of([]);
+      })
+    );
+  }
+
+  private formatFail(failData: any): Fail {
+    // Déterminer le nom de l'auteur selon si c'est public ou anonyme
+    let authorName = 'Utilisateur courageux'; // PAR DÉFAUT: PUBLIC
+    if (!failData.is_public) {
+      // Seulement si explicitement marqué comme non-public, alors anonyme
+      authorName = 'Utilisateur anonyme';
+    }
+
+    return {
+      id: failData.id,
+      title: failData.title,
+      description: failData.description,
+      category: failData.category as FailCategory,
+      authorName: authorName,
+      authorAvatar: '', // À implémenter plus tard
+      imageUrl: failData.image_url,
+      createdAt: new Date(failData.created_at),
+      isPublic: failData.is_public,
+      commentsCount: 0, // À implémenter plus tard
+      reactions: {
+        courage: failData.reactions?.courage || 0,
+        empathy: failData.reactions?.empathy || 0,
+        laugh: failData.reactions?.laugh || 0,
+        support: failData.reactions?.support || 0
       }
-      return fail;
-    });
-
-    await this.saveFailsToStorage(updatedFails);
-    this.failsSubject.next(updatedFails);
+    };
   }
 
-  private async saveFailsToStorage(fails: Fail[]): Promise<void> {
-    await Preferences.set({
-      key: 'fails',
-      value: JSON.stringify(fails)
-    });
+  async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    return this.supabaseService.addReaction(failId, reactionType);
   }
 
-  // Méthode pour générer des fails de démonstration
-  async generateDemoFails(): Promise<void> {
-    const demoFails: Fail[] = [
-      {
-        id: '1',
-        content: 'J\'ai renversé mon café sur mon ordinateur portable pendant une réunion importante... Le silence qui a suivi était assourdissant 😅',
-        category: FailCategory.WORK,
-        author: {
-          id: 'demo1',
-          displayName: 'Sarah M.',
-          avatar: 'assets/images/default-avatar.png'
-        },
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // Il y a 2h
-        reactions: { courageHearts: 12, laughs: 8, supports: 5 },
-        isAnonymous: false
-      },
-      {
-        id: '2',
-        content: 'Ma recette "secrète" de gâteau au chocolat s\'est transformée en brique... Mes invités ont été très polis en prétendant que c\'était "original" 🍰',
-        category: FailCategory.COOKING,
-        author: {
-          id: 'demo2',
-          displayName: 'Anonyme',
-          avatar: 'assets/images/anonymous-avatar.png'
-        },
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // Il y a 5h
-        reactions: { courageHearts: 15, laughs: 22, supports: 8 },
-        isAnonymous: true
-      }
-    ];
+  async removeReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) {
+      throw new Error('Utilisateur non connecté');
+    }
 
-    await this.saveFailsToStorage(demoFails);
-    this.failsSubject.next(demoFails);
+    return this.supabaseService.removeReaction(failId, reactionType);
+  }
+
+  // Méthodes de compatibilité pour les pages existantes
+  getFails(): Observable<Fail[]> {
+    return this.getAllFails();
+  }
+
+  async refreshFails(): Promise<void> {
+    // Cette méthode n'est plus nécessaire avec les Observables
+    // mais on la garde pour la compatibilité
+    return Promise.resolve();
   }
 }

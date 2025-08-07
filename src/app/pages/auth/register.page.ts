@@ -57,7 +57,13 @@ export class RegisterPage implements OnInit {
 
       try {
         const { displayName, email, password } = this.registerForm.value;
-        await this.authService.register(displayName, email, password).toPromise();
+        const registerData = {
+          email,
+          password,
+          username: displayName.toLowerCase().replace(/\s+/g, '_'),
+          displayName
+        };
+        await this.authService.register(registerData).toPromise();
 
         const toast = await this.toastController.create({
           message: 'Inscription réussie ! Bienvenue dans FailDaily 🎉',

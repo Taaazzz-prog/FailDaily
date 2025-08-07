@@ -4,6 +4,7 @@ import { IonButton, IonIcon } from '@ionic/angular/standalone';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
+import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 @Component({
@@ -24,57 +25,57 @@ export class FailCardComponent implements OnInit {
     'L\'imperfection, c\'est la perfection ! ✨'
   ];
 
-  // Message d'encouragement fixe pour éviter les changements après détection
-  encouragementMessage = '';
-
   constructor(private failService: FailService) { }
 
   ngOnInit() {
-    // Générer le message d'encouragement une seule fois à l'initialisation
-    this.encouragementMessage = this.getRandomEncouragement();
+    // Le message d'encouragement est déjà dans le fail object
   }
 
-  async onCourageHeart() {
+  async onCourage() {
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
-      await this.failService.addReaction(this.fail.id, 'courageHearts');
+      await this.failService.addReaction(this.fail.id, 'courage');
     } catch (error) {
       // Fallback si haptics non disponible
-      await this.failService.addReaction(this.fail.id, 'courageHearts');
+      await this.failService.addReaction(this.fail.id, 'courage');
     }
   }
 
   async onLaugh() {
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
-      await this.failService.addReaction(this.fail.id, 'laughs');
+      await this.failService.addReaction(this.fail.id, 'laugh');
     } catch (error) {
-      await this.failService.addReaction(this.fail.id, 'laughs');
+      await this.failService.addReaction(this.fail.id, 'laugh');
+    }
+  }
+
+  async onEmpathy() {
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+      await this.failService.addReaction(this.fail.id, 'empathy');
+    } catch (error) {
+      await this.failService.addReaction(this.fail.id, 'empathy');
     }
   }
 
   async onSupport() {
     try {
       await Haptics.impact({ style: ImpactStyle.Medium });
-      await this.failService.addReaction(this.fail.id, 'supports');
+      await this.failService.addReaction(this.fail.id, 'support');
     } catch (error) {
-      await this.failService.addReaction(this.fail.id, 'supports');
+      await this.failService.addReaction(this.fail.id, 'support');
     }
   }
 
-  getCategoryColor(category: string): string {
+  getCategoryColor(category: FailCategory): string {
     switch (category) {
-      case 'WORK': return 'var(--fail-blue)';
-      case 'COOKING': return 'var(--fail-peach)';
-      case 'SPORT': return 'var(--fail-mint)';
-      case 'SOCIAL': return 'var(--fail-lavender)';
-      case 'OTHER': return 'var(--fail-yellow)';
-      default: return 'var(--fail-pink)';
+      case FailCategory.COURAGE: return 'var(--courage-color)';
+      case FailCategory.HUMOUR: return 'var(--humour-color)';
+      case FailCategory.ENTRAIDE: return 'var(--entraide-color)';
+      case FailCategory.PERSEVERANCE: return 'var(--perseverance-color)';
+      case FailCategory.SPECIAL: return 'var(--special-color)';
+      default: return 'var(--pastel-pink)';
     }
-  }
-
-  private getRandomEncouragement(): string {
-    const randomIndex = Math.floor(Math.random() * this.encouragementMessages.length);
-    return this.encouragementMessages[randomIndex];
   }
 }

@@ -1,16 +1,16 @@
 export enum FailCategory {
-  WORK = 'WORK',
-  COOKING = 'COOKING',
-  SPORT = 'SPORT',
-  SOCIAL = 'SOCIAL',
-  OTHER = 'OTHER'
+  COURAGE = 'courage',
+  HUMOUR = 'humour',
+  ENTRAIDE = 'entraide',
+  PERSEVERANCE = 'perseverance',
+  SPECIAL = 'special'
 }
 
 export enum ReactionType {
-  COURAGE_HEART = 'courage_heart',
-  ME_TOO = 'me_too',
-  HUG = 'hug',
-  THANK_YOU = 'thank_you'
+  COURAGE = 'courage',
+  EMPATHY = 'empathy',
+  LAUGH = 'laugh',
+  SUPPORT = 'support'
 }
 
 export enum BadgeCategory {
@@ -21,9 +21,17 @@ export enum BadgeCategory {
   SPECIAL = 'SPECIAL'
 }
 
+export enum BadgeRarity {
+  COMMON = 'common',
+  RARE = 'rare',
+  EPIC = 'epic',
+  LEGENDARY = 'legendary'
+}
+
 export enum BadgeType {
   FIRST_FAIL = 'FIRST_FAIL',
-  COURAGE = 'COURAGE',
-  PERSEVERANCE = 'PERSEVERANCE',
-  COMMUNITY = 'COMMUNITY'
+  CATEGORY_MASTER = 'CATEGORY_MASTER',
+  STREAK_MASTER = 'STREAK_MASTER',
+  COMMUNITY_HELPER = 'COMMUNITY_HELPER',
+  SPECIAL_EVENT = 'SPECIAL_EVENT'
 }

@@ -16,6 +16,13 @@
 
     <form [formGroup]="postFailForm" (ngSubmit)="onPostFail()" class="post-fail-form">
 
+      <!-- Titre du fail -->
+      <ion-item class="imperfect-element">
+        <ion-label position="stacked">Titre de votre fail</ion-label>
+        <ion-textarea formControlName="title" placeholder="Un titre court pour votre fail..." rows="1" maxlength="100">
+        </ion-textarea>
+      </ion-item>
+
       <!-- Contenu du fail -->
       <ion-item class="imperfect-element">
         <ion-label position="stacked">Votre fail du jour</ion-label>
