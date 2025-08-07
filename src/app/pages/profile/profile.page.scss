@@ -1,0 +1,403 @@
+// Couleurs et variables pour la cohérence
+:root {
+    --profile-primary: #6366f1;
+    --profile-accent: #f7a4a4;
+    --profile-success: #10b981;
+    --profile-warning: #f59e0b;
+    --profile-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --card-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+    --hover-shadow: 0 8px 25px rgba(99, 102, 241, 0.12);
+}
+
+.profile-content {
+    --background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
+}
+
+// Header utilisateur avec gradient
+.profile-header {
+    background: var(--profile-gradient);
+    padding: 2rem 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 0 0 24px 24px;
+    color: white;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+        animation: float 20s linear infinite;
+        opacity: 0.3;
+    }
+
+    .user-info {
+        position: relative;
+        z-index: 2;
+    }
+
+    .large-avatar {
+        width: 120px;
+        height: 120px;
+        margin: 0 auto 1rem;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+
+        img {
+            border-radius: 50%;
+        }
+    }
+
+    .username {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0.5rem 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .join-date {
+        opacity: 0.9;
+        font-size: 0.9rem;
+        margin: 0.25rem 0;
+    }
+
+    .encouragement {
+        font-size: 0.95rem;
+        opacity: 0.95;
+        margin: 1rem 0;
+        font-style: italic;
+        font-weight: 500;
+    }
+
+    .profile-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+
+        ion-button {
+            --color: rgba(255, 255, 255, 0.9);
+            --border-color: rgba(255, 255, 255, 0.3);
+            --background-hover: rgba(255, 255, 255, 0.1);
+        }
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateX(-100px) translateY(-100px);
+    }
+
+    100% {
+        transform: translateX(100px) translateY(100px);
+    }
+}
+
+// Cards avec style amélioré
+ion-card {
+    margin: 0.75rem;
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    border: 1px solid rgba(99, 102, 241, 0.05);
+    transition: all 0.3s ease;
+
+    &:hover {
+        box-shadow: var(--hover-shadow);
+        transform: translateY(-2px);
+    }
+
+    ion-card-header {
+        padding-bottom: 0.5rem;
+
+        ion-card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--profile-primary);
+
+            ion-icon {
+                color: var(--profile-accent);
+            }
+        }
+    }
+}
+
+// Carte de niveau avec design spécial
+.level-card {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+
+    ion-card-title {
+        color: white !important;
+
+        ion-icon {
+            color: #fbbf24 !important;
+        }
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+
+        .next-level {
+            opacity: 0.9;
+            font-size: 0.85rem;
+        }
+    }
+
+    .courage-progress {
+        --background: rgba(255, 255, 255, 0.2);
+        --progress-background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        height: 8px;
+        border-radius: 4px;
+    }
+}
+
+// Statistiques en grille
+.stats-card {
+    .stat-item {
+        text-align: center;
+        padding: 0.5rem;
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--profile-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--ion-color-medium);
+            font-weight: 500;
+        }
+    }
+}
+
+// Aperçu des badges
+.badges-card {
+    .badges-preview {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+        margin-bottom: 1rem;
+
+        .badge-item {
+            text-align: center;
+
+            .badge-icon {
+                width: 50px;
+                height: 50px;
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 0.5rem;
+                position: relative;
+
+                ion-icon {
+                    font-size: 1.5rem;
+                    color: white;
+                }
+
+                &.rarity-common {
+                    background: linear-gradient(135deg, #6b7280, #9ca3af);
+                }
+
+                &.rarity-rare {
+                    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+                }
+
+                &.rarity-epic {
+                    background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+                }
+
+                &.rarity-legendary {
+                    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+
+                    &::before {
+                        content: '✨';
+                        position: absolute;
+                        top: -5px;
+                        right: -5px;
+                        font-size: 0.8rem;
+                    }
+                }
+            }
+
+            .badge-name {
+                font-size: 0.8rem;
+                font-weight: 500;
+                color: var(--ion-color-dark);
+            }
+        }
+    }
+
+    .no-badges {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--ion-color-medium);
+
+        ion-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        p {
+            margin: 0.5rem 0;
+        }
+
+        .encouragement-text {
+            font-style: italic;
+            color: var(--profile-accent);
+        }
+    }
+}
+
+// Fails récents
+.recent-fails-card {
+    .fail-preview-item {
+        margin-bottom: 0.5rem;
+        border-radius: 12px;
+        --background: rgba(99, 102, 241, 0.02);
+        border: 1px solid rgba(99, 102, 241, 0.08);
+
+        .fail-category {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--profile-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            ion-icon {
+                color: white;
+                font-size: 1.2rem;
+            }
+        }
+
+        ion-label {
+            h3 {
+                font-size: 0.95rem;
+                font-weight: 500;
+                margin-bottom: 0.25rem;
+                line-height: 1.3;
+            }
+
+            p {
+                font-size: 0.8rem;
+                color: var(--ion-color-medium);
+            }
+        }
+    }
+
+    .no-fails {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--ion-color-medium);
+
+        ion-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        p {
+            margin: 0.5rem 0;
+        }
+
+        .encouragement-text {
+            font-style: italic;
+            color: var(--profile-accent);
+        }
+    }
+}
+
+// Boutons "Voir tout"
+.view-all-btn {
+    margin-top: 1rem;
+    --color: var(--profile-primary);
+    --border-color: var(--profile-primary);
+}
+
+// Actions finales
+.actions-card {
+    margin-bottom: 2rem;
+
+    ion-button {
+        --border-color: #ef4444;
+        --color: #ef4444;
+    }
+}
+
+// Responsivité
+@media (max-width: 576px) {
+    .profile-header {
+        padding: 1.5rem 1rem;
+
+        .large-avatar {
+            width: 100px;
+            height: 100px;
+        }
+
+        .username {
+            font-size: 1.5rem;
+        }
+
+        .profile-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 200px;
+            margin: 1.5rem auto 0;
+        }
+    }
+
+    .badges-preview {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+}
+
+// Animation d'entrée progressive
+ion-card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideInUp 0.6s ease forwards;
+
+    &:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    &:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+
+    &:nth-child(4) {
+        animation-delay: 0.4s;
+    }
+
+    &:nth-child(5) {
+        animation-delay: 0.5s;
+    }
+}
+
+@keyframes slideInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

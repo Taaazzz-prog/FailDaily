@@ -1,0 +1,46 @@
+<div class="fail-card imperfect-element">
+  <!-- En-tête de la carte -->
+  <div class="card-header">
+    <div class="author-info">
+      <img [src]="fail.author.avatar" [alt]="fail.author.displayName" class="author-avatar">
+      <div class="author-details">
+        <h3 class="author-name comfort-text">{{ fail.author.displayName }}</h3>
+        <p class="post-time">{{ fail.createdAt | timeAgo }}</p>
+      </div>
+    </div>
+    <div class="category-badge" [style.background-color]="getCategoryColor(fail.category)">
+      <span class="comfort-text">{{ fail.category }}</span>
+    </div>
+  </div>
+
+  <!-- Contenu du fail -->
+  <div class="card-content">
+    <p class="fail-text">{{ fail.content }}</p>
+    @if (fail.image) {
+    <img [src]="fail.image" alt="Image du fail" class="fail-image">
+    }
+  </div>
+
+  <!-- Actions de réaction -->
+  <div class="card-actions">
+    <ion-button fill="clear" size="small" (click)="onCourageHeart()" class="reaction-button courage-heart">
+      <ion-icon name="heart" slot="start"></ion-icon>
+      <span>{{ fail.reactions.courageHearts }}</span>
+    </ion-button>
+
+    <ion-button fill="clear" size="small" (click)="onLaugh()" class="reaction-button laugh">
+      <ion-icon name="happy" slot="start"></ion-icon>
+      <span>{{ fail.reactions.laughs }}</span>
+    </ion-button>
+
+    <ion-button fill="clear" size="small" (click)="onSupport()" class="reaction-button support">
+      <ion-icon name="hand-left" slot="start"></ion-icon>
+      <span>{{ fail.reactions.supports }}</span>
+    </ion-button>
+  </div>
+
+  <!-- Message d'encouragement aléatoire -->
+  <div class="encouragement-message">
+    <p class="handwriting">{{ encouragementMessage }}</p>
+  </div>
+</div>

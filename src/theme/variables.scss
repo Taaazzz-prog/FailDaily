@@ -1,2 +1,225 @@
-// For information on how to create your own theme, please see:
-// http://ionicframework.com/docs/theming/
+// Import des polices Google Fonts pour le style "manuscrit"
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Comfortaa:wght@300;400;600&display=swap');
+
+:root {
+  // ========================================
+  // COULEURS PRINCIPALES FAILDAILY
+  // ========================================
+
+  // Couleurs douces et rassurantes
+  --ion-color-primary: #FF6B9D;
+  --ion-color-primary-rgb: 255, 107, 157;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #e05e8a;
+  --ion-color-primary-tint: #ff7aa7;
+
+  --ion-color-secondary: #A8E6CF;
+  --ion-color-secondary-rgb: 168, 230, 207;
+  --ion-color-secondary-contrast: #000000;
+  --ion-color-secondary-contrast-rgb: 0, 0, 0;
+  --ion-color-secondary-shade: #94cab6;
+  --ion-color-secondary-tint: #b1e8d4;
+
+  --ion-color-tertiary: #FFE4B5;
+  --ion-color-tertiary-rgb: 255, 228, 181;
+  --ion-color-tertiary-contrast: #000000;
+  --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+  --ion-color-tertiary-shade: #e0c89f;
+  --ion-color-tertiary-tint: #ffe7bc;
+
+  // Couleurs d'état douces
+  --ion-color-success: #A8E6CF;
+  --ion-color-warning: #FFD93D;
+  --ion-color-danger: #FF8A80;
+  --ion-color-info: #81D4FA;
+
+  // ========================================
+  // COULEURS PERSONNALISÉES FAILDAILY
+  // ========================================
+
+  // Palette "imperfection"
+  --fail-pink: #FF6B9D;
+  --fail-mint: #A8E6CF;
+  --fail-peach: #FFAB91;
+  --fail-lavender: #CE93D8;
+  --fail-yellow: #FFF176;
+  --fail-blue: #81D4FA;
+
+  // Couleurs de fond douces
+  --fail-bg-main: #FFF8F5;        // Fond principal crème doux
+  --fail-bg-card: #FFFFFF;        // Fond des cartes
+  --fail-bg-overlay: rgba(255, 255, 255, 0.9);
+
+  // Couleurs de texte
+  --fail-text-primary: #2D2D2D;   // Texte principal doux
+  --fail-text-secondary: #666666;  // Texte secondaire
+  --fail-text-muted: #999999;     // Texte atténué
+
+  // ========================================
+  // VARIABLES CUSTOM FAILDAILY
+  // ========================================
+
+  // Rayons de bordure "imparfaits"
+  --fail-radius-small: 8px 12px 10px 14px;
+  --fail-radius-medium: 15px 18px 16px 19px;
+  --fail-radius-large: 20px 25px 22px 28px;
+
+  // Ombres douces
+  --fail-shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.08);
+  --fail-shadow-medium: 0 4px 15px rgba(0, 0, 0, 0.12);
+  --fail-shadow-strong: 0 8px 25px rgba(0, 0, 0, 0.15);
+
+  // Polices
+  --fail-font-handwriting: 'Caveat', 'Comic Sans MS', cursive;
+  --fail-font-comfort: 'Comfortaa', 'Arial', sans-serif;
+  --fail-font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  // Espacements "organiques"
+  --fail-spacing-xs: 4px;
+  --fail-spacing-sm: 8px;
+  --fail-spacing-md: 16px;
+  --fail-spacing-lg: 24px;
+  --fail-spacing-xl: 32px;
+
+  // Tailles pour les éléments
+  --fail-button-height: 44px;
+  --fail-input-height: 48px;
+  --fail-card-min-height: 120px;
+
+  // Animation douce
+  --fail-transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --fail-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+// ========================================
+// MODE SOMBRE (optionnel)
+// ========================================
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fail-bg-main: #1A1A1A;
+    --fail-bg-card: #2D2D2D;
+    --fail-bg-overlay: rgba(0, 0, 0, 0.8);
+
+    --fail-text-primary: #E0E0E0;
+    --fail-text-secondary: #B0B0B0;
+    --fail-text-muted: #808080;
+
+    --ion-color-primary: #FF8FB3;
+    --ion-color-secondary: #B5E8D1;
+    --ion-color-tertiary: #FFE8C4;
+  }
+}
+
+// ========================================
+// STYLES GLOBAUX POUR L'APP
+// ========================================
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--fail-font-system);
+  background-color: var(--fail-bg-main);
+  color: var(--fail-text-primary);
+}
+
+// Styles pour les éléments "imparfaits"
+.imperfect-element {
+  border-radius: var(--fail-radius-medium);
+  transform: rotate(-0.5deg);
+  transition: var(--fail-transition);
+
+  &:hover {
+    transform: rotate(0.2deg) scale(1.02);
+  }
+}
+
+.handwriting {
+  font-family: var(--fail-font-handwriting);
+  font-weight: 400;
+  transform: rotate(-0.3deg);
+}
+
+.comfort-text {
+  font-family: var(--fail-font-comfort);
+}
+
+// Animation de "wobble" subtile
+@keyframes subtle-wobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(0.3deg); }
+  75% { transform: rotate(-0.2deg); }
+}
+
+.wobbly {
+  animation: subtle-wobble 4s ease-in-out infinite;
+}
+
+// Bouton courage heart personnalisé
+.courage-heart {
+  color: var(--fail-pink);
+  font-size: 1.5rem;
+  transition: var(--fail-transition);
+
+  &.active {
+    transform: scale(1.2);
+    animation: heartbeat 0.6s ease-in-out;
+  }
+}
+
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1.2); }
+}
+
+// Styles pour les badges
+.badge-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  box-shadow: var(--fail-shadow-soft);
+}
+
+// Style pour les cartes de fail
+.fail-card {
+  background: var(--fail-bg-card);
+  border-radius: var(--fail-radius-medium);
+  box-shadow: var(--fail-shadow-soft);
+  margin: var(--fail-spacing-md);
+  padding: var(--fail-spacing-lg);
+  transform: rotate(-0.2deg);
+  transition: var(--fail-transition);
+
+  &:nth-child(even) {
+    transform: rotate(0.2deg);
+  }
+
+  &:hover {
+    transform: rotate(0deg) translateY(-2px);
+    box-shadow: var(--fail-shadow-medium);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .fail-card {
+    margin: var(--fail-spacing-sm);
+    padding: var(--fail-spacing-md);
+  }
+}
+
+// Styles pour les notifications toast
+.toast-encourage {
+  --background: var(--fail-mint);
+  --color: var(--fail-text-primary);
+  font-family: var(--fail-font-comfort);
+  border-radius: var(--fail-radius-small);
+}

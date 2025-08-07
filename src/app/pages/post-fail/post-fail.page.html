@@ -1,0 +1,82 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title class="handwriting">Partager un Fail</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/home"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div class="post-fail-container">
+    <div class="encouragement-section">
+      <h2 class="handwriting">Courage ! 💪</h2>
+      <p class="comfort-text">Partagez votre fail quotidien et recevez du soutien de la communauté</p>
+    </div>
+
+    <form [formGroup]="postFailForm" (ngSubmit)="onPostFail()" class="post-fail-form">
+
+      <!-- Contenu du fail -->
+      <ion-item class="imperfect-element">
+        <ion-label position="stacked">Votre fail du jour</ion-label>
+        <ion-textarea formControlName="content" placeholder="Racontez-nous ce qui s'est passé... pas de jugement ici !"
+          rows="4" maxlength="500">
+        </ion-textarea>
+      </ion-item>
+
+      <!-- Catégorie -->
+      <ion-item class="imperfect-element">
+        <ion-label position="stacked">Catégorie</ion-label>
+        <ion-select formControlName="category" placeholder="Choisissez une catégorie">
+          @for (category of failCategories; track category) {
+          <ion-select-option [value]="category">
+            {{ category }}
+          </ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+
+      <!-- Image optionnelle -->
+      <div class="image-section">
+        @if (!selectedImage) {
+        <div class="add-image-button">
+          <ion-button fill="outline" (click)="selectImage()" class="imperfect-element">
+            <ion-icon name="camera" slot="start"></ion-icon>
+            Ajouter une image (optionnel)
+          </ion-button>
+        </div>
+        }
+
+        @if (selectedImage) {
+        <div class="selected-image">
+          <img [src]="selectedImage" alt="Image sélectionnée">
+          <ion-button fill="clear" color="danger" (click)="removeImage()" class="remove-image-btn">
+            <ion-icon name="close-circle"></ion-icon>
+          </ion-button>
+        </div>
+        }
+      </div>
+
+      <!-- Option anonyme -->
+      <ion-item class="imperfect-element">
+        <ion-checkbox formControlName="isAnonymous" slot="start"></ion-checkbox>
+        <ion-label class="comfort-text">Publier de façon anonyme</ion-label>
+      </ion-item>
+
+      <!-- Bouton de publication -->
+      <ion-button type="submit" expand="block" class="publish-button imperfect-element"
+        [disabled]="!postFailForm.valid || isLoading">
+        @if (isLoading) {
+        <ion-spinner name="crescent"></ion-spinner>
+        } @else {
+        <span class="comfort-text">Publier avec courage</span>
+        }
+      </ion-button>
+    </form>
+
+    <!-- Messages d'encouragement -->
+    <div class="encouragement-footer">
+      <p class="handwriting">Rappelez-vous : chaque fail est un pas vers le succès ! 🌟</p>
+    </div>
+  </div>
+</ion-content>

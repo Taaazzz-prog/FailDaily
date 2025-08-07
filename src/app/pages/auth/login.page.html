@@ -1,0 +1,44 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title class="handwriting">Connexion à FailDaily</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <div class="login-container">
+    <div class="welcome-section">
+      <h1 class="handwriting">Bienvenue !</h1>
+      <p class="comfort-text">Reconnectez-vous pour partager vos fails quotidiens</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onLogin()" class="login-form">
+      <ion-item class="imperfect-element">
+        <ion-label position="stacked">Email</ion-label>
+        <ion-input type="email" formControlName="email" placeholder="votre@email.com">
+        </ion-input>
+      </ion-item>
+
+      <ion-item class="imperfect-element">
+        <ion-label position="stacked">Mot de passe</ion-label>
+        <ion-input type="password" formControlName="password" placeholder="••••••••">
+        </ion-input>
+      </ion-item>
+
+      <ion-button type="submit" expand="block" class="login-button imperfect-element"
+        [disabled]="!loginForm.valid || isLoading">
+        @if (isLoading) {
+        <ion-spinner name="crescent"></ion-spinner>
+        } @else {
+        <span class="comfort-text">Se connecter</span>
+        }
+      </ion-button>
+    </form>
+
+    <div class="register-link">
+      <p class="comfort-text">Pas encore de compte ?</p>
+      <ion-button fill="clear" (click)="goToRegister()" class="handwriting">
+        Créer un compte
+      </ion-button>
+    </div>
+  </div>
+</ion-content>

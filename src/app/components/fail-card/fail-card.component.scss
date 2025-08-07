@@ -1,0 +1,129 @@
+.fail-card {
+  background: var(--fail-bg-card);
+  border-radius: var(--fail-radius-medium);
+  box-shadow: var(--fail-shadow-soft);
+  margin: var(--fail-spacing-md) 0;
+  padding: var(--fail-spacing-lg);
+  transition: var(--fail-transition);
+
+  &:hover {
+    box-shadow: var(--fail-shadow-medium);
+    transform: translateY(-2px);
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--fail-spacing-md);
+
+  .author-info {
+    display: flex;
+    align-items: center;
+
+    .author-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: var(--fail-spacing-sm);
+      object-fit: cover;
+    }
+
+    .author-details {
+      .author-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--fail-text-primary);
+      }
+
+      .post-time {
+        font-size: 0.8rem;
+        color: var(--fail-text-muted);
+        margin: 2px 0 0 0;
+      }
+    }
+  }
+
+  .category-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    text-transform: uppercase;
+  }
+}
+
+.card-content {
+  margin-bottom: var(--fail-spacing-md);
+
+  .fail-text {
+    color: var(--fail-text-primary);
+    font-size: 1rem;
+    line-height: 1.5;
+    margin-bottom: var(--fail-spacing-sm);
+  }
+
+  .fail-image {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: var(--fail-radius-small);
+    margin-top: var(--fail-spacing-sm);
+  }
+}
+
+.card-actions {
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding-top: var(--fail-spacing-sm);
+  margin-bottom: var(--fail-spacing-sm);
+
+  .reaction-button {
+    --color: var(--fail-text-muted);
+    font-size: 0.9rem;
+    transition: var(--fail-transition);
+
+    &.courage-heart {
+      --color: var(--fail-pink);
+
+      &:hover {
+        --color: var(--ion-color-primary-shade);
+        transform: scale(1.1);
+      }
+    }
+
+    &.laugh {
+      --color: var(--fail-yellow);
+
+      &:hover {
+        --color: #FFD700;
+        transform: scale(1.1);
+      }
+    }
+
+    &.support {
+      --color: var(--fail-mint);
+
+      &:hover {
+        --color: var(--ion-color-secondary-shade);
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+.encouragement-message {
+  text-align: center;
+
+  p {
+    color: var(--fail-text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+    font-style: italic;
+  }
+}
+

@@ -1,0 +1,307 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-title class="handwriting">Ma Collection de Badges</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+    <!-- Rafraîchissement -->
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Tirer pour rafraîchir"
+            refreshingSpinner="circles" refreshingText="Actualisation...">
+        </ion-refresher-content>
+    </ion-refresher>
+
+    <div class="badges-container">
+        <!-- En-tête d'encouragement -->
+        @if (badgeStats$ | async; as stats) {
+        <div class="welcome-section">
+            <h1 class="handwriting">Tes trophées ! 🏆</h1>
+            <p class="comfort-text">Tu as débloqué {{ stats.unlockedBadges }} badges sur {{ stats.totalBadges }}</p>
+
+            <!-- Progression principale -->
+            <div class="progress-section imperfect-element">
+                <div class="progress-display">
+                    <ion-progress-bar [value]="stats.completionPercentage / 100"
+                        class="main-progress-bar"></ion-progress-bar>
+                    <div class="progress-text">
+                        <span class="percentage handwriting">{{ stats.completionPercentage }}%</span>
+                        <span class="label comfort-text">de ta collection</span>
+                    </div>
+                </div>
+
+                <!-- Stats par rareté -->
+                <div class="rarity-chips">
+                    <div class="rarity-chip rare">
+                        <div class="rarity-name">Rares</div>
+                        <div class="rarity-count">
+                            <ion-icon name="star"></ion-icon>{{ stats.rareCount }}
+                        </div>
+                    </div>
+                    <div class="rarity-chip epic">
+                        <div class="rarity-name">Épiques</div>
+                        <div class="rarity-count">
+                            <ion-icon name="diamond"></ion-icon>{{ stats.epicCount }}
+                        </div>
+                    </div>
+                    <div class="rarity-chip legendary">
+                        <div class="rarity-name">Légendaires</div>
+                        <div class="rarity-count">
+                            <ion-icon name="trophy"></ion-icon>{{ stats.legendaryCount }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="encouragement-text">
+                <p class="comfort-text">{{ encouragementMessage }}</p>
+                <ion-button fill="clear" size="small" (click)="shareBadgeCollection()" class="share-btn">
+                    <ion-icon name="share-outline" slot="start"></ion-icon>
+                    Partager ma collection
+                </ion-button>
+            </div>
+        </div>
+        }
+
+        <!-- Filtres par catégorie - Menu déroulant compact -->
+        <div class="categories-section">
+            <h3 class="handwriting">Explore par catégorie ! 🔍</h3>
+
+            <!-- Bouton de sélection avec menu déroulant -->
+            <div class="category-dropdown imperfect-element">
+                <!-- Overlay sombre -->
+                <div class="dropdown-overlay" [class.open]="isDropdownOpen" (click)="toggleDropdown()"></div>
+
+                <button class="dropdown-button" (click)="toggleDropdown()">
+                    <div class="selected-info">
+                        <div class="selected-icon">
+                            <ion-icon [name]="getSelectedCategoryIcon()"></ion-icon>
+                        </div>
+                        <div class="selected-text">
+                            <span class="category-name handwriting">{{ getSelectedCategoryDisplayName() }}</span>
+                            <span class="badge-count comfort-text">{{ getSelectedCategoryBadgeCount() }} badges</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-arrow">
+                        <ion-icon name="chevron-down" [class.rotated]="isDropdownOpen"></ion-icon>
+                    </div>
+                </button>
+
+                <!-- Menu déroulant -->
+                <div class="dropdown-menu" [class.open]="isDropdownOpen">
+                    <!-- Option "Tous" -->
+                    <div class="dropdown-item" [class.active]="selectedCategory === 'all'"
+                        (click)="selectCategory('all')">
+                        <div class="item-icon all-category">
+                            <ion-icon name="apps"></ion-icon>
+                        </div>
+                        <div class="item-info">
+                            <span class="item-name comfort-text">Tous les badges</span>
+                            <span class="item-count">{{ getAllBadgesCount() }}</span>
+                        </div>
+                        @if (selectedCategory === 'all') {
+                        <ion-icon name="checkmark-circle" class="check-icon"></ion-icon>
+                        }
+                    </div>
+
+                    <!-- Séparateur -->
+                    <div class="dropdown-divider"></div>
+
+                    <!-- Options des catégories -->
+                    @for (category of availableCategories; track category) {
+                    <div class="dropdown-item" [class.active]="selectedCategory === category"
+                        [class]="'item-' + category.toLowerCase()" (click)="selectCategory(category)">
+                        <div class="item-icon" [class]="'category-' + category.toLowerCase()">
+                            <ion-icon [name]="getCategoryIcon(category)"></ion-icon>
+                        </div>
+                        <div class="item-info">
+                            <span class="item-name comfort-text">{{ getCategoryDisplayName(category) }}</span>
+                            <span class="item-count">{{ getCategorySpecificBadgeCount(category) }}</span>
+                        </div>
+                        @if (selectedCategory === category) {
+                        <ion-icon name="checkmark-circle" class="check-icon"></ion-icon>
+                        }
+                    </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Collection de badges -->
+        @if (allBadges$ | async; as allBadges) {
+        <div class="badges-collection">
+
+            <!-- Affichage par catégorie -->
+            @if (selectedCategory === 'all') {
+            <div class="all-categories">
+                @for (categoryGroup of getBadgesByCategory(allBadges) | keyvalue; track categoryGroup.key) {
+                <div class="category-section">
+                    <div class="category-header">
+                        <h3 class="handwriting">
+                            <ion-icon [name]="getCategoryIcon(categoryGroup.key)"></ion-icon>
+                            {{ getCategoryDisplayName(categoryGroup.key) }}
+                        </h3>
+                        <ion-badge color="medium" class="count-badge">{{ categoryGroup.value.length }}</ion-badge>
+                    </div>
+
+                    <div class="badges-grid">
+                        @for (badge of categoryGroup.value; track badge.id) {
+                        <div class="badge-card imperfect-element"
+                            [class]="'rarity-' + badge.rarity + ' category-' + badge.category.toLowerCase()"
+                            [class.unlocked]="badge.unlockedDate" [class.locked]="!badge.unlockedDate">
+
+                            <!-- Fond coloré selon la catégorie -->
+                            <div class="badge-background" [class]="'bg-' + badge.category.toLowerCase()"></div>
+
+                            <!-- Icône du badge avec style "imparfait" -->
+                            <div class="badge-icon-container">
+                                <div class="icon-circle imperfect-element" [class]="'circle-' + badge.rarity">
+                                    <ion-icon [name]="badge.icon"
+                                        [class]="'badge-icon-' + badge.rarity + ' icon-wobble'"></ion-icon>
+                                </div>
+
+                                <!-- Indicateur de débloquage -->
+                                @if (badge.unlockedDate) {
+                                <div class="unlock-star">✨</div>
+                                } @else {
+                                <div class="lock-overlay">
+                                    <ion-icon name="lock-closed" class="lock-icon"></ion-icon>
+                                </div>
+                                }
+                            </div>
+
+                            <!-- Informations du badge -->
+                            <div class="badge-content">
+                                <h4 class="badge-name handwriting">{{ badge.name }}</h4>
+                                <p class="badge-description comfort-text">{{ badge.description }}</p>
+
+                                @if (badge.unlockedDate) {
+                                <div class="badge-meta unlocked">
+                                    <div class="rarity-tag imperfect-element" [class]="'tag-' + badge.rarity">
+                                        <span class="comfort-text">{{ getRarityDisplayName(badge.rarity) }}</span>
+                                    </div>
+                                    <span class="unlock-date comfort-text">{{ badge.unlockedDate | date:'dd/MM/yy'
+                                        }}</span>
+                                </div>
+                                } @else {
+                                <div class="badge-meta locked">
+                                    <div class="progress-hint comfort-text">
+                                        <ion-icon name="hourglass-outline"></ion-icon>
+                                        À débloquer
+                                    </div>
+                                </div>
+                                }
+                            </div>
+                        </div>
+                        }
+                    </div>
+                </div>
+                }
+            </div>
+            } @else {
+            <!-- Affichage filtré -->
+            @if (allBadges$ | async; as allBadges) {
+            @if (getFilteredBadges(allBadges); as filteredBadges) {
+            <div class="filtered-category">
+                <div class="category-header">
+                    <h3 class="handwriting">
+                        <ion-icon [name]="getCategoryIcon(selectedCategory)"></ion-icon>
+                        {{ getCategoryDisplayName(selectedCategory) }}
+                    </h3>
+                    <ion-badge color="medium" class="count-badge">{{ filteredBadges.length }}</ion-badge>
+                </div>
+
+                <div class="badges-grid">
+                    @for (badge of filteredBadges; track badge.id) {
+                    <div class="badge-card imperfect-element"
+                        [class]="'rarity-' + badge.rarity + ' category-' + badge.category.toLowerCase()"
+                        [class.unlocked]="badge.unlockedDate" [class.locked]="!badge.unlockedDate">
+
+                        <!-- Fond coloré selon la catégorie -->
+                        <div class="badge-background" [class]="'bg-' + badge.category.toLowerCase()"></div>
+
+                        <!-- Icône du badge avec style "imparfait" -->
+                        <div class="badge-icon-container">
+                            <div class="icon-circle imperfect-element" [class]="'circle-' + badge.rarity">
+                                <ion-icon [name]="badge.icon"
+                                    [class]="'badge-icon-' + badge.rarity + ' icon-wobble'"></ion-icon>
+                            </div>
+
+                            <!-- Indicateur de débloquage -->
+                            @if (badge.unlockedDate) {
+                            <div class="unlock-star">✨</div>
+                            } @else {
+                            <div class="lock-overlay">
+                                <ion-icon name="lock-closed" class="lock-icon"></ion-icon>
+                            </div>
+                            }
+                        </div>
+
+                        <!-- Informations du badge -->
+                        <div class="badge-content">
+                            <h4 class="badge-name handwriting">{{ badge.name }}</h4>
+                            <p class="badge-description comfort-text">{{ badge.description }}</p>
+
+                            @if (badge.unlockedDate) {
+                            <div class="badge-meta unlocked">
+                                <div class="rarity-tag imperfect-element" [class]="'tag-' + badge.rarity">
+                                    <span class="comfort-text">{{ getRarityDisplayName(badge.rarity) }}</span>
+                                </div>
+                                <span class="unlock-date comfort-text">{{ badge.unlockedDate | date:'dd/MM/yy' }}</span>
+                            </div>
+                            } @else {
+                            <div class="badge-meta locked">
+                                <div class="progress-hint comfort-text">
+                                    <ion-icon name="hourglass-outline"></ion-icon>
+                                    À débloquer
+                                </div>
+                            </div>
+                            }
+                        </div>
+                    </div>
+                    } @empty {
+                    <div class="empty-state">
+                        <ion-icon name="ribbon-outline" class="empty-icon"></ion-icon>
+                        <p class="comfort-text">Aucun badge dans cette catégorie pour l'instant</p>
+                        <p class="comfort-text">Continue de partager tes fails ! 💪</p>
+                    </div>
+                    }
+                </div>
+            </div>
+            }
+            }
+            }
+        </div>
+        }
+
+        <!-- Progression vers les prochains badges -->
+        <div class="next-objectives">
+            <h3 class="handwriting">Prochains défis ! 🎯</h3>
+            <div class="objectives-list">
+                <div class="objective-item imperfect-element">
+                    <div class="objective-info">
+                        <h4>Partager 5 fails</h4>
+                        <p class="comfort-text">Badge "Storyteller" (Rare)</p>
+                    </div>
+                    <div class="objective-progress">
+                        <ion-progress-bar value="0.6" class="progress-bar"></ion-progress-bar>
+                        <span class="progress-text comfort-text">3/5</span>
+                    </div>
+                </div>
+
+                <div class="objective-item imperfect-element">
+                    <div class="objective-info">
+                        <h4>Recevoir 25 réactions</h4>
+                        <p class="comfort-text">Badge "Star" (Épique)</p>
+                    </div>
+                    <div class="objective-progress">
+                        <ion-progress-bar value="0.8" class="progress-bar"></ion-progress-bar>
+                        <span class="progress-text comfort-text">20/25</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</ion-content>

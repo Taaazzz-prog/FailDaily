@@ -1,0 +1,128 @@
+// Style pour la page de création de fail (formulaire)
+ion-content {
+  --background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+}
+.fail-form {
+  margin-top: 2rem;
+}
+ion-list {
+  background: transparent;
+}
+ion-item {
+  border-radius: 16px;
+  margin-bottom: 16px;
+  background: #fff;
+  box-shadow: 0 2px 12px 0 rgba(99,102,241,0.08);
+}
+ion-label {
+  font-weight: 500;
+  color: #6366f1;
+}
+ion-input, ion-textarea {
+  font-size: 1em;
+}
+ion-select {
+  font-size: 1em;
+}
+.form-actions {
+  margin-top: 2rem;
+}
+ion-button {
+  --background: #6366f1;
+  --color: #fff;
+  font-weight: bold;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgba(99,102,241,0.10);
+}
+
+.post-fail-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: var(--fail-spacing-lg);
+}
+
+.encouragement-section {
+  text-align: center;
+  margin-bottom: var(--fail-spacing-xl);
+
+  h2 {
+    font-size: 2rem;
+    color: var(--fail-pink);
+    margin-bottom: var(--fail-spacing-sm);
+  }
+
+  p {
+    color: var(--fail-text-secondary);
+    font-size: 1rem;
+  }
+}
+
+.post-fail-form {
+  margin-bottom: var(--fail-spacing-xl);
+
+  ion-item {
+    margin-bottom: var(--fail-spacing-lg);
+    --background: var(--fail-bg-card);
+    --border-radius: var(--fail-radius-medium);
+    --box-shadow: var(--fail-shadow-soft);
+  }
+
+  ion-textarea {
+    --background: transparent;
+    font-family: var(--fail-font-system);
+  }
+}
+
+.image-section {
+  margin: var(--fail-spacing-lg) 0;
+
+  .add-image-button {
+    text-align: center;
+
+    ion-button {
+      --border-color: var(--fail-pink);
+      --color: var(--fail-pink);
+      --border-radius: var(--fail-radius-medium);
+    }
+  }
+
+  .selected-image {
+    position: relative;
+    text-align: center;
+
+    img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: var(--fail-radius-medium);
+      box-shadow: var(--fail-shadow-soft);
+    }
+
+    .remove-image-btn {
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      --color: var(--ion-color-danger);
+    }
+  }
+}
+
+.publish-button {
+  height: var(--fail-button-height);
+  margin-top: var(--fail-spacing-xl);
+  --background: var(--fail-pink);
+  --border-radius: var(--fail-radius-medium);
+
+  &:hover {
+    --background: var(--ion-color-primary-shade);
+  }
+}
+
+.encouragement-footer {
+  text-align: center;
+  margin-top: var(--fail-spacing-xl);
+
+  p {
+    color: var(--fail-text-muted);
+    font-size: 1.1rem;
+  }
+}

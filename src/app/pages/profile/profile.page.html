@@ -1,0 +1,227 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-title class="handwriting">Mon Profil</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+    <!-- Rafraîchissement -->
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Tirer pour rafraîchir"
+            refreshingSpinner="circles" refreshingText="Actualisation...">
+        </ion-refresher-content>
+    </ion-refresher>
+
+    <div class="profile-container">
+        <!-- En-tête utilisateur -->
+        @if (currentUser$ | async; as user) {
+        <div class="welcome-section">
+            <div class="user-header">
+                <ion-avatar class="profile-avatar">
+                    <img [src]="user.avatar" [alt]="user.displayName">
+                </ion-avatar>
+                <div class="user-info">
+                    <h1 class="handwriting">{{ user.displayName }}</h1>
+                    @if (profileStats$ | async; as stats) {
+                    <p class="comfort-text">
+                        <ion-icon name="calendar"></ion-icon>
+                        Membre depuis {{ stats.joinedDaysAgo }} jour{{ stats.joinedDaysAgo > 1 ? 's' : '' }}
+                    </p>
+                    }
+                </div>
+            </div>
+
+            <p class="encouragement-text comfort-text">{{ getRandomEncouragement() }}</p>
+
+            <!-- Actions rapides -->
+            <div class="profile-actions">
+                <ion-button fill="outline" class="imperfect-element" (click)="editProfile()">
+                    <ion-icon name="create-outline" slot="start"></ion-icon>
+                    Modifier
+                </ion-button>
+                <ion-button fill="outline" class="imperfect-element" (click)="shareProfile()">
+                    <ion-icon name="share-outline" slot="start"></ion-icon>
+                    Partager
+                </ion-button>
+            </div>
+        </div>
+        }
+
+        <!-- Niveau et progression -->
+        @if (currentUser$ | async; as user) {
+        <div class="level-section">
+            <h3 class="handwriting">Niveau de courage ! 💪</h3>
+            <div class="level-display imperfect-element">
+                <div class="level-badge">
+                    <ion-icon name="trophy" class="level-icon"></ion-icon>
+                    <span class="level-number handwriting">{{ getProgressLevel(user.couragePoints).level }}</span>
+                </div>
+                <div class="level-info">
+                    <p class="comfort-text">{{ user.couragePoints }} points de courage</p>
+                    <ion-progress-bar [value]="getProgressLevel(user.couragePoints).progress"
+                        class="level-progress"></ion-progress-bar>
+                    <p class="comfort-text">{{ getProgressLevel(user.couragePoints).nextLevel }} pour le niveau suivant
+                    </p>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- Statistiques -->
+        @if (profileStats$ | async; as stats) {
+        <div class="stats-section">
+            <h3 class="handwriting">Tes exploits ! 📊</h3>
+            <div class="stats-grid">
+                <div class="stat-card imperfect-element primary">
+                    <div class="stat-icon">
+                        <ion-icon name="document-text"></ion-icon>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number handwriting">{{ stats.totalFails }}</div>
+                        <div class="stat-label comfort-text">Fails partagés</div>
+                    </div>
+                </div>
+
+                <div class="stat-card imperfect-element secondary">
+                    <div class="stat-icon">
+                        <ion-icon name="heart"></ion-icon>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number handwriting">{{ stats.totalReactions }}</div>
+                        <div class="stat-label comfort-text">Réactions reçues</div>
+                    </div>
+                </div>
+
+                <div class="stat-card imperfect-element accent">
+                    <div class="stat-icon">
+                        <ion-icon name="flame"></ion-icon>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number handwriting">{{ stats.currentStreak }}</div>
+                        <div class="stat-label comfort-text">Série actuelle</div>
+                    </div>
+                </div>
+
+                <div class="stat-card imperfect-element neutral">
+                    <div class="stat-icon">
+                        <ion-icon name="analytics"></ion-icon>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number handwriting">{{ stats.averageReactionsPerFail }}</div>
+                        <div class="stat-label comfort-text">Moyenne/fail</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+
+        <!-- Badges récents -->
+        @if (userBadges$ | async; as badges) {
+        <div class="badges-section">
+            <h3 class="handwriting">Mes badges ! 🏆</h3>
+            @if (badges.length > 0) {
+            <div class="badges-preview imperfect-element">
+                @for (badge of badges.slice(0, 4); track badge.id) {
+                <div class="badge-preview">
+                    <div class="badge-icon" [class]="'rarity-' + badge.rarity">
+                        <ion-icon [name]="badge.icon"></ion-icon>
+                    </div>
+                    <div class="badge-info">
+                        <span class="badge-name comfort-text">{{ badge.name }}</span>
+                        <ion-badge [color]="getRarityColor(badge.rarity)" class="rarity-badge">
+                            {{ badge.rarity }}
+                        </ion-badge>
+                    </div>
+                </div>
+                }
+                @if (badges.length > 4) {
+                <div class="more-badges">
+                    <ion-icon name="add"></ion-icon>
+                    <span class="comfort-text">{{ badges.length - 4 }} autres</span>
+                </div>
+                }
+            </div>
+            } @else {
+            <div class="no-badges imperfect-element">
+                <ion-icon name="ribbon-outline" class="empty-icon"></ion-icon>
+                <p class="comfort-text">Commence ton aventure pour débloquer des badges !</p>
+            </div>
+            }
+            <ion-button expand="block" fill="outline" class="imperfect-element" (click)="viewAllBadges()">
+                Voir tous mes badges
+                <ion-icon name="arrow-forward" slot="end"></ion-icon>
+            </ion-button>
+        </div>
+        }
+
+        <!-- Mes derniers fails -->
+        @if (recentFails$ | async; as recentFails) {
+        <div class="recent-fails-section">
+            <h3 class="handwriting">Mes derniers fails ! 📝</h3>
+            @if (recentFails.length > 0) {
+            <div class="fails-preview imperfect-element">
+                @for (fail of recentFails.slice(0, 3); track fail.id) {
+                <div class="fail-preview">
+                    <div class="fail-category">
+                        <ion-icon [name]="getCategoryIcon(fail.category)"
+                            [class]="'category-' + fail.category"></ion-icon>
+                    </div>
+                    <div class="fail-content">
+                        <p class="comfort-text">
+                            {{ fail.content.substring(0, 60) }}{{ fail.content.length > 60 ? '...' : '' }}
+                        </p>
+                        <div class="fail-meta">
+                            <span class="time-ago comfort-text">{{ fail.createdAt | timeAgo }}</span>
+                            <div class="reactions-count">
+                                <ion-icon name="heart" color="danger"></ion-icon>
+                                <span class="comfort-text">{{ fail.reactions.courageHearts + fail.reactions.laughs +
+                                    fail.reactions.supports }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <ion-badge color="medium">
+                        {{ fail.category }}
+                    </ion-badge>
+                </div>
+                }
+                @if (recentFails.length > 3) {
+                <div class="more-fails">
+                    <ion-icon name="ellipsis-horizontal"></ion-icon>
+                    <span class="comfort-text">{{ recentFails.length - 3 }} autres fails</span>
+                </div>
+                }
+            </div>
+            } @else {
+            <div class="no-fails imperfect-element">
+                <ion-icon name="document-outline" class="empty-icon"></ion-icon>
+                <p class="comfort-text">C'est le moment parfait pour commencer ton aventure !</p>
+            </div>
+            }
+            <ion-button expand="block" fill="outline" class="imperfect-element" (click)="viewAllFails()">
+                Voir tous mes fails
+                <ion-icon name="arrow-forward" slot="end"></ion-icon>
+            </ion-button>
+        </div>
+        }
+
+        <!-- Actions -->
+        <div class="actions-section">
+            <ion-button expand="block" color="danger" fill="outline" class="imperfect-element" (click)="logout()">
+                <ion-icon name="log-out-outline" slot="start"></ion-icon>
+                Se déconnecter
+            </ion-button>
+        </div>
+
+    </div>
+</ion-content>
+
+<!-- Action Sheet pour les options de profil -->
+<ion-action-sheet [isOpen]="isActionSheetOpen" header="Options du profil" [buttons]="actionSheetButtons"
+    (didDismiss)="closeActionSheet()">
+</ion-action-sheet>
+
+<!-- Alert pour confirmer la déconnexion -->
+<ion-alert [isOpen]="isAlertOpen" header="Déconnexion" message="Êtes-vous sûr de vouloir vous déconnecter ?"
+    [buttons]="alertButtons" (didDismiss)="cancelLogout()">
+</ion-alert>

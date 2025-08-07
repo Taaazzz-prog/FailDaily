@@ -1,20 +1,89 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
+    <ion-title class="handwriting">FailDaily</ion-title>
+    <ion-buttons slot="end">
+      @if (!(currentUser$ | async)) {
+      <ion-button (click)="goToLogin()">
+        <ion-icon name="person" slot="icon-only"></ion-icon>
+      </ion-button>
+      }
+      <ion-button (click)="goToPostFail()">
+        <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <!-- Pull to refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+    <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Tirez pour actualiser"
+      refreshingSpinner="circles" refreshingText="Actualisation...">
+    </ion-refresher-content>
+  </ion-refresher>
 
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+  <div class="home-container">
+    <!-- En-tête avec message d'accueil -->
+    @if (currentUser$ | async; as user) {
+    <div class="welcome-section">
+      <h1 class="handwriting">Salut {{ user.displayName }} ! 👋</h1>
+      <p class="comfort-text">Prêt(e) à partager ton fail du jour ?</p>
+    </div>
+    } @else {
+    <div class="welcome-section">
+      <h1 class="handwriting">Bienvenue sur FailDaily ! 🌟</h1>
+      <p class="comfort-text">Découvrez une communauté bienveillante qui célèbre l'imperfection</p>
+      <ion-button expand="block" (click)="goToLogin()" class="login-cta imperfect-element">
+        Rejoindre la communauté
+      </ion-button>
+    </div>
+    }
+
+    <!-- Loading spinner -->
+    @if (isLoading) {
+    <div class="loading-section">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p class="comfort-text">Chargement des fails...</p>
+    </div>
+    }
+
+    <!-- Feed de fails -->
+    @if (!isLoading) {
+    <div class="fails-feed">
+      @if (fails$ | async; as fails) {
+      <!-- Message si aucun fail -->
+      @if (fails.length === 0) {
+      <div class="empty-state">
+        <h2 class="handwriting">Pas encore de fails ! 🤔</h2>
+        <p class="comfort-text">Soyez le premier à partager votre histoire</p>
+        <ion-button (click)="goToPostFail()" class="imperfect-element">
+          Publier mon premier fail
+        </ion-button>
+      </div>
+      } @else {
+      <!-- Liste des fails -->
+      @for (fail of fails; track fail.id) {
+      <div class="fail-item">
+        <app-fail-card [fail]="fail"></app-fail-card>
+      </div>
+      }
+      @empty {
+      <div class="empty-state">
+        <ion-icon name="document-outline" size="large"></ion-icon>
+        <p>Aucun fail partagé pour le moment</p>
+        <p class="subtitle">Soyez le premier à partager votre expérience !</p>
+      </div>
+      }
+      }
+      }
+    </div>
+    }
   </div>
+
+  <!-- Floating Action Button -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="goToPostFail()" class="fab-button">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
 </ion-content>

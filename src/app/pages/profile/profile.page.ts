@@ -1,0 +1,271 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import {
+    IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonIcon, IonButton,
+    IonAvatar, IonBadge, IonProgressBar,
+    IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
+    RefresherCustomEvent
+} from '@ionic/angular/standalone';
+import { AuthService } from '../../services/auth.service';
+import { FailService } from '../../services/fail.service';
+import { BadgeService } from '../../services/badge.service';
+import { User } from '../../models/user.model';
+import { Fail } from '../../models/fail.model';
+import { Badge } from '../../models/badge.model';
+import { Router } from '@angular/router';
+import { Observable, combineLatest, map } from 'rxjs';
+import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
+
+interface ProfileStats {
+    totalFails: number;
+    couragePoints: number;
+    totalReactions: number;
+    currentStreak: number;
+    joinedDaysAgo: number;
+    averageReactionsPerFail: number;
+}
+
+@Component({
+    selector: 'app-profile',
+    templateUrl: './profile.page.html',
+    styleUrls: ['./profile.page.scss'],
+    imports: [
+        CommonModule,
+        IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
+        IonAvatar, IonBadge, IonProgressBar,
+        IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
+        TimeAgoPipe
+    ]
+})
+export class ProfilePage implements OnInit {
+    currentUser$ = this.authService.currentUser$;
+    userFails$: Observable<Fail[]>;
+    userBadges$: Observable<Badge[]>;
+    profileStats$: Observable<ProfileStats>;
+    recentFails$: Observable<Fail[]>;
+
+    // UI State
+    isActionSheetOpen = false;
+    isAlertOpen = false;
+
+    // Boutons pour Action Sheet et Alert
+    actionSheetButtons = [
+        {
+            text: 'Modifier le profil',
+            icon: 'create-outline',
+            handler: () => this.closeActionSheet()
+        },
+        {
+            text: 'Changer la photo',
+            icon: 'camera-outline',
+            handler: () => this.closeActionSheet()
+        },
+        {
+            text: 'Paramètres de confidentialité',
+            icon: 'shield-outline',
+            handler: () => this.closeActionSheet()
+        },
+        {
+            text: 'Annuler',
+            role: 'cancel',
+            icon: 'close',
+            handler: () => this.closeActionSheet()
+        }
+    ];
+
+    alertButtons = [
+        {
+            text: 'Annuler',
+            role: 'cancel',
+            handler: () => this.cancelLogout()
+        },
+        {
+            text: 'Se déconnecter',
+            handler: () => this.confirmLogout()
+        }
+    ];    // Messages d'encouragement rotatifs
+    private encouragementMessages = [
+        "Chaque échec est un pas vers la réussite ! 🌟",
+        "Ton courage inspire la communauté ! 💪",
+        "L'authenticité est ta plus belle force ! ✨",
+        "Continue de partager, tu aides tant de gens ! ❤️",
+        "Tes fails deviennent des victoires pour tous ! 🏆"
+    ];
+
+    constructor(
+        private authService: AuthService,
+        private failService: FailService,
+        private badgeService: BadgeService,
+        private router: Router
+    ) {
+        this.userBadges$ = this.badgeService.getBadges();
+        this.userFails$ = this.failService.getFails().pipe(
+            map(fails => fails.filter(fail => {
+                const currentUser = this.authService.getCurrentUser();
+                return currentUser && fail.author.id === currentUser.id;
+            }))
+        );
+
+        this.recentFails$ = this.userFails$.pipe(
+            map(fails => fails.slice(0, 3)) // 3 derniers fails
+        );
+
+        this.profileStats$ = combineLatest([
+            this.currentUser$,
+            this.userFails$,
+            this.userBadges$
+        ]).pipe(
+            map(([user, fails, badges]) => this.calculateStats(user, fails, badges))
+        );
+    }
+
+    ngOnInit() { }
+
+    async handleRefresh(event: RefresherCustomEvent) {
+        // Rafraîchit les données utilisateur
+        await this.authService.loadUserFromStorage();
+        await this.failService.loadFailsFromStorage();
+
+        setTimeout(() => {
+            event.target.complete();
+        }, 1000);
+    }
+
+    private calculateStats(user: User | null, fails: Fail[], badges: Badge[]): ProfileStats {
+        if (!user) {
+            return {
+                totalFails: 0,
+                couragePoints: 0,
+                totalReactions: 0,
+                currentStreak: 0,
+                joinedDaysAgo: 0,
+                averageReactionsPerFail: 0
+            };
+        }
+
+        const totalReactions = fails.reduce((sum, fail) =>
+            sum + fail.reactions.courageHearts + fail.reactions.laughs + fail.reactions.supports, 0
+        );
+
+        const joinedDaysAgo = Math.floor(
+            (Date.now() - user.joinDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        const averageReactionsPerFail = fails.length > 0 ?
+            Math.round((totalReactions / fails.length) * 10) / 10 : 0;
+
+        return {
+            totalFails: fails.length,
+            couragePoints: user.couragePoints,
+            totalReactions,
+            currentStreak: this.calculateCurrentStreak(fails),
+            joinedDaysAgo,
+            averageReactionsPerFail
+        };
+    }
+
+    private calculateCurrentStreak(fails: Fail[]): number {
+        // Logique simplifiée pour calculer la streak actuelle
+        // Dans une vraie app, on regarderait les dates de publication
+        return fails.length > 0 ? Math.min(fails.length, 7) : 0;
+    }
+
+    getRandomEncouragement(): string {
+        const randomIndex = Math.floor(Math.random() * this.encouragementMessages.length);
+        return this.encouragementMessages[randomIndex];
+    }
+
+    getProgressLevel(couragePoints: number): { level: number; progress: number; nextLevel: number } {
+        const level = Math.floor(couragePoints / 100) + 1;
+        const currentLevelPoints = couragePoints % 100;
+        const nextLevelPoints = 100;
+        const progress = currentLevelPoints / nextLevelPoints;
+
+        return { level, progress, nextLevel: nextLevelPoints - currentLevelPoints };
+    }
+
+    async editProfile() {
+        // Pour l'instant, on affiche juste un message
+        // Dans une vraie app, on ouvrirait un modal d'édition
+        this.isActionSheetOpen = true;
+    }
+
+    async shareProfile() {
+        // Logique de partage du profil
+        console.log('Partager le profil');
+    }
+
+    async viewAllFails() {
+        // Navigation vers tous les fails de l'utilisateur
+        this.router.navigate(['/profile/my-fails']);
+    }
+
+    async viewAllBadges() {
+        // Navigation vers tous les badges
+        this.router.navigate(['/badges']);
+    }
+
+    async logout() {
+        this.isAlertOpen = true;
+    }
+
+    async confirmLogout() {
+        await this.authService.logout();
+        this.router.navigate(['/auth/login']);
+        this.isAlertOpen = false;
+    }
+
+    cancelLogout() {
+        this.isAlertOpen = false;
+    }
+
+    closeActionSheet() {
+        this.isActionSheetOpen = false;
+    }
+
+    getBadgesByCategory(badges: Badge[]): { [key: string]: Badge[] } {
+        return badges.reduce((acc, badge) => {
+            const category = badge.category;
+            if (!acc[category]) {
+                acc[category] = [];
+            }
+            acc[category].push(badge);
+            return acc;
+        }, {} as { [key: string]: Badge[] });
+    }
+
+    getRarityColor(rarity: string): string {
+        switch (rarity) {
+            case 'common': return 'medium';
+            case 'rare': return 'primary';
+            case 'epic': return 'secondary';
+            case 'legendary': return 'warning';
+            default: return 'medium';
+        }
+    }
+
+    trackByFailId(index: number, fail: Fail): string {
+        return fail.id;
+    }
+
+    trackByBadgeId(index: number, badge: Badge): string {
+        return badge.id;
+    }
+
+    getCategoryIcon(category: string): string {
+        // Retourne une icône basée sur la catégorie du fail
+        switch (category.toLowerCase()) {
+            case 'work': return 'briefcase-outline';
+            case 'cooking': return 'restaurant-outline';
+            case 'sport': return 'fitness-outline';
+            case 'relationship': return 'heart-outline';
+            case 'technology': return 'laptop-outline';
+            case 'travel': return 'airplane-outline';
+            case 'health': return 'medical-outline';
+            case 'education': return 'school-outline';
+            case 'finance': return 'card-outline';
+            case 'hobby': return 'color-palette-outline';
+            default: return 'document-text-outline';
+        }
+    }
+}

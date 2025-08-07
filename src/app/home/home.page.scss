@@ -25,3 +25,177 @@
 #container a {
   text-decoration: none;
 }
+
+ion-content {
+  --background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+}
+
+ion-toolbar {
+  --background: #6366f1;
+  --color: #fff;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+ion-title {
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+ion-list {
+  margin-top: 1.5rem;
+}
+
+ion-item {
+  border-radius: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px 0 rgba(99,102,241,0.08);
+  background: #fff;
+  transition: box-shadow 0.2s;
+}
+ion-item:hover {
+  box-shadow: 0 4px 24px 0 rgba(99,102,241,0.16);
+}
+
+ion-avatar img {
+  border-radius: 50%;
+  border: 2px solid #6366f1;
+  background: #e0e7ff;
+}
+
+ion-chip {
+  font-size: 0.85em;
+  font-weight: 500;
+  background: #e0e7ff;
+  color: #6366f1;
+  margin-top: 0.5em;
+}
+
+ion-icon[name="heart-outline"] {
+  color: #ef4444;
+  margin-right: 0.3em;
+}
+
+span[ng-reflect-ng-if="true"] {
+  color: #64748b;
+  font-size: 0.9em;
+  margin-left: 0.5em;
+}
+
+.home-container {
+  padding: var(--fail-spacing-md);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.welcome-section {
+  text-align: center;
+  margin-bottom: var(--fail-spacing-xl);
+  padding: var(--fail-spacing-lg);
+
+  h1 {
+    font-size: 2.5rem;
+    color: var(--fail-pink);
+    margin-bottom: var(--fail-spacing-sm);
+  }
+
+  p {
+    color: var(--fail-text-secondary);
+    font-size: 1.1rem;
+    margin-bottom: var(--fail-spacing-lg);
+  }
+
+  .login-cta {
+    --background: var(--fail-pink);
+    --border-radius: var(--fail-radius-medium);
+    height: var(--fail-button-height);
+
+    &:hover {
+      --background: var(--ion-color-primary-shade);
+    }
+  }
+}
+
+.loading-section {
+  text-align: center;
+  padding: var(--fail-spacing-xl);
+
+  ion-spinner {
+    color: var(--fail-pink);
+    --color: var(--fail-pink);
+    margin-bottom: var(--fail-spacing-md);
+  }
+
+  p {
+    color: var(--fail-text-muted);
+  }
+}
+
+.fails-feed {
+  .empty-state {
+    text-align: center;
+    padding: var(--fail-spacing-xl);
+
+    h2 {
+      font-size: 1.8rem;
+      color: var(--fail-text-secondary);
+      margin-bottom: var(--fail-spacing-md);
+    }
+
+    p {
+      color: var(--fail-text-muted);
+      margin-bottom: var(--fail-spacing-lg);
+    }
+
+    ion-button {
+      --background: var(--fail-mint);
+      --color: var(--fail-text-primary);
+      --border-radius: var(--fail-radius-medium);
+    }
+  }
+
+  .fail-item {
+    margin-bottom: var(--fail-spacing-md);
+  }
+}
+
+.fab-button {
+  --background: var(--fail-pink);
+  --color: white;
+  --box-shadow: var(--fail-shadow-medium);
+
+  &:hover {
+    --background: var(--ion-color-primary-shade);
+    transform: scale(1.1);
+  }
+}
+
+// Animation pour les nouvelles cartes de fail
+.fail-item {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .home-container {
+    padding: var(--fail-spacing-sm);
+  }
+
+  .welcome-section {
+    padding: var(--fail-spacing-md);
+
+    h1 {
+      font-size: 2rem;
+    }
+  }
+}
