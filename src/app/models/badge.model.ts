@@ -1,4 +1,4 @@
-import {BadgeCategory} from "./enums";
+import { BadgeCategory } from "./enums";
 
 export interface Badge {
   id: string;
@@ -8,5 +8,8 @@ export interface Badge {
   category: BadgeCategory;
   unlockedDate?: Date;
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  // Nouveaux champs pour le système de requirements basé sur ta BDD
+  requirementType?: string;
+  requirementValue?: string;
 }
 

@@ -24,23 +24,27 @@
 
   <!-- Actions de réaction -->
   <div class="card-actions">
-    <ion-button fill="clear" size="small" (click)="onCourage()" class="reaction-button courage">
+    <ion-button fill="clear" size="small" (click)="onCourage()" class="reaction-button courage"
+      [class.active]="isReactionActive('courage')">
       <ion-icon name="heart" slot="start"></ion-icon>
       <span>{{ fail.reactions.courage }}</span>
     </ion-button>
 
-    <ion-button fill="clear" size="small" (click)="onLaugh()" class="reaction-button laugh">
+    <ion-button fill="clear" size="small" (click)="onLaugh()" class="reaction-button laugh"
+      [class.active]="isReactionActive('laugh')">
       <ion-icon name="happy" slot="start"></ion-icon>
       <span>{{ fail.reactions.laugh }}</span>
     </ion-button>
 
-    <ion-button fill="clear" size="small" (click)="onEmpathy()" class="reaction-button empathy">
-      <ion-icon name="heart-circle" slot="start"></ion-icon>
+    <ion-button fill="clear" size="small" (click)="onEmpathy()" class="reaction-button empathy"
+      [class.active]="isReactionActive('empathy')">
+      <ion-icon name="people" slot="start"></ion-icon>
       <span>{{ fail.reactions.empathy }}</span>
     </ion-button>
 
-    <ion-button fill="clear" size="small" (click)="onSupport()" class="reaction-button support">
-      <ion-icon name="hand-left" slot="start"></ion-icon>
+    <ion-button fill="clear" size="small" (click)="onSupport()" class="reaction-button support"
+      [class.active]="isReactionActive('support')">
+      <ion-icon name="trophy-outline" slot="start"></ion-icon>
       <span>{{ fail.reactions.support }}</span>
     </ion-button>
   </div>

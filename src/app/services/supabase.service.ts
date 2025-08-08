@@ -133,6 +133,20 @@ export class SupabaseService {
         return data || [];
     }
 
+    async getFailById(failId: string): Promise<any | null> {
+        const { data, error } = await this.supabase
+            .from('fails')
+            .select('*')
+            .eq('id', failId)
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+            throw error;
+        }
+
+        return data || null;
+    }
+
     async getUserFails(userId: string): Promise<any[]> {
         const { data, error } = await this.supabase
             .from('fails')
@@ -160,16 +174,45 @@ export class SupabaseService {
         const user = this.currentUser.value;
         if (!user) throw new Error('Utilisateur non authentifié');
 
-        const { error } = await this.supabase
-            .from('reactions')
-            .insert({
-                fail_id: failId,
-                user_id: user.id,
-                reaction_type: reactionType
-            });
+        try {
+            // Vérifier si l'utilisateur a déjà cette réaction spécifique
+            const { data: existingReaction, error: checkError } = await this.supabase
+                .from('reactions')
+                .select('id')
+                .match({
+                    fail_id: failId,
+                    user_id: user.id,
+                    reaction_type: reactionType
+                })
+                .single();
 
-        if (error) throw error;
-        await this.updateReactionCount(failId, reactionType, 1);
+            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
+                throw checkError;
+            }
+
+            // Si l'utilisateur a déjà cette réaction, on ne fait rien
+            if (existingReaction) {
+                console.log(`L'utilisateur a déjà la réaction ${reactionType} sur ce fail`);
+                return;
+            }
+
+            // Sinon, ajouter la nouvelle réaction
+            const { error } = await this.supabase
+                .from('reactions')
+                .insert({
+                    fail_id: failId,
+                    user_id: user.id,
+                    reaction_type: reactionType
+                });
+
+            if (error) throw error;
+
+            // Incrémenter le compteur
+            await this.updateReactionCount(failId, reactionType, 1);
+        } catch (error) {
+            console.error('Erreur dans addReaction:', error);
+            throw error;
+        }
     }
 
     async removeReaction(failId: string, reactionType: string): Promise<void> {
@@ -209,6 +252,69 @@ export class SupabaseService {
         if (updateError) throw updateError;
     }
 
+    private async updateReactionCountsForChange(failId: string, oldReactionType: string, newReactionType: string): Promise<void> {
+        // Mise à jour atomique des compteurs pour un changement de réaction
+        const { data: fail, error: fetchError } = await this.supabase
+            .from('fails')
+            .select('reactions')
+            .eq('id', failId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        const reactions = fail.reactions || {};
+        // Décrémenter l'ancienne réaction
+        reactions[oldReactionType] = Math.max(0, (reactions[oldReactionType] || 0) - 1);
+        // Incrémenter la nouvelle réaction  
+        reactions[newReactionType] = Math.max(0, (reactions[newReactionType] || 0) + 1);
+
+        const { error: updateError } = await this.supabase
+            .from('fails')
+            .update({ reactions })
+            .eq('id', failId);
+
+        if (updateError) throw updateError;
+    }
+
+    async getUserReactionForFail(failId: string): Promise<string | null> {
+        const user = this.currentUser.value;
+        if (!user) return null;
+
+        const { data, error } = await this.supabase
+            .from('reactions')
+            .select('reaction_type')
+            .match({
+                fail_id: failId,
+                user_id: user.id
+            })
+            .single();
+
+        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+            throw error;
+        }
+
+        return data?.reaction_type || null;
+    }
+
+    async getUserReactionsForFail(failId: string): Promise<string[]> {
+        const user = this.currentUser.value;
+        if (!user) return [];
+
+        const { data, error } = await this.supabase
+            .from('reactions')
+            .select('reaction_type')
+            .match({
+                fail_id: failId,
+                user_id: user.id
+            });
+
+        if (error) {
+            throw error;
+        }
+
+        return data ? data.map(r => r.reaction_type) : [];
+    }
+
     async getUserBadges(userId: string): Promise<any[]> {
         const { data, error } = await this.supabase
             .from('badges')
@@ -218,27 +324,6 @@ export class SupabaseService {
 
         if (error) throw error;
         return data || [];
-    }
-
-    async unlockBadge(userId: string, badgeData: any): Promise<any> {
-        const { data, error } = await this.supabase
-            .from('badges')
-            .insert({
-                user_id: userId,
-                badge_type: badgeData.badge_id || badgeData.badge_type, // Adapter à la structure existante
-                category: badgeData.badge_category || badgeData.category,
-                rarity: badgeData.badge_rarity || badgeData.rarity,
-                name: badgeData.badge_name || badgeData.name,
-                description: badgeData.badge_description || badgeData.description,
-                icon: badgeData.badge_icon || badgeData.icon,
-                unlocked_at: badgeData.unlocked_at || new Date(),
-                created_at: new Date()
-            })
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
     }
 
     async uploadFile(bucket: string, filePath: string, file: File): Promise<string> {
@@ -296,133 +381,129 @@ export class SupabaseService {
     }
 
     /**
-     * Vérifie et débloque automatiquement les badges basés sur les stats
+     * Récupère TOUS les badges disponibles depuis la base de données
      */
-    async checkAndUnlockBadges(userStats: any): Promise<any[]> {
-        const currentUser = await this.getCurrentUser();
-        if (!currentUser) return [];
+    async getAllAvailableBadges(): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('badge_definitions') // Utilise le bon nom de ta table
+                .select('*')
+                .order('rarity', { ascending: true });
 
-        // Récupérer tous les badges disponibles
-        const allBadges = await this.getAllBadges();
+            if (error) throw error;
 
-        // Récupérer les badges déjà débloqués
-        const userBadges = await this.getUserBadges(currentUser.id);
-        const unlockedBadgeIds = userBadges.map(b => b.badge_type); // badge_type au lieu de badge_id
-
-        const newlyUnlockedBadges = [];
-
-        for (const badge of allBadges) {
-            if (unlockedBadgeIds.includes(badge.id)) continue;
-
-            // Logique de vérification des conditions
-            let shouldUnlock = false;
-
-            switch (badge.id) {
-                case 'first-fail':
-                    shouldUnlock = userStats.totalFails >= 1;
-                    break;
-                case 'daily-streak-7':
-                    shouldUnlock = userStats.currentStreak >= 7;
-                    break;
-                case 'courage-hearts-50':
-                    shouldUnlock = userStats.totalCourageHearts >= 50;
-                    break;
-                case 'community-helper':
-                    shouldUnlock = userStats.helpedUsers >= 25;
-                    break;
-                // Ajouter d'autres conditions selon les besoins
-            }
-
-            if (shouldUnlock) {
-                const newBadge = await this.unlockBadge(currentUser.id, {
-                    badge_type: badge.id,  // badge_type au lieu de badge_id
-                    name: badge.name,
-                    description: badge.description,
-                    icon: badge.icon,
-                    category: badge.category,
-                    rarity: badge.rarity,
-                    unlocked_at: new Date()
-                });
-                newlyUnlockedBadges.push(newBadge);
-            }
+            console.log(`📊 Badges récupérés depuis badge_definitions: ${data?.length || 0} badges`);
+            return data || [];
+        } catch (error) {
+            console.error('Erreur lors de la récupération des badges disponibles:', error);
+            // Fallback: retourner les badges du service si la table n'existe pas encore
+            return [];
         }
-
-        return newlyUnlockedBadges;
-    }
-
-    /**
-     * Récupère la progression vers un badge
-     */
-    async getBadgeProgress(badgeId: string): Promise<{ current: number, required: number, progress: number }> {
-        const currentUser = await this.getCurrentUser();
-        if (!currentUser) return { current: 0, required: 1, progress: 0 };
-
-        // Récupérer les statistiques de l'utilisateur
-        const userStats = await this.getUserStats(currentUser.id);
-
-        let current = 0;
-        let required = 1;
-
-        // Définir les requirements pour chaque badge
-        switch (badgeId) {
-            case 'first-fail':
-                current = userStats.totalFails;
-                required = 1;
-                break;
-            case 'daily-streak-7':
-                current = userStats.currentStreak;
-                required = 7;
-                break;
-            case 'courage-hearts-50':
-                current = userStats.totalCourageHearts;
-                required = 50;
-                break;
-            case 'community-helper':
-                current = userStats.helpedUsers;
-                required = 25;
-                break;
-            default:
-                current = 0;
-                required = 1;
-        }
-
-        const progress = Math.min(current / required, 1);
-
-        return { current, required, progress };
     }
 
     /**
      * Récupère les statistiques utilisateur pour les badges
      */
     async getUserStats(userId: string): Promise<any> {
-        // Récupérer le profil utilisateur
-        const { data: profile } = await this.supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+        try {
+            // Nombre total de fails
+            const { count: totalFails } = await this.supabase
+                .from('fails')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId);
 
-        // Compter les fails
-        const { count: totalFails } = await this.supabase
-            .from('fails')
-            .select('*', { count: 'exact' })
-            .eq('user_id', userId);
+            // Nombre total de réactions données par cet utilisateur
+            const { count: totalReactionsGiven } = await this.supabase
+                .from('reactions')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', userId);
 
-        // Compter les réactions reçues
-        const { count: totalReactions } = await this.supabase
-            .from('reactions')
-            .select('*', { count: 'exact' })
-            .eq('target_user_id', userId);
+            // Catégories utilisées
+            const { data: categoryData } = await this.supabase
+                .from('fails')
+                .select('category')
+                .eq('user_id', userId);
 
-        // Pour la streak, on pourrait faire un calcul plus complexe
-        // Pour l'instant, on utilise une valeur simple
-        const currentStreak = profile?.current_streak || 0;
+            const categoriesUsed = categoryData ?
+                new Set(categoryData.map(f => f.category)).size : 0;
 
-        return {
-            totalFails: totalFails || 0,
-            totalCourageHearts: totalReactions || 0,
-            currentStreak,
-            helpedUsers: 0 // À implémenter selon la logique métier
-        };
+            // Maximum de réactions reçues sur un seul fail
+            const { data: failsWithReactions } = await this.supabase
+                .from('fails')
+                .select('reactions')
+                .eq('user_id', userId);
+
+            let maxReactionsOnFail = 0;
+            if (failsWithReactions) {
+                maxReactionsOnFail = Math.max(0,
+                    ...failsWithReactions.map(f => {
+                        const reactions = f.reactions || {};
+                        return (reactions.courage || 0) + (reactions.laugh || 0) +
+                            (reactions.empathy || 0) + (reactions.support || 0);
+                    })
+                );
+            }
+
+            return {
+                totalFails: totalFails || 0,
+                totalReactions: totalReactionsGiven || 0,
+                categoriesUsed,
+                maxReactionsOnFail
+            };
+        } catch (error) {
+            console.error('Erreur lors de la récupération des statistiques:', error);
+            return {
+                totalFails: 0,
+                totalReactions: 0,
+                categoriesUsed: 0,
+                maxReactionsOnFail: 0
+            };
+        }
+    }
+
+    /**
+     * Récupère les badges débloqués par un utilisateur
+     */
+    async getUserBadgesNew(userId: string): Promise<string[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('user_badges')
+                .select('badge_id')
+                .eq('user_id', userId);
+
+            if (error) throw error;
+
+            return data?.map(b => b.badge_id) || [];
+        } catch (error) {
+            console.error('Erreur lors de la récupération des badges:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Débloquer un nouveau badge pour un utilisateur
+     */
+    async unlockBadge(userId: string, badgeId: string): Promise<boolean> {
+        try {
+            const { error } = await this.supabase
+                .from('user_badges')
+                .insert({
+                    user_id: userId,
+                    badge_id: badgeId,
+                    unlocked_at: new Date().toISOString()
+                });
+
+            if (error) {
+                if (error.code === '23505') { // Contrainte unique violée
+                    return false; // Badge déjà débloqué
+                }
+                throw error;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Erreur lors du débloquage du badge:', error);
+            return false;
+        }
     }
 }

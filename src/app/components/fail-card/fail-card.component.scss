@@ -94,33 +94,86 @@
     --color: var(--fail-text-muted);
     font-size: 0.9rem;
     transition: var(--fail-transition);
+    position: relative;
 
-    &.courage-heart {
+    &.courage {
       --color: var(--fail-pink);
 
-      &:hover {
+      &:hover,
+      &.active {
         --color: var(--ion-color-primary-shade);
         transform: scale(1.1);
+      }
+
+      &.active {
+        background: rgba(255, 107, 129, 0.1);
+        border-radius: 12px;
       }
     }
 
     &.laugh {
       --color: var(--fail-yellow);
 
-      &:hover {
+      &:hover,
+      &.active {
         --color: #FFD700;
         transform: scale(1.1);
+      }
+
+      &.active {
+        background: rgba(255, 215, 0, 0.1);
+        border-radius: 12px;
+      }
+    }
+
+    &.empathy {
+      --color: var(--fail-purple);
+
+      &:hover,
+      &.active {
+        --color: var(--ion-color-tertiary-shade);
+        transform: scale(1.1);
+      }
+
+      &.active {
+        background: rgba(156, 39, 176, 0.1);
+        border-radius: 12px;
       }
     }
 
     &.support {
       --color: var(--fail-mint);
 
-      &:hover {
+      &:hover,
+      &.active {
         --color: var(--ion-color-secondary-shade);
         transform: scale(1.1);
       }
+
+      &.active {
+        background: rgba(46, 125, 50, 0.1);
+        border-radius: 12px;
+      }
     }
+
+    // Animation pour la réaction active
+    &.active {
+      animation: pulse 0.6s ease-in-out;
+    }
+  }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
   }
 }
 

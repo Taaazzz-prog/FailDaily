@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
   IonRefresher, IonRefresherContent, IonSpinner, IonFab, IonFabButton,
-  RefresherCustomEvent
+  RefresherCustomEvent, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { FailService } from '../services/fail.service';
 import { AuthService } from '../services/auth.service';
@@ -23,7 +23,7 @@ import { FailCardComponent } from '../components/fail-card/fail-card.component';
     FailCardComponent
   ],
 })
-export class HomePage implements OnInit {
+export class HomePage implements OnInit, ViewWillEnter {
   fails$: Observable<Fail[]>;
   isLoading = false;
   currentUser$ = this.authService.currentUser$;
@@ -37,6 +37,11 @@ export class HomePage implements OnInit {
   }
 
   ngOnInit() {
+    this.loadInitialData();
+  }
+
+  ionViewWillEnter() {
+    // Recharger les fails chaque fois que la page devient active
     this.loadInitialData();
   }
 

@@ -23,13 +23,15 @@ import {
   checkmarkCircle,
   shieldOutline,
   peopleOutline,
+  people,
   happyOutline,
   fitnessOutline,
   starOutline,
   heartOutline,
   footstepsOutline,
   calendarOutline,
-  flagOutline
+  flagOutline,
+  flameOutline
 } from 'ionicons/icons';
 
 import { routes } from './app/app.routes';
@@ -57,13 +59,15 @@ addIcons({
   'checkmark-circle': checkmarkCircle,
   'shield-outline': shieldOutline,
   'people-outline': peopleOutline,
+  'people': people,
   'happy-outline': happyOutline,
   'fitness-outline': fitnessOutline,
   'star-outline': starOutline,
   'heart-outline': heartOutline,
   'footsteps-outline': footstepsOutline,
   'calendar-outline': calendarOutline,
-  'flag-outline': flagOutline
+  'flag-outline': flagOutline,
+  'flame-outline': flameOutline
 });
 
 bootstrapApplication(AppComponent, {
