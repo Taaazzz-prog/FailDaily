@@ -102,31 +102,97 @@ export class RegisterPage implements OnInit {
     try {
       const { displayName, email, password } = this.registerForm.value;
 
-      // Données d'inscription avec informations de consentement
+      // Étape 1: Créer le compte utilisateur
       const registerData = {
         email,
         password,
         username: displayName.toLowerCase().replace(/\s+/g, '_'),
-        displayName,
-        // Ajouter les données de consentement
-        consentData: this.consentData,
+        displayName
+      };
+
+      await this.authService.register(registerData).toPromise();
+
+      // Attendre un peu pour que l'utilisateur soit bien créé
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Étape 2: Préparer les données de consentement légal
+      const legalConsent = {
+        documentsAccepted: this.consentData.documentsAccepted,
+        consentDate: this.consentData.timestamp || new Date().toISOString(),
+        consentVersion: '1.0',
+        marketingOptIn: this.consentData.marketingOptIn || false
+      };
+
+      // Étape 3: Préparer les données de vérification d'âge
+      const ageVerification = {
         birthDate: this.consentData.birthDate,
-        needsParentalConsent: this.consentData.needsParentalConsent
+        isMinor: this.consentData.needsParentalConsent || false,
+        needsParentalConsent: this.consentData.needsParentalConsent || false,
+        parentEmail: this.consentData.parentEmail || null,
+        parentConsentDate: null // Sera rempli quand le parent accepte
       };
 
       // Si consentement parental requis
-      if (this.consentData.needsParentalConsent) {
-        await this.handleParentalConsentRequired(registerData);
-      } else {
-        // Inscription normale
-        await this.completeRegistration(registerData);
+      if (this.consentData.needsParentalConsent && this.consentData.parentEmail) {
+        await this.handleParentalConsentRequired(this.consentData.parentEmail, displayName);
+
+        // Le compte sera completé plus tard après validation parentale
+        // Pour l'instant, on laisse l'inscription partielle
+        const toast = await this.toastController.create({
+          message: `Un email de validation a été envoyé à ${this.consentData.parentEmail}. Le compte sera activé après autorisation parentale.`,
+          duration: 5000,
+          color: 'warning'
+        });
+        await toast.present();
+
+        // Ne pas rediriger vers l'app, rester sur la page de login
+        this.router.navigate(['/auth/login']);
+        return;
       }
 
-    } catch (error) {
+      // Étape 4: Finaliser l'inscription pour les adultes
+      try {
+        await this.authService.completeRegistration(legalConsent, ageVerification);
+
+        const toast = await this.toastController.create({
+          message: 'Inscription réussie ! Bienvenue dans FailDaily 🎉',
+          duration: 3000,
+          color: 'success',
+          cssClass: 'toast-encourage'
+        });
+        await toast.present();
+
+        this.router.navigate(['/tabs/home']);
+      } catch (completeError) {
+        console.error('Erreur lors de la finalisation:', completeError);
+
+        // Le compte de base est créé mais pas finalisé
+        const toast = await this.toastController.create({
+          message: 'Compte créé mais finalisation incomplète. Veuillez vous reconnecter.',
+          duration: 5000,
+          color: 'warning'
+        });
+        await toast.present();
+
+        this.router.navigate(['/auth/login']);
+      }
+
+    } catch (error: any) {
       console.error('Erreur lors de l\'inscription:', error);
+
+      let errorMessage = 'Erreur lors de l\'inscription. Réessayez.';
+
+      if (error.message?.includes('User already registered')) {
+        errorMessage = 'Un compte avec cet email existe déjà.';
+      } else if (error.message?.includes('Password')) {
+        errorMessage = 'Le mot de passe ne respecte pas les critères requis.';
+      } else if (error.message?.includes('Email')) {
+        errorMessage = 'Format d\'email invalide.';
+      }
+
       const toast = await this.toastController.create({
-        message: 'Erreur lors de l\'inscription. Réessayez.',
-        duration: 3000,
+        message: errorMessage,
+        duration: 4000,
         color: 'danger'
       });
       await toast.present();
@@ -138,13 +204,8 @@ export class RegisterPage implements OnInit {
   /**
    * Gère l'inscription avec consentement parental requis
    */
-  async handleParentalConsentRequired(registerData: any) {
-    // TODO: Envoyer email de validation parentale
-    // Pour l'instant, on simule l'envoi
-
-    const parentEmail = this.consentData.parentEmail;
-    const childName = registerData.displayName;
-    const childAge = this.calculateAge(new Date(this.consentData.birthDate));
+  async handleParentalConsentRequired(parentEmail: string, childName: string) {
+    const childAge = this.calculateAge(new Date(this.consentData!.birthDate));
 
     // Générer l'email de consentement parental
     const emailContent = this.consentService.generateParentalConsentEmail(
@@ -157,56 +218,6 @@ export class RegisterPage implements OnInit {
 
     // TODO: Intégrer avec votre service d'email (ex: SendGrid, Mailgun)
     // await this.emailService.sendParentalConsentEmail(parentEmail, emailContent);
-
-    // Pour l'instant, créer le compte en attente de validation parentale
-    registerData.status = 'pending_parental_consent';
-    registerData.parentEmail = parentEmail;
-
-    await this.completeRegistration(registerData);
-
-    const toast = await this.toastController.create({
-      message: `Un email de validation a été envoyé à ${parentEmail}. Le compte sera activé après autorisation parentale.`,
-      duration: 5000,
-      color: 'warning'
-    });
-    await toast.present();
-  }
-
-  /**
-   * Finalise l'inscription
-   */
-  async completeRegistration(registerData: any) {
-    await this.authService.register(registerData).toPromise();
-
-    // Enregistrer le consentement
-    if (registerData.consentData) {
-      // TODO: Obtenir l'ID utilisateur après inscription
-      const userId = 'temp_user_id'; // À remplacer par le vrai ID
-      await this.consentService.recordConsent(
-        userId,
-        registerData.consentData.documentsAccepted,
-        {
-          ipAddress: 'TODO', // À obtenir
-          userAgent: navigator.userAgent
-        }
-      );
-    }
-
-    const message = registerData.status === 'pending_parental_consent'
-      ? 'Compte créé ! En attente de validation parentale.'
-      : 'Inscription réussie ! Bienvenue dans FailDaily 🎉';
-
-    const toast = await this.toastController.create({
-      message,
-      duration: 3000,
-      color: 'success',
-      cssClass: 'toast-encourage'
-    });
-    await toast.present();
-
-    if (registerData.status !== 'pending_parental_consent') {
-      this.router.navigate(['/tabs/home']);
-    }
   }
 
   /**

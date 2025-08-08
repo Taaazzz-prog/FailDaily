@@ -5,7 +5,7 @@ import { RouterModule } from '@angular/router';
 import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonButton,
     IonItem, IonLabel, IonCheckbox, IonNote, IonIcon,
-    IonButtons, IonDatetime, IonInput,
+    IonButtons, IonInput,
     ModalController
 } from '@ionic/angular/standalone';
 import { ConsentService } from '../../services/consent.service';
@@ -19,7 +19,7 @@ import { LegalService } from '../../services/legal.service';
         CommonModule, FormsModule, ReactiveFormsModule, RouterModule,
         IonHeader, IonToolbar, IonTitle, IonContent, IonButton,
         IonItem, IonLabel, IonCheckbox, IonNote, IonIcon,
-        IonButtons, IonDatetime, IonInput
+        IonButtons, IonInput
     ]
 })
 export class LegalConsentModalComponent implements OnInit {
@@ -28,8 +28,8 @@ export class LegalConsentModalComponent implements OnInit {
     needsParentalConsent = false;
     canRegister = true;
     ageCheckMessage = '';
-    today = new Date().toISOString();
-    minDate = new Date(1900, 0, 1).toISOString();
+    today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+    minDate = '1900-01-01'; // Format YYYY-MM-DD
 
     constructor(
         private modalController: ModalController,

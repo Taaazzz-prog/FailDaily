@@ -108,9 +108,13 @@ export class FailService {
       try {
         // Récupérer le profil de l'utilisateur pour avoir son vrai nom
         const profile = await this.supabaseService.getProfile(failData.user_id);
-        authorName = profile?.username || profile?.display_name || 'Taaazzz-prog';
+        if (profile && (profile.username || profile.display_name)) {
+          authorName = profile.username || profile.display_name;
+        } else {
+          authorName = 'Utilisateur courageux'; // Fallback si pas de profil
+        }
       } catch (error) {
-        console.error('Erreur récupération profil:', error);
+        // Ne pas logger l'erreur pour éviter le spam dans la console
         authorName = 'Utilisateur courageux'; // Fallback
       }
     }

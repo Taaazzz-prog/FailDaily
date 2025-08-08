@@ -31,7 +31,14 @@ import {
   footstepsOutline,
   calendarOutline,
   flagOutline,
-  flameOutline
+  flameOutline,
+  close,
+  openOutline,
+  medical,
+  call,
+  warning,
+  informationCircle,
+  mailOutline
 } from 'ionicons/icons';
 
 import { routes } from './app/app.routes';
@@ -67,7 +74,14 @@ addIcons({
   'footsteps-outline': footstepsOutline,
   'calendar-outline': calendarOutline,
   'flag-outline': flagOutline,
-  'flame-outline': flameOutline
+  'flame-outline': flameOutline,
+  'close': close,
+  'open-outline': openOutline,
+  'medical': medical,
+  'call': call,
+  'warning': warning,
+  'information-circle': informationCircle,
+  'mail-outline': mailOutline
 });
 
 bootstrapApplication(AppComponent, {

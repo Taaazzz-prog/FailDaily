@@ -28,9 +28,9 @@
                 <h3 class="handwriting">Vérification d'âge</h3>
                 <ion-item class="age-input">
                     <ion-label position="stacked">Date de naissance</ion-label>
-                    <ion-datetime formControlName="birthDate" display-format="DD/MM/YYYY" picker-format="DD/MM/YYYY"
-                        placeholder="Sélectionnez votre date de naissance" [max]="today" [min]="minDate">
-                    </ion-datetime>
+                    <ion-input formControlName="birthDate" type="date" placeholder="jj/mm/aaaa" [max]="today"
+                        [min]="minDate">
+                    </ion-input>
                 </ion-item>
 
                 @if (ageCheckMessage) {

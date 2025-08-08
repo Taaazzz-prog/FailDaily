@@ -16,25 +16,42 @@ export class SupabaseService {
     constructor() {
         this.supabase = createClient(
             environment.supabase.url,
-            environment.supabase.key
+            environment.supabase.key,
+            {
+                auth: {
+                    persistSession: true,
+                    detectSessionInUrl: false,
+                    autoRefreshToken: true
+                }
+            }
         );
         this.client = this.supabase;
 
         this.supabase.auth.onAuthStateChange((event, session) => {
-            this.currentUser.next(session?.user || null);
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                this.currentUser.next(session?.user || null);
+            } else if (event === 'SIGNED_OUT') {
+                this.currentUser.next(null);
+            }
         });
 
-        this.getCurrentUser();
+        // Initialiser l'utilisateur de manière asynchrone pour éviter les blocages
+        setTimeout(() => this.getCurrentUser(), 100);
     }
 
     async getCurrentUser(): Promise<User | null> {
-        const { data: { user }, error } = await this.supabase.auth.getUser();
-        if (error) {
-            console.error('Erreur lors de la récupération de l\'utilisateur:', error);
+        try {
+            const { data: { user }, error } = await this.supabase.auth.getUser();
+            if (error) {
+                console.warn('Session manquante ou expirée:', error.message);
+                return null;
+            }
+            this.currentUser.next(user);
+            return user;
+        } catch (error) {
+            console.warn('Erreur lors de la récupération de l\'utilisateur:', error);
             return null;
         }
-        this.currentUser.next(user);
-        return user;
     }
 
     async signUp(email: string, password: string, username: string): Promise<any> {
@@ -48,6 +65,28 @@ export class SupabaseService {
                 }
             }
         });
+
+        if (error) throw error;
+        return data;
+    }
+
+    async completeRegistration(userId: string, legalConsent: any, ageVerification: any): Promise<any> {
+        const { data, error } = await this.supabase
+            .rpc('complete_user_registration', {
+                user_id: userId,
+                legal_consent_data: legalConsent,
+                age_verification_data: ageVerification
+            });
+
+        if (error) throw error;
+        return data;
+    }
+
+    async checkRegistrationStatus(userId: string): Promise<any> {
+        const { data, error } = await this.supabase
+            .rpc('check_user_registration_status', {
+                user_id: userId
+            });
 
         if (error) throw error;
         return data;
@@ -75,20 +114,28 @@ export class SupabaseService {
     }
 
     async getProfile(userId: string): Promise<any> {
-        const { data, error } = await this.supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+        try {
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
 
-        if (error) throw error;
-        return data;
+            if (error) {
+                console.warn('Erreur récupération profil:', error);
+                return null;
+            }
+            return data;
+        } catch (error) {
+            console.warn('Erreur lors de la récupération du profil:', error);
+            return null;
+        }
     }
 
     async updateProfile(userId: string, profile: any): Promise<any> {
         const { data, error } = await this.supabase
             .from('profiles')
-            .update(profile)
+            .upsert(profile) // UTILISER UPSERT au lieu d'UPDATE !
             .eq('id', userId)
             .select()
             .single();
