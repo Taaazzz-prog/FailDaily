@@ -46,8 +46,17 @@ export class FailService {
 
   getAllFails(): Observable<Fail[]> {
     return from(this.supabaseService.getFails()).pipe(
-      map((fails: any[]) => {
-        return fails.map(fail => this.formatFail(fail));
+      switchMap((fails: any[]) => {
+        if (!fails || fails.length === 0) {
+          return of([]);
+        }
+
+        // Pour chaque fail, récupérer les infos du profil si c'est public
+        const failsWithAuthors = fails.map(async (fail) => {
+          return await this.formatFailWithAuthor(fail);
+        });
+
+        return from(Promise.all(failsWithAuthors));
       }),
       catchError(error => {
         console.error('Erreur lors de la récupération des fails:', error);
@@ -58,10 +67,17 @@ export class FailService {
 
   getFailsByCategory(category: FailCategory): Observable<Fail[]> {
     return from(this.supabaseService.getFails()).pipe(
-      map((fails: any[]) => {
-        return fails
-          .filter(fail => fail.category === category)
-          .map(fail => this.formatFail(fail));
+      switchMap((fails: any[]) => {
+        if (!fails || fails.length === 0) {
+          return of([]);
+        }
+
+        const filteredFails = fails.filter(fail => fail.category === category);
+        const failsWithAuthors = filteredFails.map(async (fail) => {
+          return await this.formatFailWithAuthor(fail);
+        });
+
+        return from(Promise.all(failsWithAuthors));
       }),
       catchError(error => {
         console.error('Erreur lors de la récupération des fails par catégorie:', error);
@@ -70,12 +86,19 @@ export class FailService {
     );
   }
 
-  private formatFail(failData: any): Fail {
+  private async formatFailWithAuthor(failData: any): Promise<Fail> {
     // Déterminer le nom de l'auteur selon si c'est public ou anonyme
-    let authorName = 'Utilisateur courageux'; // PAR DÉFAUT: PUBLIC
-    if (!failData.is_public) {
-      // Seulement si explicitement marqué comme non-public, alors anonyme
-      authorName = 'Utilisateur anonyme';
+    let authorName = 'Utilisateur anonyme';
+
+    if (failData.is_public) {
+      try {
+        // Récupérer le profil de l'utilisateur pour avoir son vrai nom
+        const profile = await this.supabaseService.getProfile(failData.user_id);
+        authorName = profile?.username || profile?.display_name || 'Taaazzz-prog';
+      } catch (error) {
+        console.error('Erreur récupération profil:', error);
+        authorName = 'Utilisateur courageux'; // Fallback
+      }
     }
 
     return {

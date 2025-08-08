@@ -120,7 +120,8 @@ export class SupabaseService {
         const { data, error } = await this.supabase
             .from('fails')
             .select('*')
-            .eq('is_public', true)
+            // Supprimé le filtre .eq('is_public', true) pour afficher TOUS les fails
+            // La gestion anonyme/public se fait dans le service FailService
             .order('created_at', { ascending: false })
             .range(offset, offset + limit - 1);
 

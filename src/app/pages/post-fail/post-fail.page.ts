@@ -57,7 +57,7 @@ export class PostFailPage implements OnInit {
 
   async selectImage() {
     const actionSheet = await this.actionSheetController.create({
-      header: 'Ajouter une image',
+      header: 'Capturer le moment authentique',
       buttons: [
         {
           text: 'Prendre une photo',
@@ -65,9 +65,9 @@ export class PostFailPage implements OnInit {
           handler: () => this.takePicture(CameraSource.Camera)
         },
         {
-          text: 'Choisir depuis la galerie',
-          icon: 'images',
-          handler: () => this.takePicture(CameraSource.Photos)
+          text: 'Prendre une vidéo (15s max)',
+          icon: 'videocam',
+          handler: () => this.takeVideo()
         },
         {
           text: 'Annuler',
@@ -83,7 +83,7 @@ export class PostFailPage implements OnInit {
     try {
       const image = await Camera.getPhoto({
         quality: 80,
-        allowEditing: false,
+        allowEditing: false, // Pas d'édition = authenticité
         resultType: CameraResultType.DataUrl,
         source: source
       });
@@ -94,11 +94,11 @@ export class PostFailPage implements OnInit {
       if (image.dataUrl) {
         const response = await fetch(image.dataUrl);
         const blob = await response.blob();
-        this.selectedImageFile = new File([blob], 'image.jpg', { type: 'image/jpeg' });
+        this.selectedImageFile = new File([blob], 'authentic-fail.jpg', { type: 'image/jpeg' });
       }
     } catch (error) {
       const toast = await this.toastController.create({
-        message: 'Erreur lors de la sélection de l\'image',
+        message: 'Erreur lors de la capture',
         duration: 2000,
         color: 'danger'
       });
@@ -106,10 +106,22 @@ export class PostFailPage implements OnInit {
     }
   }
 
-  removeImage() {
-    this.selectedImage = undefined;
-    this.selectedImageFile = undefined;
+  async takeVideo() {
+    // Pour l'instant, on simule avec une photo
+    // La vraie implémentation vidéo nécessiterait des plugins supplémentaires
+    const toast = await this.toastController.create({
+      message: 'Fonctionnalité vidéo en développement - utilisez la photo pour l\'instant',
+      duration: 3000,
+      color: 'primary'
+    });
+    await toast.present();
+
+    // Rediriger vers la photo en attendant
+    this.takePicture(CameraSource.Camera);
   }
+
+  // SUPPRESSION DE removeImage() - pas de retour en arrière possible !
+  // L'authenticité exige l'engagement à son fail
 
   async onPostFail() {
     if (this.postFailForm.valid) {

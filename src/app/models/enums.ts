@@ -1,9 +1,24 @@
 export enum FailCategory {
+  // Catégories existantes
   COURAGE = 'courage',
   HUMOUR = 'humour',
   ENTRAIDE = 'entraide',
   PERSEVERANCE = 'perseverance',
-  SPECIAL = 'special'
+  SPECIAL = 'special',
+
+  // Nouvelles catégories
+  TRAVAIL = 'travail',
+  SPORT = 'sport',
+  CUISINE = 'cuisine',
+  TRANSPORT = 'transport',
+  TECHNOLOGIE = 'technologie',
+  RELATIONS = 'relations',
+  FINANCES = 'finances',
+  BRICOLAGE = 'bricolage',
+  APPRENTISSAGE = 'apprentissage',
+  SANTE = 'santé',
+  VOYAGE = 'voyage',
+  COMMUNICATION = 'communication'
 }
 
 export enum ReactionType {
@@ -14,11 +29,26 @@ export enum ReactionType {
 }
 
 export enum BadgeCategory {
+  // Catégories existantes
   COURAGE = 'COURAGE',
   HUMOUR = 'HUMOUR',
   ENTRAIDE = 'ENTRAIDE',
   PERSEVERANCE = 'PERSEVERANCE',
-  SPECIAL = 'SPECIAL'
+  SPECIAL = 'SPECIAL',
+
+  // Nouvelles catégories
+  TRAVAIL = 'TRAVAIL',
+  SPORT = 'SPORT',
+  CUISINE = 'CUISINE',
+  TRANSPORT = 'TRANSPORT',
+  TECHNOLOGIE = 'TECHNOLOGIE',
+  RELATIONS = 'RELATIONS',
+  FINANCES = 'FINANCES',
+  BRICOLAGE = 'BRICOLAGE',
+  APPRENTISSAGE = 'APPRENTISSAGE',
+  SANTE = 'SANTE',
+  VOYAGE = 'VOYAGE',
+  COMMUNICATION = 'COMMUNICATION'
 }
 
 export enum BadgeRarity {
