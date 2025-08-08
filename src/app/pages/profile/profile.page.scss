@@ -401,3 +401,76 @@ ion-card {
         transform: translateY(0);
     }
 }
+
+// Styles pour la section des paramètres et documents légaux
+.actions-section {
+    .settings-group {
+        margin-bottom: 2rem;
+
+        h3 {
+            color: var(--ion-color-primary);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .settings-btn {
+            --border-radius: 12px;
+            margin-bottom: 1rem;
+
+            &:hover {
+                transform: rotate(0deg) scale(1.02);
+            }
+        }
+
+        .quick-links {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: rgba(var(--ion-color-light-rgb), 0.3);
+            border-radius: 12px;
+            border: 2px solid rgba(var(--ion-color-medium-rgb), 0.2);
+
+            .quick-link-btn {
+                flex: 1;
+                min-width: 80px;
+                --border-radius: 8px;
+                font-size: 0.8rem;
+
+                &:hover {
+                    transform: translateY(-2px);
+                    background: rgba(var(--ion-color-primary-rgb), 0.1);
+                }
+
+                ion-icon {
+                    font-size: 1rem;
+                }
+            }
+        }
+    }
+
+    .logout-group {
+        padding-top: 1rem;
+        border-top: 1px solid rgba(var(--ion-color-medium-rgb), 0.3);
+    }
+}
+
+// Responsive pour mobile
+@media (max-width: 768px) {
+    .actions-section {
+        .settings-group {
+            .quick-links {
+                flex-direction: column;
+                gap: 0.5rem;
+
+                .quick-link-btn {
+                    flex: none;
+                    width: 100%;
+                }
+            }
+        }
+    }
+}

@@ -208,10 +208,45 @@
 
         <!-- Actions -->
         <div class="actions-section">
-            <ion-button expand="block" color="danger" fill="outline" class="imperfect-element" (click)="logout()">
-                <ion-icon name="log-out-outline" slot="start"></ion-icon>
-                Se déconnecter
-            </ion-button>
+            <!-- Paramètres et légal -->
+            <div class="settings-group">
+                <h3 class="handwriting">Paramètres</h3>
+
+                <ion-button expand="block" fill="outline" class="imperfect-element settings-btn" routerLink="/legal">
+                    <ion-icon name="shield-checkmark" slot="start"></ion-icon>
+                    Informations légales
+                    <ion-icon name="chevron-forward" slot="end"></ion-icon>
+                </ion-button>
+
+                <!-- Liens rapides vers documents importants -->
+                <div class="quick-links">
+                    <ion-button size="small" fill="clear" routerLink="/legal-document/privacy-policy"
+                        class="quick-link-btn">
+                        <ion-icon name="lock-closed" slot="start"></ion-icon>
+                        Confidentialité
+                    </ion-button>
+
+                    <ion-button size="small" fill="clear" routerLink="/legal-document/terms-of-service"
+                        class="quick-link-btn">
+                        <ion-icon name="document-text" slot="start"></ion-icon>
+                        CGU
+                    </ion-button>
+
+                    <ion-button size="small" fill="clear" routerLink="/legal-document/help-resources"
+                        class="quick-link-btn">
+                        <ion-icon name="medical" slot="start"></ion-icon>
+                        Aide
+                    </ion-button>
+                </div>
+            </div>
+
+            <!-- Déconnexion -->
+            <div class="logout-group">
+                <ion-button expand="block" color="danger" fill="outline" class="imperfect-element" (click)="logout()">
+                    <ion-icon name="log-out-outline" slot="start"></ion-icon>
+                    Se déconnecter
+                </ion-button>
+            </div>
         </div>
 
     </div>

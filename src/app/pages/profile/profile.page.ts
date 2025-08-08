@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonIcon, IonButton,
     IonAvatar, IonBadge, IonProgressBar,
@@ -30,9 +31,9 @@ interface ProfileStats {
     templateUrl: './profile.page.html',
     styleUrls: ['./profile.page.scss'],
     imports: [
-        CommonModule,
+        CommonModule, RouterModule,
         IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
-        IonAvatar, IonBadge, IonProgressBar,
+        IonAvatar, IonBadge, IonProgressBar, IonItem, IonLabel,
         IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
         TimeAgoPipe
     ]

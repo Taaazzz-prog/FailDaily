@@ -29,6 +29,15 @@ export const routes: Routes = [
       }
     ]
   },
+  // Pages légales
+  {
+    path: 'legal',
+    loadComponent: () => import('./pages/legal/legal.page').then(m => m.LegalPage)
+  },
+  {
+    path: 'legal-document/:id',
+    loadComponent: () => import('./pages/legal-document/legal-document.page').then(m => m.LegalDocumentPage)
+  },
   {
     path: 'auth',
     children: [
