@@ -56,7 +56,8 @@ export class LegalConsentModalComponent implements OnInit {
         // Écouter les changements de date de naissance
         this.consentForm.get('birthDate')?.valueChanges.subscribe(value => {
             if (value) {
-                this.checkAgeRequirements(new Date(value));
+                // Conversion explicite avec heure locale pour éviter les problèmes de fuseau horaire
+                this.checkAgeRequirements(new Date(value + 'T00:00:00'));
             }
         });
     }
@@ -92,7 +93,7 @@ export class LegalConsentModalComponent implements OnInit {
         if (formValue.ageVerificationAccepted) documentsAccepted.push('age-restrictions');
 
         const consentData = {
-            birthDate: formValue.birthDate,
+            birthDate: new Date(formValue.birthDate + 'T00:00:00'), // Conversion explicite avec heure locale
             parentEmail: formValue.parentEmail,
             documentsAccepted,
             marketingOptIn: formValue.marketingOptIn,

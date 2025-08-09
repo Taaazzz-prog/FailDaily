@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, from, map, catchError, switchMap } from 'rxjs';
+import { Observable, BehaviorSubject, from, map, catchError, switchMap, filter, take, timeout } from 'rxjs';
 import { User } from '../models/user.model';
 import { SupabaseService } from './supabase.service';
 
@@ -139,9 +139,13 @@ export class AuthService {
   login(credentials: LoginCredentials): Observable<User | null> {
     return from(this.supabase.signIn(credentials.email, credentials.password))
       .pipe(
-        map(() => {
-          // L'utilisateur sera mis à jour via l'observable supabase.currentUser$
-          return this.currentUserSubject.value;
+        switchMap(() => {
+          // Attendre que l'utilisateur soit mis à jour via l'observable supabase.currentUser$
+          return this.currentUser$.pipe(
+            filter(user => user !== undefined),
+            take(1),
+            timeout(5000)
+          );
         }),
         catchError((error) => {
           console.error('Login error:', error);

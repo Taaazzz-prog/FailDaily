@@ -98,12 +98,15 @@ export class ConsentService {
         reason?: string;
     } {
         const today = new Date();
-        const age = today.getFullYear() - birthDate.getFullYear();
+        let age = today.getFullYear() - birthDate.getFullYear();
         const monthDiff = today.getMonth() - birthDate.getMonth();
 
+        // Corriger l'âge si l'anniversaire n'a pas encore eu lieu cette année
         if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            // Pas encore eu l'anniversaire cette année
+            age--;
         }
+
+        console.log(`🎂 Calcul d'âge: ${age} ans (né le ${birthDate.toDateString()})`);
 
         if (age < 13) {
             return {

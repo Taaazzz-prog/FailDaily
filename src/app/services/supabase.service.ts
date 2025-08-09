@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { safeAuthOperation } from '../utils/mobile-fixes';
 
 @Injectable({
     providedIn: 'root'
@@ -39,8 +40,18 @@ export class SupabaseService {
         setTimeout(() => this.getCurrentUser(), 100);
     }
 
+    // Méthode synchrone pour éviter les problèmes de concurrence avec NavigatorLock
+    getCurrentUserSync(): User | null {
+        return this.currentUser.value;
+    }
+
     async getCurrentUser(): Promise<User | null> {
-        try {
+        return safeAuthOperation(async () => {
+            // Si on a déjà un utilisateur en cache, on le retourne
+            if (this.currentUser.value) {
+                return this.currentUser.value;
+            }
+
             const { data: { user }, error } = await this.supabase.auth.getUser();
             if (error) {
                 console.warn('Session manquante ou expirée:', error.message);
@@ -48,10 +59,7 @@ export class SupabaseService {
             }
             this.currentUser.next(user);
             return user;
-        } catch (error) {
-            console.warn('Erreur lors de la récupération de l\'utilisateur:', error);
-            return null;
-        }
+        });
     }
 
     async signUp(email: string, password: string, username: string): Promise<any> {
@@ -145,25 +153,51 @@ export class SupabaseService {
     }
 
     async createFail(fail: any): Promise<any> {
-        const user = this.currentUser.value;
-        if (!user) throw new Error('Utilisateur non authentifié');
+        return safeAuthOperation(async () => {
+            const user = this.getCurrentUserSync();
+            if (!user) {
+                throw new Error('Utilisateur non authentifié');
+            }
 
-        const failData = {
-            ...fail,
-            user_id: user.id
-        };
+            // Validation des données avant envoi
+            const failData = {
+                title: fail.title?.toString()?.trim() || 'Mon fail',
+                description: fail.description?.toString()?.trim() || '',
+                category: fail.category || 'courage',
+                image_url: fail.image_url || null,
+                is_public: Boolean(fail.is_public),
+                user_id: user.id,
+                reactions: { courage: 0, empathy: 0, laugh: 0, support: 0 },
+                comments_count: 0
+            };
 
-        const { data, error } = await this.supabase
-            .from('fails')
-            .insert(failData)
-            .select()
-            .single();
+            // Validation supplémentaire
+            if (!failData.description) {
+                throw new Error('La description ne peut pas être vide');
+            }
 
-        if (error) throw error;
-        return data;
-    }
+            // Vérifier que la catégorie est valide
+            const validCategories = ['courage', 'humour', 'entraide', 'perseverance', 'special'];
+            if (!validCategories.includes(failData.category)) {
+                failData.category = 'courage'; // Valeur par défaut
+            }
 
-    async getFails(limit: number = 20, offset: number = 0): Promise<any[]> {
+            console.log('Données à insérer:', failData);
+
+            const { data, error } = await this.supabase
+                .from('fails')
+                .insert(failData)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Erreur Supabase lors de la création du fail:', error);
+                throw new Error(`Erreur lors de la création du fail: ${error.message}`);
+            }
+
+            return data;
+        });
+    } async getFails(limit: number = 20, offset: number = 0): Promise<any[]> {
         const { data, error } = await this.supabase
             .from('fails')
             .select('*')

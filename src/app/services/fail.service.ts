@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, map, switchMap, catchError, of, BehaviorSubject } from 'rxjs';
 import { SupabaseService } from './supabase.service';
+import { EventBusService, AppEvents } from './event-bus.service';
 import { Fail } from '../models/fail.model';
 import { User } from '@supabase/supabase-js';
 import { FailCategory } from '../models/enums';
@@ -20,45 +21,64 @@ export class FailService {
   private failsSubject = new BehaviorSubject<Fail[]>([]);
   public fails$ = this.failsSubject.asObservable();
 
-  constructor(private supabaseService: SupabaseService) {
+  constructor(
+    private supabaseService: SupabaseService,
+    private eventBus: EventBusService
+  ) {
     // Charger les fails au démarrage
     this.loadFails();
   }
 
   async createFail(failData: CreateFailData): Promise<void> {
-    const user = await this.supabaseService.getCurrentUser();
+    // Utiliser la méthode synchrone pour éviter les problèmes de concurrence
+    const user = this.supabaseService.getCurrentUserSync();
     if (!user) {
       throw new Error('Utilisateur non connecté');
     }
 
     let imageUrl = null;
     if (failData.image) {
-      imageUrl = await this.supabaseService.uploadFile(
-        'fails',
-        `${user.id}/${Date.now()}`,
-        failData.image
-      );
+      try {
+        imageUrl = await this.supabaseService.uploadFile(
+          'fails',
+          `${user.id}/${Date.now()}`,
+          failData.image
+        );
+      } catch (error) {
+        console.error('Erreur lors de l\'upload de l\'image:', error);
+        // Continuer sans image en cas d'erreur
+      }
     }
 
-    await this.supabaseService.createFail({
-      title: failData.title,
-      description: failData.description,
-      category: failData.category,
+    // Validation des données avant envoi
+    const failToCreate = {
+      title: failData.title?.trim() || 'Mon fail',
+      description: failData.description?.trim() || '',
+      category: failData.category || 'courage',
       image_url: imageUrl,
-      is_public: failData.isPublic,
+      is_public: Boolean(failData.isPublic),
       user_id: user.id
-    });
+    };
 
-    // Recharger les fails après création
-    await this.loadFails();
+    // Validation supplémentaire
+    if (!failToCreate.description) {
+      throw new Error('La description ne peut pas être vide');
+    }
 
-    // Vérifier les badges après création d'un fail
     try {
-      const { BadgeService } = await import('./badge.service');
-      const badgeService = new (BadgeService as any)(this.supabaseService, this);
-      await badgeService.checkBadgesAfterAction('fail_posted');
+      await this.supabaseService.createFail(failToCreate);
+
+      // Recharger les fails après création
+      await this.loadFails();
+
+      // Émettre un événement pour notifier la création du fail
+      this.eventBus.emit(AppEvents.FAIL_POSTED, {
+        userId: user.id,
+        failData: failData
+      });
     } catch (error) {
-      console.error('Erreur lors de la vérification des badges après création de fail:', error);
+      console.error('Erreur lors de la création du fail:', error);
+      throw error;
     }
   }
 
@@ -147,15 +167,12 @@ export class FailService {
 
     const result = await this.supabaseService.addReaction(failId, reactionType);
 
-    // Vérifier les badges après une réaction
-    try {
-      // Import dynamique pour éviter la dépendance circulaire
-      const { BadgeService } = await import('./badge.service');
-      const badgeService = new (BadgeService as any)(this.supabaseService, this);
-      await badgeService.checkBadgesAfterAction('reaction_given');
-    } catch (error) {
-      console.error('Erreur lors de la vérification des badges après réaction:', error);
-    }
+    // Émettre un événement pour notifier la réaction
+    this.eventBus.emit(AppEvents.REACTION_GIVEN, {
+      userId: user.id,
+      failId: failId,
+      reactionType: reactionType
+    });
 
     return result;
   }

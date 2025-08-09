@@ -58,10 +58,10 @@ export class BadgesPage implements OnInit {
     nextChallenges$ = new BehaviorSubject<any[]>([]);
 
     // Filtres et UI
-    selectedCategory: BadgeCategory | 'all' = 'all';
+    selectedCategory: BadgeCategory | 'all' | 'unlocked' = 'all';
     availableCategories = Object.values(BadgeCategory);
     isDropdownOpen = false;
-    showAllBadges = false; // Contrôle l'affichage complet ou filtré
+    viewMode: 'overview' | 'category' | 'unlocked' = 'overview'; // Mode d'affichage
 
     // Messages d'encouragement pour les badges
     private encouragementMessages = [
@@ -282,27 +282,65 @@ export class BadgesPage implements OnInit {
     }
 
     /**
-     * Bascule entre l'affichage filtré et l'affichage complet des badges
+     * Change le mode d'affichage des badges
      */
-    toggleShowAllBadges() {
-        this.showAllBadges = !this.showAllBadges;
-
-        if (this.showAllBadges) {
-            // Afficher tous les badges (y compris légendaires)
-            this.displayBadges$ = this.allBadges$;
+    setViewMode(mode: 'overview' | 'category' | 'unlocked') {
+        this.viewMode = mode;
+        
+        if (mode === 'unlocked') {
+            // Afficher seulement les badges débloqués
+            this.selectedCategory = 'unlocked';
+        } else if (mode === 'category') {
+            // Mode catégorie - garder la catégorie sélectionnée
+            if (this.selectedCategory === 'unlocked') {
+                this.selectedCategory = 'all';
+            }
         } else {
-            // Revenir à l'affichage filtré
-            this.displayBadges$ = from(this.badgeService.getFilteredBadgesForDisplay());
+            // Mode overview - affichage filtré par défaut
+            this.selectedCategory = 'all';
         }
-
-        console.log(`🔄 Mode d'affichage: ${this.showAllBadges ? 'Tous les badges' : 'Badges filtrés'}`);
+        
+        console.log(`🔄 Mode d'affichage: ${mode}`);
     }
 
     /**
-     * Récupère les badges à afficher selon le mode actuel
+     * Récupère les badges à afficher selon le mode et filtre actuels
      */
     getBadgesToDisplay(): Observable<Badge[]> {
-        return this.showAllBadges ? this.allBadges$ : this.displayBadges$;
+        if (this.viewMode === 'unlocked') {
+            // Afficher seulement les badges débloqués
+            return this.userBadges$;
+        } else if (this.viewMode === 'category' && this.selectedCategory !== 'all') {
+            // Filtrer par catégorie spécifique
+            return this.allBadges$.pipe(
+                map(badges => badges.filter(badge => badge.category === this.selectedCategory))
+            );
+        } else {
+            // Mode overview - affichage filtré par défaut
+            return this.displayBadges$;
+        }
+    }
+
+    /**
+     * Récupère les badges débloqués pour l'affichage
+     */
+    getUnlockedBadges(): Observable<Badge[]> {
+        return this.userBadges$;
+    }
+
+    /**
+     * Récupère les badges par catégorie pour l'affichage filtré
+     */
+    getBadgesBySelectedCategory(): Observable<Badge[]> {
+        if (this.selectedCategory === 'all') {
+            return this.getBadgesToDisplay();
+        } else if (this.selectedCategory === 'unlocked') {
+            return this.userBadges$;
+        } else {
+            return this.allBadges$.pipe(
+                map(badges => badges.filter(badge => badge.category === this.selectedCategory))
+            );
+        }
     }
 
     // Méthodes pour le dropdown de catégories
@@ -355,5 +393,26 @@ export class BadgesPage implements OnInit {
     shareBadgeCollection() {
         // Logique de partage de la collection
         console.log('Partager la collection de badges');
+    }
+
+    /**
+     * Méthode de test pour forcer la vérification des badges
+     * À supprimer en production
+     */
+    async testForceCheckBadges() {
+        try {
+            console.log('🧪 Test: Vérification forcée des badges...');
+            const newBadges = await this.badgeService.forceCheckBadges();
+            
+            if (newBadges.length > 0) {
+                console.log(`✅ Test réussi: ${newBadges.length} nouveaux badges débloqués`);
+                // Recharger les challenges
+                await this.loadNextChallenges();
+            } else {
+                console.log('ℹ️ Test: Aucun nouveau badge à débloquer');
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du test des badges:', error);
+        }
     }
 }

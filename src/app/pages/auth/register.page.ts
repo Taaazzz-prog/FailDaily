@@ -162,7 +162,7 @@ export class RegisterPage implements OnInit {
         });
         await toast.present();
 
-        this.router.navigate(['/tabs/home']);
+        this.router.navigate(['/home']);
       } catch (completeError) {
         console.error('Erreur lors de la finalisation:', completeError);
 

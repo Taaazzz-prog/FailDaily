@@ -130,6 +130,31 @@ export class PostFailPage implements OnInit {
       try {
         const formValues = this.postFailForm.value;
 
+        // Vérifier que l'utilisateur est connecté en premier
+        const currentUser = this.authService.getCurrentUser();
+        if (!currentUser) {
+          const toast = await this.toastController.create({
+            message: 'Vous devez être connecté pour publier un fail',
+            duration: 3000,
+            color: 'danger'
+          });
+          await toast.present();
+          this.isLoading = false;
+          return;
+        }
+
+        // Validation des données
+        if (!formValues.content?.trim()) {
+          const toast = await this.toastController.create({
+            message: 'Veuillez saisir une description pour votre fail',
+            duration: 3000,
+            color: 'warning'
+          });
+          await toast.present();
+          this.isLoading = false;
+          return;
+        }
+
         // Modération du contenu (corrigée)
         try {
           const moderation = await new Promise(resolve => {
@@ -158,39 +183,69 @@ export class PostFailPage implements OnInit {
         const createFailData = {
           title: formValues.title?.trim() || 'Mon fail',
           description: formValues.content.trim(),
-          category: formValues.category,
-          image: this.selectedImageFile, // Réactivé pour tester l'affichage
+          category: formValues.category || 'courage',
+          image: this.selectedImageFile,
           isPublic: !formValues.isAnonymous // Inverser car isAnonymous = !isPublic
         };
+
+        console.log('Données du fail à créer:', createFailData);
 
         await this.failService.createFail(createFailData);
 
         const toast = await this.toastController.create({
           message: 'Votre fail a été publié avec courage ! 💪',
           duration: 3000,
-          color: 'success',
-          cssClass: 'toast-encourage'
+          color: 'success'
         });
         await toast.present();
 
-        // Reset du formulaire
-        this.postFailForm.reset();
-        this.selectedImage = undefined;
+        // Reset le formulaire après succès
+        this.postFailForm.reset({
+          title: '',
+          content: '',
+          category: FailCategory.COURAGE,
+          isAnonymous: false
+        });
         this.selectedImageFile = undefined;
 
-        // Retour à l'accueil
-        this.router.navigate(['/tabs/home']);
+        // Redirection vers la page d'accueil avec délai
+        setTimeout(() => {
+          this.router.navigate(['/tabs/home']);
+        }, 1000);
 
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Erreur lors de la publication du fail:', error);
+
+        let errorMessage = 'Erreur lors de la publication de votre fail';
+
+        // Messages d'erreur personnalisés
+        if (error.message?.includes('Utilisateur non authentifié')) {
+          errorMessage = 'Vous devez être connecté pour publier un fail';
+        } else if (error.message?.includes('La description ne peut pas être vide')) {
+          errorMessage = 'Veuillez saisir une description';
+        } else if (error.message?.includes('Database error')) {
+          errorMessage = 'Erreur de base de données. Veuillez réessayer.';
+        } else if (error.message?.includes('NavigatorLock')) {
+          errorMessage = 'Problème de connexion. Veuillez réessayer dans quelques secondes.';
+        }
+
         const toast = await this.toastController.create({
-          message: 'Erreur lors de la publication. Réessayez.',
-          duration: 3000,
+          message: errorMessage,
+          duration: 4000,
           color: 'danger'
         });
         await toast.present();
+      } finally {
+        this.isLoading = false;
       }
-
-      this.isLoading = false;
+    } else {
+      // Formulaire invalide
+      const toast = await this.toastController.create({
+        message: 'Veuillez vérifier que tous les champs sont correctement remplis',
+        duration: 3000,
+        color: 'warning'
+      });
+      await toast.present();
     }
   }
 }

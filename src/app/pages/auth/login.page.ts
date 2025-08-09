@@ -55,7 +55,10 @@ export class LoginPage implements OnInit {
         });
         await toast.present();
 
-        this.router.navigate(['/tabs/home']);
+        // Attendre un peu que l'état soit mis à jour puis rediriger
+        setTimeout(() => {
+          this.router.navigate(['/home']);
+        }, 100);
       } catch (error) {
         const toast = await this.toastController.create({
           message: 'Erreur de connexion. Vérifiez vos identifiants.',
