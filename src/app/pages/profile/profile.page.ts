@@ -33,7 +33,7 @@ interface ProfileStats {
     imports: [
         CommonModule, RouterModule,
         IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
-        IonAvatar, IonBadge, IonProgressBar, IonItem, IonLabel,
+        IonAvatar, IonBadge, IonProgressBar,
         IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
         TimeAgoPipe
     ]
@@ -54,17 +54,48 @@ export class ProfilePage implements OnInit {
         {
             text: 'Modifier le profil',
             icon: 'create-outline',
-            handler: () => this.closeActionSheet()
+            handler: () => {
+                this.closeActionSheet();
+                setTimeout(() => {
+                    console.log('Navigation vers test-edit-profile...');
+                    this.router.navigate(['/test-edit-profile']).then(success => {
+                        console.log('Navigation réussie:', success);
+                    }).catch(error => {
+                        console.error('Erreur de navigation:', error);
+                    });
+                }, 300);
+            }
         },
         {
             text: 'Changer la photo',
             icon: 'camera-outline',
-            handler: () => this.closeActionSheet()
+            handler: () => {
+                this.closeActionSheet();
+                setTimeout(() => {
+                    console.log('Navigation vers test-edit-profile...');
+                    this.router.navigate(['/test-edit-profile']).then(success => {
+                        console.log('Navigation réussie:', success);
+                    }).catch(error => {
+                        console.error('Erreur de navigation:', error);
+                    });
+                }, 300);
+            }
         },
         {
             text: 'Paramètres de confidentialité',
             icon: 'shield-outline',
-            handler: () => this.closeActionSheet()
+            handler: () => {
+                this.closeActionSheet();
+                // Petit délai pour permettre à l'action sheet de se fermer complètement
+                setTimeout(() => {
+                    console.log('Navigation vers test-privacy...');
+                    this.router.navigate(['/test-privacy']).then(success => {
+                        console.log('Navigation réussie:', success);
+                    }).catch(error => {
+                        console.error('Erreur de navigation:', error);
+                    });
+                }, 300);
+            }
         },
         {
             text: 'Annuler',
@@ -99,13 +130,17 @@ export class ProfilePage implements OnInit {
         private badgeService: BadgeService,
         private router: Router
     ) {
+        console.log('👤 ProfilePage - Constructor called');
         this.userBadges$ = this.badgeService.getBadges();
+        console.log('👤 ProfilePage - UserBadges observable initialized');
+
         this.userFails$ = this.failService.getFails().pipe(
             map((fails: Fail[]) => fails.filter((fail: Fail) => {
                 const currentUser = this.authService.getCurrentUser();
                 return currentUser && fail.authorName === currentUser.displayName;
             }))
         );
+        console.log('👤 ProfilePage - UserFails observable initialized');
 
         this.recentFails$ = this.userFails$.pipe(
             map((fails: Fail[]) => fails.slice(0, 3)) // 3 derniers fails
@@ -116,18 +151,24 @@ export class ProfilePage implements OnInit {
             this.userFails$,
             this.userBadges$
         ]).pipe(
-            map(([user, fails, badges]) => this.calculateStats(user, fails, badges))
+            map(([user, fails, badges]) => this.calculateStats(user ?? null, fails, badges))
         );
+        console.log('👤 ProfilePage - ProfileStats observable initialized');
     }
 
-    ngOnInit() { }
+    ngOnInit() {
+        console.log('👤 ProfilePage - ngOnInit called');
+    }
 
     async handleRefresh(event: RefresherCustomEvent) {
+        console.log('👤 ProfilePage - handleRefresh called');
         // Rafraîchit les données utilisateur
         try {
+            console.log('👤 ProfilePage - Refreshing fails...');
             await this.failService.refreshFails();
+            console.log('👤 ProfilePage - Refresh successful');
         } catch (error) {
-            console.error('Error refreshing data:', error);
+            console.error('👤 ProfilePage - Error refreshing data:', error);
         }
 
         setTimeout(() => {
@@ -207,6 +248,16 @@ export class ProfilePage implements OnInit {
     async viewAllBadges() {
         // Navigation vers tous les badges
         this.router.navigate(['/badges']);
+    }
+
+    // Méthode temporaire pour tester l'accès direct aux paramètres
+    goToPrivacySettings() {
+        console.log('Navigation vers test-edit-profile...');
+        this.router.navigate(['/test-edit-profile']).then(success => {
+            console.log('Navigation réussie:', success);
+        }).catch(error => {
+            console.error('Erreur de navigation:', error);
+        });
     }
 
     async logout() {

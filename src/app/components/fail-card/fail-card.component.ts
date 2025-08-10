@@ -47,7 +47,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     try {
       this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
     } catch (error) {
-      console.error('Erreur lors du chargement des réactions utilisateur:', error);
+      console.error('❌ Error loading user reactions:', error);
       this.userReactions = [];
     }
   }
@@ -66,12 +66,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
     try {
       await this.failService.addReaction(this.fail.id, 'courage');
-      // Recharger IMMÉDIATEMENT après l'opération pour s'assurer de la cohérence
-      await this.refreshReactionState();
-      // Vérifier les nouveaux badges
-      await this.checkForNewBadges();
+
+      // Mise à jour optimiste locale
+      this.userReactions.push('courage');
+      this.fail.reactions.courage++;
+
+      // Vérifier les nouveaux badges (sans logs excessifs)
+      this.checkForNewBadges();
     } catch (error) {
-      console.error('Erreur lors de la réaction:', error);
+      console.error('❌ Error during courage reaction:', error);
+      // Rollback en cas d'erreur
+      this.userReactions = this.userReactions.filter(r => r !== 'courage');
+      this.fail.reactions.courage--;
     }
   }
 
@@ -89,12 +95,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
     try {
       await this.failService.addReaction(this.fail.id, 'laugh');
-      // Recharger IMMÉDIATEMENT après l'opération pour s'assurer de la cohérence
-      await this.refreshReactionState();
+
+      // Mise à jour optimiste locale
+      this.userReactions.push('laugh');
+      this.fail.reactions.laugh++;
+
       // Vérifier les nouveaux badges
-      await this.checkForNewBadges();
+      this.checkForNewBadges();
     } catch (error) {
-      console.error('Erreur lors de la réaction:', error);
+      console.error('❌ Error during laugh reaction:', error);
+      // Rollback en cas d'erreur
+      this.userReactions = this.userReactions.filter(r => r !== 'laugh');
+      this.fail.reactions.laugh--;
     }
   }
 
@@ -112,12 +124,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
     try {
       await this.failService.addReaction(this.fail.id, 'empathy');
-      // Recharger IMMÉDIATEMENT après l'opération pour s'assurer de la cohérence
-      await this.refreshReactionState();
+
+      // Mise à jour optimiste locale
+      this.userReactions.push('empathy');
+      this.fail.reactions.empathy++;
+
       // Vérifier les nouveaux badges
-      await this.checkForNewBadges();
+      this.checkForNewBadges();
     } catch (error) {
-      console.error('Erreur lors de la réaction:', error);
+      console.error('❌ Error during empathy reaction:', error);
+      // Rollback en cas d'erreur
+      this.userReactions = this.userReactions.filter(r => r !== 'empathy');
+      this.fail.reactions.empathy--;
     }
   }
 
@@ -135,47 +153,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
     try {
       await this.failService.addReaction(this.fail.id, 'support');
-      // Recharger IMMÉDIATEMENT après l'opération pour s'assurer de la cohérence
-      await this.refreshReactionState();
+
+      // Mise à jour optimiste locale
+      this.userReactions.push('support');
+      this.fail.reactions.support++;
+
       // Vérifier les nouveaux badges
-      await this.checkForNewBadges();
+      this.checkForNewBadges();
     } catch (error) {
-      console.error('Erreur lors de la réaction:', error);
-    }
-  }
-
-  private async refreshReactionState() {
-    try {
-      // Recharger les réactions actuelles de l'utilisateur
-      this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
-
-      // Recharger le fail complet pour avoir les vrais compteurs depuis la base
-      const updatedFail = await this.failService.getFailById(this.fail.id);
-      if (updatedFail) {
-        this.fail.reactions = updatedFail.reactions;
-      }
-    } catch (error) {
-      console.error('Erreur lors du rechargement de l\'état des réactions:', error);
-      // En cas d'erreur, au moins essayer de recharger les réactions utilisateur
-      try {
-        this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
-      } catch (userReactionError) {
-        console.error('Impossible de recharger les réactions utilisateur:', userReactionError);
-        this.userReactions = [];
-      }
-    }
-  } isReactionActive(reactionType: string): boolean {
-    return this.userReactions.includes(reactionType);
-  }
-
-  getCategoryColor(category: FailCategory): string {
-    switch (category) {
-      case FailCategory.COURAGE: return 'var(--courage-color)';
-      case FailCategory.HUMOUR: return 'var(--humour-color)';
-      case FailCategory.ENTRAIDE: return 'var(--entraide-color)';
-      case FailCategory.PERSEVERANCE: return 'var(--perseverance-color)';
-      case FailCategory.SPECIAL: return 'var(--special-color)';
-      default: return 'var(--pastel-pink)';
+      console.error('❌ Error during support reaction:', error);
+      // Rollback en cas d'erreur
+      this.userReactions = this.userReactions.filter(r => r !== 'support');
+      this.fail.reactions.support--;
     }
   }
 
@@ -189,13 +178,13 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
         }
       }
     } catch (error) {
-      console.error('Erreur lors de la vérification des badges:', error);
+      console.error('❌ Error checking badges:', error);
     }
   }
 
   private async showBadgeUnlockedToast(badge: any): Promise<void> {
     const toast = await this.toastController.create({
-      message: `🎉 Badge déverrouillé : ${badge.name} !`,
+      message: `� Badge déverrouillé : ${badge.name} !`,
       duration: 4000,
       color: 'success',
       position: 'top',
@@ -203,5 +192,20 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     });
 
     await toast.present();
+  }
+
+  isReactionActive(reactionType: string): boolean {
+    return this.userReactions.includes(reactionType);
+  }
+
+  getCategoryColor(category: FailCategory): string {
+    switch (category) {
+      case FailCategory.COURAGE: return 'var(--courage-color)';
+      case FailCategory.HUMOUR: return 'var(--humour-color)';
+      case FailCategory.ENTRAIDE: return 'var(--entraide-color)';
+      case FailCategory.PERSEVERANCE: return 'var(--perseverance-color)';
+      case FailCategory.SPECIAL: return 'var(--special-color)';
+      default: return 'var(--pastel-pink)';
+    }
   }
 }

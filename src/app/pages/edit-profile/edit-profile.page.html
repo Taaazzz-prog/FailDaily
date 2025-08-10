@@ -1,0 +1,161 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="handwriting">Modifier mon profil</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+    <div class="edit-profile-container">
+
+        <!-- Formulaire de modification -->
+        <form [formGroup]="editForm" (ngSubmit)="saveProfile()">
+
+            <!-- Nom d'affichage -->
+            <div class="form-section">
+                <div class="section-header">
+                    <ion-icon name="person-outline" color="medium"></ion-icon>
+                    <h3 class="handwriting">Informations personnelles</h3>
+                </div>
+
+                <ion-item class="imperfect-element" lines="none">
+                    <ion-label position="stacked">
+                        <h4>Nom d'affichage</h4>
+                        <p class="comfort-text">Comment les autres te verront</p>
+                    </ion-label>
+                    <ion-input formControlName="displayName" placeholder="Ton nom d'affichage" maxlength="50">
+                    </ion-input>
+                </ion-item>
+
+                @if (editForm.get('displayName')?.errors && editForm.get('displayName')?.touched) {
+                <div class="error-message">
+                    @if (editForm.get('displayName')?.errors?.['required']) {
+                    <span>Le nom d'affichage est requis</span>
+                    }
+                    @if (editForm.get('displayName')?.errors?.['minlength']) {
+                    <span>Au moins 2 caractères requis</span>
+                    }
+                    @if (editForm.get('displayName')?.errors?.['maxlength']) {
+                    <span>Maximum 50 caractères</span>
+                    }
+                </div>
+                }
+            </div>
+
+            <!-- Informations de contact -->
+            <div class="form-section">
+                <div class="section-header">
+                    <ion-icon name="mail-outline" color="medium"></ion-icon>
+                    <h3 class="handwriting">Contact</h3>
+                </div>
+
+                <ion-item class="imperfect-element" lines="none">
+                    <ion-label position="stacked">
+                        <h4>Email</h4>
+                        <p class="comfort-text">Pour les notifications importantes</p>
+                    </ion-label>
+                    <ion-input formControlName="email" type="email" readonly="true">
+                    </ion-input>
+                </ion-item>
+
+                <p class="info-text">
+                    <ion-icon name="information-circle-outline"></ion-icon>
+                    Pour changer ton email, contacte le support
+                </p>
+            </div>
+
+            <!-- Préférences -->
+            <div class="form-section">
+                <div class="section-header">
+                    <ion-icon name="options-outline" color="medium"></ion-icon>
+                    <h3 class="handwriting">Préférences</h3>
+                </div>
+
+                <ion-item class="imperfect-element" lines="none">
+                    <ion-label>
+                        <h4>Mode sombre</h4>
+                        <p class="comfort-text">Interface adaptée à tes yeux</p>
+                    </ion-label>
+                    <ion-toggle formControlName="darkMode" color="primary" slot="end">
+                    </ion-toggle>
+                </ion-item>
+
+                <ion-item class="imperfect-element" lines="none">
+                    <ion-label>
+                        <h4>Notifications encourageantes</h4>
+                        <p class="comfort-text">Petits rappels bienveillants</p>
+                    </ion-label>
+                    <ion-toggle formControlName="encouragementNotifications" color="primary" slot="end">
+                    </ion-toggle>
+                </ion-item>
+
+                <ion-item class="imperfect-element" lines="none">
+                    <ion-label position="stacked">
+                        <h4>Fréquence des rappels</h4>
+                        <p class="comfort-text">À quelle fréquence recevoir des encouragements</p>
+                    </ion-label>
+                    <ion-select formControlName="reminderFrequency" placeholder="Choisir une fréquence">
+                        <ion-select-option value="daily">Quotidien</ion-select-option>
+                        <ion-select-option value="weekly">Hebdomadaire</ion-select-option>
+                        <ion-select-option value="monthly">Mensuel</ion-select-option>
+                        <ion-select-option value="never">Jamais</ion-select-option>
+                    </ion-select>
+                </ion-item>
+            </div>
+
+            <!-- Bio/Description -->
+            <div class="form-section">
+                <div class="section-header">
+                    <ion-icon name="create-outline" color="medium"></ion-icon>
+                    <h3 class="handwriting">À propos de toi</h3>
+                </div>
+
+                <ion-item class="imperfect-element bio-item" lines="none">
+                    <ion-label position="stacked">
+                        <h4>Raconte-toi en quelques mots</h4>
+                        <p class="comfort-text">Partage ton histoire, tes motivations... (optionnel)</p>
+                    </ion-label>
+                    <ion-textarea formControlName="bio" placeholder="Écris quelques mots sur toi..." rows="4"
+                        maxlength="500" counter="true">
+                    </ion-textarea>
+                </ion-item>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="action-buttons">
+                <ion-button expand="block" type="submit" color="primary" class="imperfect-element"
+                    [disabled]="!editForm.valid || isLoading">
+                    <ion-icon name="save-outline" slot="start"></ion-icon>
+                    @if (isLoading) {
+                    <ion-spinner name="crescent"></ion-spinner>
+                    } @else {
+                    Sauvegarder les modifications
+                    }
+                </ion-button>
+
+                <ion-button expand="block" fill="outline" color="medium" class="imperfect-element" (click)="resetForm()"
+                    [disabled]="isLoading">
+                    <ion-icon name="refresh-outline" slot="start"></ion-icon>
+                    Annuler les modifications
+                </ion-button>
+            </div>
+        </form>
+
+        <!-- Message de sauvegarde -->
+        @if (saveMessage) {
+        <div class="save-message imperfect-element">
+            <ion-icon [name]="saveMessageIcon" [color]="saveMessageColor"></ion-icon>
+            <span>{{ saveMessage }}</span>
+        </div>
+        }
+
+    </div>
+</ion-content>
+
+<!-- Alerte de confirmation pour annuler -->
+<ion-alert [isOpen]="showCancelAlert" header="Annuler les modifications"
+    message="Es-tu sûr(e) de vouloir annuler tes modifications ? Toutes les données non sauvegardées seront perdues."
+    [buttons]="cancelAlertButtons" (didDismiss)="showCancelAlert = false">
+</ion-alert>

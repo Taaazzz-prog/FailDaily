@@ -12,7 +12,7 @@ import { FailService } from '../../services/fail.service';
 import { Badge } from '../../models/badge.model';
 import { BadgeCategory } from '../../models/enums';
 import { User } from '../../models/user.model';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Observable, combineLatest, map, BehaviorSubject, from } from 'rxjs';
 
 interface BadgeProgress {
@@ -75,26 +75,50 @@ export class BadgesPage implements OnInit {
     // Message d'encouragement fixe
     encouragementMessage = '';
 
+    // Paramètre de mise en surbrillance
+    highlightMode = false;
+
     constructor(
         private authService: AuthService,
         private badgeService: BadgeService,
         private failService: FailService,
-        private router: Router
+        private router: Router,
+        private route: ActivatedRoute
     ) {
+        console.log('🏆 BadgesPage - Constructor called');
         // Badges complets (pour les statistiques)
         this.allBadges$ = from(this.badgeService.getAllAvailableBadges());
         // Badges filtrés pour l'affichage par défaut (sans legendaires, 2-3 par catégorie)
         this.displayBadges$ = from(this.badgeService.getFilteredBadgesForDisplay());
         this.userBadges$ = this.badgeService.getUserBadges();
+        console.log('🏆 BadgesPage - Observables initialized');
 
         this.badgeStats$ = combineLatest([this.allBadges$, this.userBadges$]).pipe(
             map(([allBadges, userBadges]) => this.calculateBadgeStats(allBadges, userBadges))
         );
+        console.log('🏆 BadgesPage - BadgeStats observable initialized');
     }
 
     ngOnInit() {
+        console.log('🏆 BadgesPage - ngOnInit called');
+
+        // Vérifier si on arrive depuis une notification de badge
+        this.route.queryParams.subscribe(params => {
+            if (params['highlight'] === 'recent') {
+                this.highlightMode = true;
+                this.viewMode = 'unlocked';
+                console.log('🏆 Mode surbrillance activé - Affichage des badges récents');
+
+                // Désactiver le mode après quelques secondes
+                setTimeout(() => {
+                    this.highlightMode = false;
+                }, 5000);
+            }
+        });
+
         // Générer le message d'encouragement une seule fois
         this.encouragementMessage = this.getRandomEncouragement();
+        console.log('🏆 BadgesPage - Encouragement message:', this.encouragementMessage);
 
         // Initialiser les observables
         this.initializeObservables();
@@ -286,7 +310,7 @@ export class BadgesPage implements OnInit {
      */
     setViewMode(mode: 'overview' | 'category' | 'unlocked') {
         this.viewMode = mode;
-        
+
         if (mode === 'unlocked') {
             // Afficher seulement les badges débloqués
             this.selectedCategory = 'unlocked';
@@ -299,7 +323,7 @@ export class BadgesPage implements OnInit {
             // Mode overview - affichage filtré par défaut
             this.selectedCategory = 'all';
         }
-        
+
         console.log(`🔄 Mode d'affichage: ${mode}`);
     }
 
@@ -396,6 +420,29 @@ export class BadgesPage implements OnInit {
     }
 
     /**
+     * Obtient un message de félicitation pour les nouveaux badges
+     */
+    getWelcomeMessage(): string {
+        if (this.highlightMode) {
+            return "🎉 Félicitations pour ton nouveau badge ! Regarde comme ta collection s'enrichit !";
+        }
+        return this.encouragementMessage;
+    }
+
+    /**
+     * Vérifie si un badge a été récemment débloqué (dans les dernières 24h)
+     */
+    isBadgeRecent(badge: Badge): boolean {
+        if (!badge.unlockedDate) return false;
+
+        const badgeDate = new Date(badge.unlockedDate);
+        const now = new Date();
+        const diffHours = (now.getTime() - badgeDate.getTime()) / (1000 * 60 * 60);
+
+        return diffHours <= 24;
+    }
+
+    /**
      * Méthode de test pour forcer la vérification des badges
      * À supprimer en production
      */
@@ -403,7 +450,7 @@ export class BadgesPage implements OnInit {
         try {
             console.log('🧪 Test: Vérification forcée des badges...');
             const newBadges = await this.badgeService.forceCheckBadges();
-            
+
             if (newBadges.length > 0) {
                 console.log(`✅ Test réussi: ${newBadges.length} nouveaux badges débloqués`);
                 // Recharger les challenges

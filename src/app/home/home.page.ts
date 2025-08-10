@@ -33,50 +33,68 @@ export class HomePage implements OnInit, ViewWillEnter {
     private authService: AuthService,
     private router: Router
   ) {
+    console.log('🏠 HomePage - Constructor called');
     this.fails$ = this.failService.getFails();
+    console.log('🏠 HomePage - Fails observable initialized');
   }
 
   ngOnInit() {
+    console.log('🏠 HomePage - ngOnInit called');
     this.loadInitialData();
   }
 
   ionViewWillEnter() {
+    console.log('🏠 HomePage - ionViewWillEnter called');
     // Recharger les fails chaque fois que la page devient active
     this.loadInitialData();
   }
 
   async loadInitialData() {
+    console.log('🏠 HomePage - loadInitialData called');
     this.isLoading = true;
 
     // Charger les fails depuis Supabase
     try {
+      console.log('🏠 HomePage - Refreshing fails...');
       await this.failService.refreshFails();
+      console.log('🏠 HomePage - Fails loaded successfully');
     } catch (error) {
-      console.error('Error loading fails:', error);
+      console.error('🏠 HomePage - Error loading fails:', error);
     }
 
     this.isLoading = false;
+    console.log('🏠 HomePage - Loading finished');
   }
 
   async handleRefresh(event: RefresherCustomEvent) {
+    console.log('🏠 HomePage - handleRefresh called');
     try {
+      console.log('🏠 HomePage - Refreshing fails via pull-to-refresh...');
       await this.failService.refreshFails();
+      console.log('🏠 HomePage - Pull-to-refresh completed successfully');
       event.target.complete();
     } catch (error) {
-      console.error('Error refreshing fails:', error);
+      console.error('🏠 HomePage - Error refreshing fails:', error);
       event.target.complete();
     }
   }
 
   goToPostFail() {
-    if (this.authService.isAuthenticated()) {
+    console.log('🏠 HomePage - goToPostFail called');
+    const isAuth = this.authService.isAuthenticated();
+    console.log('🏠 HomePage - User authenticated:', isAuth);
+
+    if (isAuth) {
+      console.log('🏠 HomePage - Navigating to post-fail');
       this.router.navigate(['/post-fail']);
     } else {
+      console.log('🏠 HomePage - Not authenticated, redirecting to login');
       this.router.navigate(['/auth/login']);
     }
   }
 
   goToLogin() {
+    console.log('🏠 HomePage - goToLogin called');
     this.router.navigate(['/auth/login']);
   }
 

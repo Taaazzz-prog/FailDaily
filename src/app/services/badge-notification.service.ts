@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { ToastController } from '@ionic/angular';
+import { Router } from '@angular/router';
 import { EventBusService, AppEvents } from './event-bus.service';
+import { CelebrationService } from './celebration.service';
 import { Badge } from '../models/badge.model';
 
 @Injectable({
@@ -10,7 +12,9 @@ export class BadgeNotificationService {
 
   constructor(
     private toastController: ToastController,
-    private eventBus: EventBusService
+    private router: Router,
+    private eventBus: EventBusService,
+    private celebrationService: CelebrationService
   ) {
     this.setupBadgeNotifications();
   }
@@ -34,29 +38,43 @@ export class BadgeNotificationService {
   private async showBadgeUnlockedToast(badge: Badge): Promise<void> {
     const toast = await this.toastController.create({
       header: '🏆 Nouveau Badge Débloqué !',
-      message: `${badge.name}: ${badge.description}`,
-      duration: 4000,
+      message: `<div class="badge-notification">
+        <div class="badge-info">
+          <ion-icon name="${badge.icon}" class="badge-icon-toast"></ion-icon>
+          <div class="badge-details">
+            <div class="badge-name">${badge.name}</div>
+            <div class="badge-description">${badge.description}</div>
+            <div class="badge-rarity rarity-${badge.rarity}">${this.getRarityDisplayName(badge.rarity)}</div>
+          </div>
+        </div>
+      </div>`,
+      duration: 6000,
       position: 'top',
       color: 'success',
-      cssClass: 'badge-toast',
+      cssClass: `badge-toast badge-toast-${badge.rarity}`,
       buttons: [
         {
-          text: 'Voir',
+          text: '👀 Voir mes badges',
           role: 'info',
           handler: () => {
-            // Naviguer vers la page des badges
-            // Cette logique peut être ajoutée plus tard
-            console.log('Navigation vers la page badges');
+            this.navigateToBadges();
           }
         },
         {
-          text: 'Fermer',
-          role: 'cancel'
+          text: '✨',
+          role: 'cancel',
+          handler: () => {
+            // Animation de celebration
+            this.triggerCelebrationEffect();
+          }
         }
       ]
     });
 
     await toast.present();
+
+    // Son de notification (si disponible)
+    this.playNotificationSound();
   }
 
   /**
@@ -82,7 +100,7 @@ export class BadgeNotificationService {
           text: 'Voir tous',
           role: 'info',
           handler: () => {
-            console.log('Navigation vers la page badges');
+            this.navigateToBadges();
           }
         },
         {
@@ -93,5 +111,49 @@ export class BadgeNotificationService {
     });
 
     await toast.present();
+  }
+
+  /**
+   * Navigue vers la page des badges
+   */
+  private navigateToBadges(): void {
+    this.router.navigate(['/badges'], {
+      queryParams: { highlight: 'recent' }
+    });
+  }
+
+  /**
+   * Retourne le nom d'affichage d'une rareté
+   */
+  private getRarityDisplayName(rarity: string): string {
+    const rarityMap: { [key: string]: string } = {
+      'common': 'Commun',
+      'rare': 'Rare',
+      'epic': 'Épique',
+      'legendary': 'Légendaire'
+    };
+    return rarityMap[rarity] || rarity;
+  }
+
+  /**
+   * Déclenche un effet de célébration
+   */
+  private triggerCelebrationEffect(): void {
+    this.celebrationService.triggerConfetti();
+    this.celebrationService.triggerHapticFeedback([100, 30, 100, 30, 100]);
+  }  /**
+   * Joue un son de notification (si disponible)
+   */
+  private playNotificationSound(): void {
+    try {
+      // Son de notification simple
+      const audio = new Audio('assets/sounds/badge-unlock.mp3');
+      audio.volume = 0.3;
+      audio.play().catch(() => {
+        // Son non disponible, pas grave
+      });
+    } catch (e) {
+      // Audio non supporté, pas grave
+    }
   }
 }

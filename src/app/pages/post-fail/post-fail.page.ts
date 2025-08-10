@@ -43,19 +43,23 @@ export class PostFailPage implements OnInit {
     private toastController: ToastController,
     private actionSheetController: ActionSheetController
   ) {
+    console.log('📝 PostFailPage - Constructor called');
     this.postFailForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(5)]],
       content: ['', [Validators.required, Validators.minLength(10)]],
-      category: [FailCategory.COURAGE, Validators.required],
+      category: [null, Validators.required], // Suppression de la valeur par défaut
       isAnonymous: [false]
     });
+    console.log('📝 PostFailPage - Form initialized');
   }
 
   ngOnInit() {
+    console.log('📝 PostFailPage - ngOnInit called');
     // Form initialisé et prêt
   }
 
   async selectImage() {
+    console.log('📝 PostFailPage - selectImage called');
     const actionSheet = await this.actionSheetController.create({
       header: 'Capturer le moment authentique',
       buttons: [
@@ -124,15 +128,38 @@ export class PostFailPage implements OnInit {
   // L'authenticité exige l'engagement à son fail
 
   async onPostFail() {
+    console.log('📝 PostFailPage - onPostFail called');
+    console.log('📝 PostFailPage - Form valid:', this.postFailForm.valid);
+    console.log('📝 PostFailPage - Form values:', this.postFailForm.value);
+
     if (this.postFailForm.valid) {
       this.isLoading = true;
+      console.log('📝 PostFailPage - Loading started');
 
       try {
         const formValues = this.postFailForm.value;
+        console.log('📝 PostFailPage - Processing form data:', formValues);
+        console.log('📝 PostFailPage - Selected category:', formValues.category);
+
+        // Validation de la catégorie
+        if (!formValues.category) {
+          console.warn('📝 PostFailPage - No category selected');
+          const toast = await this.toastController.create({
+            message: 'Veuillez sélectionner une catégorie pour votre fail',
+            duration: 3000,
+            color: 'warning'
+          });
+          await toast.present();
+          this.isLoading = false;
+          return;
+        }
 
         // Vérifier que l'utilisateur est connecté en premier
         const currentUser = this.authService.getCurrentUser();
+        console.log('📝 PostFailPage - Current user:', currentUser?.email || 'Not authenticated');
+
         if (!currentUser) {
+          console.warn('📝 PostFailPage - User not authenticated');
           const toast = await this.toastController.create({
             message: 'Vous devez être connecté pour publier un fail',
             duration: 3000,
@@ -183,7 +210,7 @@ export class PostFailPage implements OnInit {
         const createFailData = {
           title: formValues.title?.trim() || 'Mon fail',
           description: formValues.content.trim(),
-          category: formValues.category || 'courage',
+          category: formValues.category, // Suppression de la valeur par défaut
           image: this.selectedImageFile,
           isPublic: !formValues.isAnonymous // Inverser car isAnonymous = !isPublic
         };
@@ -203,7 +230,7 @@ export class PostFailPage implements OnInit {
         this.postFailForm.reset({
           title: '',
           content: '',
-          category: FailCategory.COURAGE,
+          category: null, // Pas de valeur par défaut
           isAnonymous: false
         });
         this.selectedImageFile = undefined;

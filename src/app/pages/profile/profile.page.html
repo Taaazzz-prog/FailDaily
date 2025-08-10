@@ -44,6 +44,11 @@
                     <ion-icon name="share-outline" slot="start"></ion-icon>
                     Partager
                 </ion-button>
+                <!-- Test temporaire pour accéder directement aux paramètres -->
+                <ion-button fill="solid" color="primary" class="imperfect-element" (click)="goToPrivacySettings()">
+                    <ion-icon name="create-outline" slot="start"></ion-icon>
+                    Modifier Profil (TEST)
+                </ion-button>
             </div>
         </div>
         }
@@ -215,6 +220,13 @@
                 <ion-button expand="block" fill="outline" class="imperfect-element settings-btn" routerLink="/legal">
                     <ion-icon name="shield-checkmark" slot="start"></ion-icon>
                     Informations légales
+                    <ion-icon name="chevron-forward" slot="end"></ion-icon>
+                </ion-button>
+
+                <ion-button expand="block" fill="outline" class="imperfect-element settings-btn" routerLink="/admin"
+                    color="warning">
+                    <ion-icon name="construct" slot="start"></ion-icon>
+                    🛠️ Panel Admin
                     <ion-icon name="chevron-forward" slot="end"></ion-icon>
                 </ion-button>
 

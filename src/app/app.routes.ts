@@ -28,13 +28,51 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/badges/badges.page').then(m => m.BadgesPage),
         canActivate: [AuthGuard]
       },
-      // Ajoute ici les autres pages (settings) si besoin
+      {
+        path: 'admin',
+        loadComponent: () => import('./pages/admin/admin.page').then(m => m.AdminPage),
+        canActivate: [AuthGuard]
+      },
+      {
+        path: 'badge-migration',
+        loadComponent: () => import('./pages/badge-migration/badge-migration.page').then(m => m.BadgeMigrationPage),
+        canActivate: [AuthGuard]
+      },
+      {
+        path: 'privacy-settings',
+        loadComponent: () => import('./pages/privacy-settings/privacy-settings.page').then(m => {
+          console.log('Chargement du composant PrivacySettings...', m);
+          return m.PrivacySettingsPage;
+        }),
+        canActivate: [AuthGuard]
+      },
+      {
+        path: 'edit-profile',
+        loadComponent: () => import('./pages/edit-profile/edit-profile.page').then(m => m.EditProfilePage),
+        canActivate: [AuthGuard]
+      },
       {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full'
       }
     ]
+  },
+  // Route de test pour privacy-settings (sans AuthGuard)
+  {
+    path: 'test-privacy',
+    loadComponent: () => import('./pages/privacy-settings/privacy-settings.page').then(m => {
+      console.log('Chargement du composant PrivacySettings (test)...', m);
+      return m.PrivacySettingsPage;
+    })
+  },
+  // Route de test pour edit-profile (sans AuthGuard)
+  {
+    path: 'test-edit-profile',
+    loadComponent: () => import('./pages/edit-profile/edit-profile.page').then(m => {
+      console.log('Chargement du composant EditProfile (test)...', m);
+      return m.EditProfilePage;
+    })
   },
   // Pages légales
   {

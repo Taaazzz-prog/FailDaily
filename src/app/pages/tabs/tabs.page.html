@@ -1,33 +1,28 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>FailDaily</ion-title>
-  </ion-toolbar>
-</ion-header>
+<ion-tabs>
+  <ion-tab-bar slot="bottom" class="custom-tab-bar">
+    <ion-tab-button tab="home">
+      <ion-icon name="home-outline"></ion-icon>
+      <ion-label>Accueil</ion-label>
+    </ion-tab-button>
 
-<ion-content>
-  <ion-tabs>
-    <ion-tab-bar slot="bottom" class="custom-tab-bar">
-      <ion-tab-button tab="home">
-        <ion-icon name="home-outline"></ion-icon>
-        <ion-label>Accueil</ion-label>
-      </ion-tab-button>
-      <ion-tab-button tab="post-fail">
-        <ion-icon name="add-circle-outline"></ion-icon>
-        <ion-label>Partager</ion-label>
-      </ion-tab-button>
-      <ion-tab-button tab="badges">
-        <ion-icon name="ribbon-outline"></ion-icon>
-        <ion-label>Badges</ion-label>
-      </ion-tab-button>
-      <ion-tab-button tab="profile">
-        <ion-icon name="person-outline"></ion-icon>
-        <ion-label>Profil</ion-label>
-      </ion-tab-button>
-      <ion-tab-button tab="settings">
-        <ion-icon name="settings-outline"></ion-icon>
-        <ion-label>Paramètres</ion-label>
-      </ion-tab-button>
-    </ion-tab-bar>
-  </ion-tabs>
-</ion-content>
+    <ion-tab-button tab="post-fail" class="add-fail-button">
+      <ion-icon name="add-circle" size="large"></ion-icon>
+      <ion-label>Ajouter</ion-label>
+    </ion-tab-button>
 
+    <ion-tab-button tab="badges">
+      <ion-icon name="ribbon-outline"></ion-icon>
+      <ion-label>Badges</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="profile">
+      <ion-icon name="person-outline"></ion-icon>
+      <ion-label>Profil</ion-label>
+    </ion-tab-button>
+
+    <ion-tab-button tab="admin" class="admin-tab">
+      <ion-icon name="construct"></ion-icon>
+      <ion-label>Admin</ion-label>
+    </ion-tab-button>
+  </ion-tab-bar>
+</ion-tabs>

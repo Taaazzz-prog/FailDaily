@@ -1,0 +1,423 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/"></ion-back-button>
+        </ion-buttons>
+        <ion-title>🛠️ Panel Admin</ion-title>
+        <ion-buttons slot="end">
+            <ion-button (click)="refreshData()">
+                <ion-icon name="refresh"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+    <!-- Sélection utilisateur -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>Sélectionner un utilisateur</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <div *ngIf="isLoading" class="loading-container">
+                <ion-spinner name="crescent"></ion-spinner>
+                <p>Chargement des utilisateurs...</p>
+            </div>
+
+            <ion-item *ngIf="!isLoading">
+                <ion-label>Utilisateur ({{ users.length }} trouvés)</ion-label>
+                <ion-select placeholder="Choisir un utilisateur" (ionChange)="onUserSelected($event)"
+                    interface="popover">
+                    <ion-select-option *ngFor="let user of users" [value]="user.id">
+                        {{ user.display_name || user.email }}
+                        <span class="user-stats">
+                            ({{ user.total_fails }} fails, {{ user.total_reactions }} réactions)
+                        </span>
+                    </ion-select-option>
+                </ion-select>
+            </ion-item>
+
+            <!-- Debug info -->
+            <div *ngIf="!isLoading && users.length === 0" class="debug-info">
+                <p><em>❌ Aucun utilisateur trouvé dans la base de données</em></p>
+                <p><small>Vérifiez la console du navigateur pour plus d'informations</small></p>
+
+                <!-- Test de données -->
+                <ion-button fill="outline" color="warning" (click)="createTestData()">
+                    <ion-icon name="flask" slot="start"></ion-icon>
+                    Créer des données de test
+                </ion-button>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Migration des Badges -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>🔄 Migration des Badges</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <p>Migration des badges hardcodés vers la base de données.</p>
+
+            <div class="migration-actions">
+                <ion-button expand="block" (click)="runBadgeMigration()" [disabled]="isMigratingBadges" color="primary">
+                    <ion-icon name="sync" slot="start"></ion-icon>
+                    <span *ngIf="!isMigratingBadges">Migrer tous les badges</span>
+                    <span *ngIf="isMigratingBadges">Migration en cours...</span>
+                </ion-button>
+
+                <ion-button expand="block" fill="outline" (click)="testReactions25Badge()"
+                    [disabled]="isMigratingBadges" color="warning">
+                    <ion-icon name="bug" slot="start"></ion-icon>
+                    Tester badge "reactions-25"
+                </ion-button>
+            </div>
+
+            <ion-spinner *ngIf="isMigratingBadges" name="crescent"></ion-spinner>
+
+            <!-- Résultats de migration -->
+            <div *ngIf="migrationResults" class="migration-results">
+                <h4>📊 Résultats :</h4>
+                <p>✅ <strong>{{ migrationResults.added }}</strong> badges ajoutés</p>
+                <p>📚 <strong>{{ migrationResults.existing }}</strong> badges existants</p>
+                <p *ngIf="migrationResults.errors > 0">❌ <strong>{{ migrationResults.errors }}</strong> erreurs</p>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Détails utilisateur sélectionné -->
+    <div *ngIf="selectedUser">
+        <!-- Informations générales -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>👤 {{ selectedUser.display_name || selectedUser.email }}</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <div class="user-info">
+                    <p><strong>Email:</strong> {{ selectedUser.email }}</p>
+                    <p><strong>Inscrit le:</strong> {{ formatDate(selectedUser.created_at) }}</p>
+                    <p><strong>ID:</strong> <code>{{ selectedUser.id }}</code></p>
+
+                    <div class="stats-chips">
+                        <ion-chip color="primary">
+                            <ion-icon name="document-text"></ion-icon>
+                            <ion-label>{{ selectedUser.total_fails }} Fails</ion-label>
+                        </ion-chip>
+                        <ion-chip color="secondary">
+                            <ion-icon name="heart"></ion-icon>
+                            <ion-label>{{ selectedUser.total_reactions }} Réactions</ion-label>
+                        </ion-chip>
+                    </div>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Navigation par onglets -->
+        <ion-card>
+            <ion-card-content>
+                <div class="tab-navigation">
+                    <ion-button [fill]="viewMode === 'summary' ? 'solid' : 'outline'" (click)="setViewMode('summary')"
+                        size="small">
+                        📊 Résumé
+                    </ion-button>
+                    <ion-button [fill]="viewMode === 'fails' ? 'solid' : 'outline'" (click)="setViewMode('fails')"
+                        size="small">
+                        📝 Fails ({{ userFails.length }})
+                    </ion-button>
+                    <ion-button [fill]="viewMode === 'reactions' ? 'solid' : 'outline'"
+                        (click)="setViewMode('reactions')" size="small">
+                        ❤️ Réactions ({{ userReactions.length }})
+                    </ion-button>
+                    <ion-button [fill]="viewMode === 'activity' ? 'solid' : 'outline'" (click)="setViewMode('activity')"
+                        size="small">
+                        📅 Timeline ({{ userActivity.length }})
+                    </ion-button>
+                    <ion-button [fill]="viewMode === 'badges' ? 'solid' : 'outline'" (click)="setViewMode('badges')"
+                        size="small">
+                        🏆 Badges ({{ userBadges.length }})
+                    </ion-button>
+                </div>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Loading des détails -->
+        <div *ngIf="isLoadingDetails" class="loading-container">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Chargement des détails utilisateur...</p>
+        </div>
+
+        <!-- Vue Résumé -->
+        <div *ngIf="!isLoadingDetails && viewMode === 'summary'">
+            <ion-card>
+                <ion-card-header>
+                    <ion-card-title>📊 Résumé d'activité</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <h3>📝 Fails créés</h3>
+                            <p class="number">{{ userFails.length }}</p>
+                            <p class="detail" *ngIf="userFails.length > 0 && userFails[0]?.created_at">
+                                Dernier: {{ formatDate(userFails[0].created_at) }}
+                            </p>
+                        </div>
+
+                        <div class="summary-item">
+                            <h3>❤️ Réactions données</h3>
+                            <p class="number">{{ userReactions.length }}</p>
+                            <p class="detail" *ngIf="userReactions.length > 0 && userReactions[0]?.created_at">
+                                Dernière: {{ formatDate(userReactions[0].created_at) }}
+                            </p>
+                        </div>
+
+                        <div class="summary-item" *ngIf="userActivity.length > 0 && userActivity[0]?.created_at">
+                            <h3>🕒 Dernière activité</h3>
+                            <p class="detail">{{ formatDate(userActivity[0].created_at) }}</p>
+                            <p class="activity-type">{{ userActivity[0].type === 'fail' ? '📝 Fail créé' : '❤️ Réaction
+                                donnée' }}</p>
+                        </div>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+        </div>
+
+        <!-- Vue Fails -->
+        <div *ngIf="!isLoadingDetails && viewMode === 'fails'">
+            <div *ngFor="let fail of userFails; let i = index" class="fail-container">
+                <ion-card>
+                    <ion-card-header>
+                        <div class="fail-header">
+                            <ion-card-title>{{ i + 1 }}. {{ fail.title }}</ion-card-title>
+                            <ion-chip [style.--background]="getCategoryColor(fail.category)">
+                                {{ fail.category }}
+                            </ion-chip>
+                        </div>
+                    </ion-card-header>
+
+                    <ion-card-content>
+                        <div class="fail-info">
+                            <p><strong>Description:</strong> {{ fail.description }}</p>
+                            <p><strong>Créé le:</strong> {{ formatDate(fail.created_at) }}</p>
+                            <p><strong>ID:</strong> <code>{{ fail.id }}</code></p>
+
+                            <!-- Compteurs de réactions totales -->
+                            <div class="reaction-totals" *ngIf="fail.reactions">
+                                <h4>📊 Réactions totales:</h4>
+                                <div class="reaction-chips">
+                                    <ion-chip *ngIf="fail.reactions.courage > 0" [color]="getReactionColor('courage')">
+                                        💪 {{ fail.reactions.courage }}
+                                    </ion-chip>
+                                    <ion-chip *ngIf="fail.reactions.empathy > 0" [color]="getReactionColor('empathy')">
+                                        🤗 {{ fail.reactions.empathy }}
+                                    </ion-chip>
+                                    <ion-chip *ngIf="fail.reactions.laugh > 0" [color]="getReactionColor('laugh')">
+                                        😂 {{ fail.reactions.laugh }}
+                                    </ion-chip>
+                                    <ion-chip *ngIf="fail.reactions.support > 0" [color]="getReactionColor('support')">
+                                        🙌 {{ fail.reactions.support }}
+                                    </ion-chip>
+                                </div>
+                            </div>
+
+                            <!-- Détail des réactions par utilisateur -->
+                            <div class="user-reactions" *ngIf="fail.user_reactions.length > 0">
+                                <h4>👥 Réactions détaillées ({{ fail.user_reactions.length }}):</h4>
+                                <div class="reaction-list">
+                                    <div *ngFor="let reaction of fail.user_reactions" class="reaction-item">
+                                        <ion-badge [color]="getReactionColor(reaction.reaction_type)">
+                                            {{ reaction.reaction_type }}
+                                        </ion-badge>
+                                        <span class="reaction-user">
+                                            {{ reaction.profiles?.display_name || reaction.profiles?.email ||
+                                            'Utilisateur inconnu' }}
+                                        </span>
+                                        <span class="reaction-date">
+                                            {{ formatDate(reaction.created_at) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Aucune réaction -->
+                            <div *ngIf="fail.user_reactions.length === 0" class="no-reactions">
+                                <p><em>❌ Aucune réaction sur ce fail</em></p>
+                            </div>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+            </div>
+
+            <!-- Aucun fail -->
+            <ion-card *ngIf="userFails.length === 0">
+                <ion-card-content>
+                    <div class="no-fails">
+                        <p><em>📝 Cet utilisateur n'a encore posté aucun fail</em></p>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+        </div>
+
+        <!-- Vue Réactions -->
+        <div *ngIf="!isLoadingDetails && viewMode === 'reactions'">
+            <div *ngFor="let reaction of userReactions; let i = index">
+                <ion-card>
+                    <ion-card-header>
+                        <div class="reaction-header">
+                            <ion-card-title>{{ i + 1 }}. Réaction {{ reaction.reaction_type }}</ion-card-title>
+                            <ion-badge [color]="getReactionColor(reaction.reaction_type)">
+                                {{ reaction.reaction_type }}
+                            </ion-badge>
+                        </div>
+                    </ion-card-header>
+
+                    <ion-card-content>
+                        <div class="reaction-info">
+                            <p><strong>Sur le fail:</strong> "{{ reaction.fail_title }}"</p>
+                            <p><strong>De:</strong> {{ reaction.fail_author }}</p>
+                            <p><strong>Date:</strong> {{ formatDate(reaction.created_at) }}</p>
+                            <p><strong>ID réaction:</strong> <code>{{ reaction.id }}</code></p>
+                            <p><strong>ID fail:</strong> <code>{{ reaction.fail_id }}</code></p>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+            </div>
+
+            <!-- Aucune réaction -->
+            <ion-card *ngIf="userReactions.length === 0">
+                <ion-card-content>
+                    <div class="no-reactions">
+                        <p><em>❤️ Cet utilisateur n'a encore donné aucune réaction</em></p>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+        </div>
+
+        <!-- Vue Timeline -->
+        <div *ngIf="!isLoadingDetails && viewMode === 'activity'">
+            <div *ngFor="let activity of userActivity; let i = index">
+                <ion-card>
+                    <ion-card-header>
+                        <div class="activity-header">
+                            <ion-card-title>
+                                {{ activity.type === 'fail' ? '📝' : '❤️' }}
+                                {{ activity.title }}
+                            </ion-card-title>
+                            <span class="activity-date">{{ formatDate(activity.created_at) }}</span>
+                        </div>
+                    </ion-card-header>
+
+                    <ion-card-content>
+                        <div class="activity-info" *ngIf="activity.type === 'fail'">
+                            <p><strong>Description:</strong> {{ activity.description }}</p>
+                            <p><strong>Catégorie:</strong>
+                                <ion-chip [style.--background]="getCategoryColor(activity.category!)">
+                                    {{ activity.category }}
+                                </ion-chip>
+                            </p>
+                            <p><strong>ID:</strong> <code>{{ activity.id }}</code></p>
+                        </div>
+
+                        <div class="activity-info" *ngIf="activity.type === 'reaction'">
+                            <p><strong>Type:</strong>
+                                <ion-badge [color]="getReactionColor(activity.reaction_type!)">
+                                    {{ activity.reaction_type }}
+                                </ion-badge>
+                            </p>
+                            <p><strong>Sur le fail:</strong> "{{ activity.target_fail_title }}"</p>
+                            <p><strong>De:</strong> {{ activity.target_fail_author }}</p>
+                            <p><strong>ID:</strong> <code>{{ activity.id }}</code></p>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+            </div>
+
+            <!-- Aucune activité -->
+            <ion-card *ngIf="userActivity.length === 0">
+                <ion-card-content>
+                    <div class="no-activity">
+                        <p><em>📅 Aucune activité enregistrée pour cet utilisateur</em></p>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+        </div>
+
+        <!-- Vue Badges -->
+        <div *ngIf="!isLoadingDetails && viewMode === 'badges'">
+            <!-- Badges débloqués -->
+            <ion-card>
+                <ion-card-header>
+                    <ion-card-title>🏆 Badges débloqués ({{ userBadges.length }})</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                    <div *ngIf="userBadges.length > 0" class="badges-grid">
+                        <div *ngFor="let badge of userBadges" class="badge-item unlocked">
+                            <div class="badge-icon">
+                                <ion-icon [name]="badge.icon" [color]="getBadgeColor(badge.rarity)"></ion-icon>
+                            </div>
+                            <div class="badge-info">
+                                <h4>{{ badge.name }}</h4>
+                                <p class="badge-description">{{ badge.description }}</p>
+                                <div class="badge-details">
+                                    <ion-chip [color]="getBadgeColor(badge.rarity)" size="small">
+                                        {{ badge.rarity | titlecase }}
+                                    </ion-chip>
+                                    <ion-chip color="success" size="small">
+                                        <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+                                        Débloqué
+                                    </ion-chip>
+                                </div>
+                                <p class="badge-date" *ngIf="badge.unlockedDate">
+                                    <small>Débloqué le: {{ formatDate(badge.unlockedDate.toISOString()) }}</small>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div *ngIf="userBadges.length === 0" class="no-badges">
+                        <p><em>🏆 Aucun badge débloqué pour cet utilisateur</em></p>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+
+            <!-- Prochain badge à débloquer -->
+            <ion-card *ngIf="nextBadge">
+                <ion-card-header>
+                    <ion-card-title>🎯 Prochain badge à débloquer</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                    <div class="badge-item next-badge">
+                        <div class="badge-icon">
+                            <ion-icon [name]="nextBadge.icon" color="medium"></ion-icon>
+                        </div>
+                        <div class="badge-info">
+                            <h4>{{ nextBadge.name }}</h4>
+                            <p class="badge-description">{{ nextBadge.description }}</p>
+                            <div class="badge-details">
+                                <ion-chip [color]="getBadgeColor(nextBadge.rarity)" size="small">
+                                    {{ nextBadge.rarity | titlecase }}
+                                </ion-chip>
+                                <ion-chip color="warning" size="small">
+                                    <ion-icon name="hourglass" slot="start"></ion-icon>
+                                    En cours
+                                </ion-chip>
+                            </div>
+                            <p class="badge-requirements">
+                                <small><strong>Catégorie:</strong> {{ nextBadge.category }}</small>
+                            </p>
+                        </div>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+
+            <!-- Message si tous les badges sont débloqués -->
+            <ion-card *ngIf="!nextBadge && userBadges.length > 0">
+                <ion-card-content>
+                    <div class="all-badges-complete">
+                        <h3>🎉 Félicitations !</h3>
+                        <p><em>Cet utilisateur a débloqué tous les badges disponibles !</em></p>
+                    </div>
+                </ion-card-content>
+            </ion-card>
+        </div>
+    </div>
+</ion-content>

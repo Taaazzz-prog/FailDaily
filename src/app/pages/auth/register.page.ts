@@ -36,15 +36,19 @@ export class RegisterPage implements OnInit {
     private toastController: ToastController,
     private modalController: ModalController
   ) {
+    console.log('📝 RegisterPage - Constructor called');
     this.registerForm = this.fb.group({
       displayName: ['', [Validators.required, CustomValidators.minLength(2), CustomValidators.noWhitespace]],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, CustomValidators.minLength(6)]],
       confirmPassword: ['', [Validators.required]]
     }, { validators: this.passwordMatchValidator });
+    console.log('📝 RegisterPage - Form initialized');
   }
 
-  ngOnInit() { }
+  ngOnInit() {
+    console.log('📝 RegisterPage - ngOnInit called');
+  }
 
   passwordMatchValidator(form: FormGroup) {
     const password = form.get('password');
@@ -57,9 +61,16 @@ export class RegisterPage implements OnInit {
   }
 
   async onRegister() {
+    console.log('📝 RegisterPage - onRegister called');
+    console.log('📝 RegisterPage - Form valid:', this.registerForm.valid);
+    console.log('📝 RegisterPage - Form values:', this.registerForm.value);
+
     if (this.registerForm.valid) {
+      console.log('📝 RegisterPage - Opening legal consent modal');
       // D'abord, ouvrir le modal de consentement légal
       await this.openLegalConsentModal();
+    } else {
+      console.warn('📝 RegisterPage - Form is invalid:', this.registerForm.errors);
     }
   }
 
@@ -67,6 +78,7 @@ export class RegisterPage implements OnInit {
    * Ouvre le modal de consentement légal
    */
   async openLegalConsentModal() {
+    console.log('📝 RegisterPage - Creating legal consent modal');
     const modal = await this.modalController.create({
       component: LegalConsentModalComponent,
       backdropDismiss: false,
@@ -74,13 +86,17 @@ export class RegisterPage implements OnInit {
     });
 
     await modal.present();
+    console.log('📝 RegisterPage - Legal consent modal presented');
 
     const { data, role } = await modal.onDidDismiss();
+    console.log('📝 RegisterPage - Modal dismissed with role:', role, 'data:', data);
 
     if (role === 'confirm' && data) {
+      console.log('📝 RegisterPage - User accepted consent, processing registration');
       this.consentData = data;
       await this.processRegistration();
     } else {
+      console.log('📝 RegisterPage - User cancelled consent');
       // L'utilisateur a annulé - ne pas continuer l'inscription
       const toast = await this.toastController.create({
         message: 'Inscription annulée. L\'acceptation des conditions est obligatoire.',
@@ -95,12 +111,18 @@ export class RegisterPage implements OnInit {
    * Traite l'inscription après acceptation des CGU
    */
   async processRegistration() {
-    if (!this.consentData) return;
+    console.log('📝 RegisterPage - processRegistration called');
+    if (!this.consentData) {
+      console.error('📝 RegisterPage - No consent data available');
+      return;
+    }
 
     this.isLoading = true;
+    console.log('📝 RegisterPage - Loading started');
 
     try {
       const { displayName, email, password } = this.registerForm.value;
+      console.log('📝 RegisterPage - Registration data:', { displayName, email });
 
       // Étape 1: Créer le compte utilisateur
       const registerData = {
@@ -109,10 +131,13 @@ export class RegisterPage implements OnInit {
         username: displayName.toLowerCase().replace(/\s+/g, '_'),
         displayName
       };
+      console.log('📝 RegisterPage - Calling authService.register');
 
       await this.authService.register(registerData).toPromise();
+      console.log('📝 RegisterPage - User registration successful');
 
       // Attendre un peu pour que l'utilisateur soit bien créé
+      console.log('📝 RegisterPage - Waiting for user creation...');
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Étape 2: Préparer les données de consentement légal
@@ -122,6 +147,7 @@ export class RegisterPage implements OnInit {
         consentVersion: '1.0',
         marketingOptIn: this.consentData.marketingOptIn || false
       };
+      console.log('📝 RegisterPage - Legal consent data:', legalConsent);
 
       // Étape 3: Préparer les données de vérification d'âge
       const ageVerification = {
@@ -162,7 +188,7 @@ export class RegisterPage implements OnInit {
         });
         await toast.present();
 
-        this.router.navigate(['/home']);
+        this.router.navigate(['/']);
       } catch (completeError) {
         console.error('Erreur lors de la finalisation:', completeError);
 

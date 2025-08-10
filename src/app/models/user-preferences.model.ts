@@ -1,3 +1,8 @@
+export interface NotificationPreferences {
+  encouragement: boolean;
+  reminderFrequency: 'daily' | 'weekly' | 'monthly' | 'never';
+}
+
 export interface UserPreferences {
   notificationsEnabled: boolean;
   reminderTime: string; // Format "HH:mm"
@@ -6,5 +11,8 @@ export interface UserPreferences {
   soundEnabled: boolean;
   hapticsEnabled: boolean;
   darkMode: boolean;
+  theme: 'light' | 'dark' | 'auto';
+  bio?: string;
+  notifications?: NotificationPreferences;
 }
 

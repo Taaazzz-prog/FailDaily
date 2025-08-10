@@ -20,15 +20,18 @@ export class SupabaseService {
             environment.supabase.key,
             {
                 auth: {
-                    persistSession: true,
+                    persistSession: true, // ✅ CORRECTION: Activer la persistance de session
                     detectSessionInUrl: false,
-                    autoRefreshToken: true
+                    autoRefreshToken: true, // ✅ CORRECTION: Activer le refresh automatique des tokens
+                    storage: window.localStorage, // ✅ AJOUT: Explicitement utiliser localStorage
+                    storageKey: 'faildaily-supabase-auth', // ✅ AJOUT: Clé personnalisée pour éviter les conflits
                 }
             }
         );
         this.client = this.supabase;
 
         this.supabase.auth.onAuthStateChange((event, session) => {
+            console.log('🔐 SupabaseService: Auth state change:', event, session?.user?.id || 'no user');
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 this.currentUser.next(session?.user || null);
             } else if (event === 'SIGNED_OUT') {
@@ -36,8 +39,11 @@ export class SupabaseService {
             }
         });
 
-        // Initialiser l'utilisateur de manière asynchrone pour éviter les blocages
-        setTimeout(() => this.getCurrentUser(), 100);
+        // Initialiser l'utilisateur actuel sans nettoyer les sessions
+        console.log('🔐 SupabaseService: Initializing current user state...');
+        this.getCurrentUser().then(user => {
+            console.log('🔐 SupabaseService: Initial user loaded:', user?.id || 'no user');
+        });
     }
 
     // Méthode synchrone pour éviter les problèmes de concurrence avec NavigatorLock
@@ -54,7 +60,7 @@ export class SupabaseService {
 
             const { data: { user }, error } = await this.supabase.auth.getUser();
             if (error) {
-                console.warn('Session manquante ou expirée:', error.message);
+                console.log('🔐 SupabaseService: Session expirée ou manquante (normal):', error.message);
                 return null;
             }
             this.currentUser.next(user);
@@ -116,6 +122,34 @@ export class SupabaseService {
         this.currentUser.next(null);
     }
 
+    async clearAllSessions(): Promise<void> {
+        try {
+            console.log('🔐 SupabaseService: Clearing all sessions and local storage');
+
+            // Déconnecter de Supabase
+            await this.supabase.auth.signOut();
+
+            // Vider le localStorage de Supabase
+            if (typeof window !== 'undefined') {
+                const keys = Object.keys(localStorage);
+                keys.forEach(key => {
+                    if (key.includes('supabase') || key.includes('sb-')) {
+                        localStorage.removeItem(key);
+                        console.log('🔐 SupabaseService: Removed localStorage key:', key);
+                    }
+                });
+            }
+
+            // Réinitialiser l'utilisateur courant
+            this.currentUser.next(null);
+
+            console.log('🔐 SupabaseService: All sessions cleared');
+        } catch (error) {
+            console.error('🔐 SupabaseService: Error clearing sessions:', error);
+            throw error;
+        }
+    }
+
     async resetPassword(email: string): Promise<void> {
         const { error } = await this.supabase.auth.resetPasswordForEmail(email);
         if (error) throw error;
@@ -137,6 +171,43 @@ export class SupabaseService {
         } catch (error) {
             console.warn('Erreur lors de la récupération du profil:', error);
             return null;
+        }
+    }
+
+    async createProfile(user: any): Promise<any> {
+        try {
+            console.log('🔐 SupabaseService: Creating profile for user:', user.id);
+
+            const profileData = {
+                id: user.id,
+                email: user.email,
+                display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur',
+                username: user.user_metadata?.username || user.email?.split('@')[0] || 'user',
+                avatar_url: 'assets/anonymous-avatar.svg',
+                email_confirmed: true,
+                registration_completed: false,
+                legal_consent: null,
+                age_verification: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .insert(profileData)
+                .select()
+                .single();
+
+            if (error) {
+                console.error('🔐 SupabaseService: Error creating profile:', error);
+                throw error;
+            }
+
+            console.log('🔐 SupabaseService: Profile created successfully:', data);
+            return data;
+        } catch (error) {
+            console.error('🔐 SupabaseService: Error in createProfile:', error);
+            throw error;
         }
     }
 
@@ -163,7 +234,7 @@ export class SupabaseService {
             const failData = {
                 title: fail.title?.toString()?.trim() || 'Mon fail',
                 description: fail.description?.toString()?.trim() || '',
-                category: fail.category || 'courage',
+                category: fail.category, // Suppression du fallback
                 image_url: fail.image_url || null,
                 is_public: Boolean(fail.is_public),
                 user_id: user.id,
@@ -176,10 +247,19 @@ export class SupabaseService {
                 throw new Error('La description ne peut pas être vide');
             }
 
-            // Vérifier que la catégorie est valide
-            const validCategories = ['courage', 'humour', 'entraide', 'perseverance', 'special'];
+            if (!failData.category) {
+                throw new Error('La catégorie doit être spécifiée');
+            }
+
+            // Vérifier que la catégorie est valide selon les nouvelles catégories
+            const validCategories = [
+                'courage', 'humour', 'entraide', 'perseverance', 'special',
+                'travail', 'sport', 'cuisine', 'transport', 'technologie',
+                'relations', 'finances', 'bricolage', 'apprentissage',
+                'santé', 'voyage', 'communication'
+            ];
             if (!validCategories.includes(failData.category)) {
-                failData.category = 'courage'; // Valeur par défaut
+                throw new Error(`Catégorie invalide: ${failData.category}`);
             }
 
             console.log('Données à insérer:', failData);
@@ -346,7 +426,7 @@ export class SupabaseService {
         const reactions = fail.reactions || {};
         // Décrémenter l'ancienne réaction
         reactions[oldReactionType] = Math.max(0, (reactions[oldReactionType] || 0) - 1);
-        // Incrémenter la nouvelle réaction  
+        // Incrémenter la nouvelle réaction
         reactions[newReactionType] = Math.max(0, (reactions[newReactionType] || 0) + 1);
 
         const { error: updateError } = await this.supabase
@@ -556,34 +636,35 @@ export class SupabaseService {
 
             return data?.map(b => b.badge_id) || [];
         } catch (error) {
-            console.error('Erreur lors de la récupération des badges:', error);
+            console.error('Erreur lors de la récupération des badges utilisateur:', error);
             return [];
         }
     }
 
     /**
-     * Débloquer un nouveau badge pour un utilisateur
+     * Débloque un badge pour un utilisateur
      */
     async unlockBadge(userId: string, badgeId: string): Promise<boolean> {
         try {
-            const { error } = await this.supabase
+            const { data, error } = await this.supabase
                 .from('user_badges')
                 .insert({
                     user_id: userId,
                     badge_id: badgeId,
                     unlocked_at: new Date().toISOString()
-                });
+                })
+                .select()
+                .single();
 
             if (error) {
-                if (error.code === '23505') { // Contrainte unique violée
-                    return false; // Badge déjà débloqué
-                }
-                throw error;
+                console.error('Erreur lors du déblocage du badge:', error);
+                return false;
             }
 
+            console.log(`Badge ${badgeId} débloqué pour l'utilisateur ${userId}`);
             return true;
         } catch (error) {
-            console.error('Erreur lors du débloquage du badge:', error);
+            console.error('Erreur dans unlockBadge:', error);
             return false;
         }
     }

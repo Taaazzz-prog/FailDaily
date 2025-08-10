@@ -25,6 +25,7 @@ export class FailService {
     private supabaseService: SupabaseService,
     private eventBus: EventBusService
   ) {
+    console.log('💣 FailService: Constructor called - initializing fail service');
     // Charger les fails au démarrage
     this.loadFails();
   }
@@ -54,7 +55,7 @@ export class FailService {
     const failToCreate = {
       title: failData.title?.trim() || 'Mon fail',
       description: failData.description?.trim() || '',
-      category: failData.category || 'courage',
+      category: failData.category, // Suppression du fallback
       image_url: imageUrl,
       is_public: Boolean(failData.isPublic),
       user_id: user.id
@@ -63,6 +64,10 @@ export class FailService {
     // Validation supplémentaire
     if (!failToCreate.description) {
       throw new Error('La description ne peut pas être vide');
+    }
+
+    if (!failToCreate.category) {
+      throw new Error('La catégorie doit être sélectionnée');
     }
 
     try {
@@ -160,19 +165,27 @@ export class FailService {
   }
 
   async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+    console.log('💣 FailService: addReaction called for fail:', failId, 'type:', reactionType);
+
     const user = await this.supabaseService.getCurrentUser();
     if (!user) {
+      console.error('💣 FailService: No user connected for addReaction');
       throw new Error('Utilisateur non connecté');
     }
 
+    console.log('💣 FailService: User found for reaction:', user.id);
+    console.log('💣 FailService: Calling supabaseService.addReaction');
     const result = await this.supabaseService.addReaction(failId, reactionType);
+    console.log('💣 FailService: supabaseService.addReaction completed');
 
     // Émettre un événement pour notifier la réaction
+    console.log('💣 FailService: Emitting REACTION_GIVEN event');
     this.eventBus.emit(AppEvents.REACTION_GIVEN, {
       userId: user.id,
       failId: failId,
       reactionType: reactionType
     });
+    console.log('💣 FailService: REACTION_GIVEN event emitted successfully');
 
     return result;
   }
@@ -191,17 +204,28 @@ export class FailService {
   }
 
   async getUserReactionsForFail(failId: string): Promise<string[]> {
-    return this.supabaseService.getUserReactionsForFail(failId);
+    console.log('💣 FailService: getUserReactionsForFail called for fail:', failId);
+    const result = await this.supabaseService.getUserReactionsForFail(failId);
+    console.log('💣 FailService: getUserReactionsForFail result:', result);
+    return result;
   }
 
   async getFailById(failId: string): Promise<Fail | null> {
+    console.log('💣 FailService: getFailById called for fail:', failId);
+
     try {
       const failData = await this.supabaseService.getFailById(failId);
-      if (!failData) return null;
+      if (!failData) {
+        console.log('💣 FailService: No fail data found for ID:', failId);
+        return null;
+      }
 
-      return await this.formatFailWithAuthor(failData);
+      console.log('💣 FailService: Fail data found, formatting with author');
+      const result = await this.formatFailWithAuthor(failData);
+      console.log('💣 FailService: Fail formatted successfully');
+      return result;
     } catch (error) {
-      console.error('Erreur lors de la récupération du fail:', error);
+      console.error('💣 FailService: Erreur lors de la récupération du fail:', error);
       return null;
     }
   }

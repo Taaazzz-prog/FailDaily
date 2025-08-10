@@ -15,106 +15,15 @@ export class BadgeService {
   private lastBadgeCheck = 0;
   private readonly BADGE_CHECK_COOLDOWN = 2000; // 2 secondes entre les vérifications
 
-  // Définition des badges disponibles
-  private availableBadges: Badge[] = [
-    // Badges de début
-    {
-      id: 'first-fail',
-      name: 'Premier Courage',
-      description: 'Poster votre premier fail',
-      icon: 'heart-outline',
-      category: BadgeCategory.COURAGE,
-      rarity: 'common'
-    },
-    {
-      id: 'first-reaction',
-      name: 'Première Réaction',
-      description: 'Donner votre première réaction à un fail',
-      icon: 'happy-outline',
-      category: BadgeCategory.ENTRAIDE,
-      rarity: 'common'
-    },
-
-    // Badges de volume
-    {
-      id: 'fails-5',
-      name: 'Apprenti Courage',
-      description: 'Poster 5 fails',
-      icon: 'ribbon-outline',
-      category: BadgeCategory.COURAGE,
-      rarity: 'common'
-    },
-    {
-      id: 'fails-10',
-      name: 'Courageux',
-      description: 'Poster 10 fails',
-      icon: 'trophy-outline',
-      category: BadgeCategory.COURAGE,
-      rarity: 'rare'
-    },
-    {
-      id: 'fails-25',
-      name: 'Maître du Courage',
-      description: 'Poster 25 fails',
-      icon: 'star-outline',
-      category: BadgeCategory.COURAGE,
-      rarity: 'epic'
-    },
-
-    // Badges de réactions
-    {
-      id: 'reactions-10',
-      name: 'Supporteur',
-      description: 'Donner 10 réactions',
-      icon: 'people-outline',
-      category: BadgeCategory.ENTRAIDE,
-      rarity: 'common'
-    },
-    {
-      id: 'reactions-50',
-      name: 'Grand Supporteur',
-      description: 'Donner 50 réactions',
-      icon: 'heart',
-      category: BadgeCategory.ENTRAIDE,
-      rarity: 'rare'
-    },
-
-    // Badges de diversité
-    {
-      id: 'all-categories',
-      name: 'Touche-à-tout',
-      description: 'Poster un fail dans chaque catégorie',
-      icon: 'apps-outline',
-      category: BadgeCategory.SPECIAL,
-      rarity: 'epic'
-    },
-
-    // Badges de temps
-    {
-      id: 'week-streak',
-      name: 'Semaine de Courage',
-      description: 'Poster au moins un fail par jour pendant 7 jours',
-      icon: 'calendar-outline',
-      category: BadgeCategory.PERSEVERANCE,
-      rarity: 'rare'
-    },
-
-    // Badges sociaux
-    {
-      id: 'popular-fail',
-      name: 'Populaire',
-      description: 'Recevoir 10 réactions sur un seul fail',
-      icon: 'flame-outline',
-      category: BadgeCategory.SPECIAL,
-      rarity: 'rare'
-    }
-  ];
-
   constructor(private supabase: SupabaseService, private eventBus: EventBusService) {
+    console.log('🏆 BadgeService: Constructor called - initializing badge service');
+
     // Charger les badges utilisateur au démarrage
+    console.log('🏆 BadgeService: Calling initializeBadges');
     this.initializeBadges();
 
     // Écouter les événements pour vérifier les badges automatiquement
+    console.log('🏆 BadgeService: Setting up event listeners');
     this.setupEventListeners();
   }
 
@@ -213,11 +122,11 @@ export class BadgeService {
   }
 
   /**
-   * Récupère tous les badges disponibles (BDD + fallback hardcodé)
+   * Récupère tous les badges disponibles UNIQUEMENT depuis la base de données
    */
   async getAllAvailableBadges(): Promise<Badge[]> {
     try {
-      // D'abord essayer de récupérer depuis la base de données
+      // Récupérer depuis la base de données
       const dbBadges = await this.supabase.getAllAvailableBadges();
 
       if (dbBadges && dbBadges.length > 0) {
@@ -237,12 +146,12 @@ export class BadgeService {
         } as Badge));
       }
 
-      // Fallback: utiliser les badges codés en dur
-      console.log(`⚠️ Utilisation du fallback: ${this.availableBadges.length} badges hardcodés`);
-      return this.availableBadges;
+      // Plus de fallback - si pas de badges en BDD, retourner tableau vide
+      console.log(`❌ Aucun badge trouvé en base de données`);
+      return [];
     } catch (error) {
-      console.error('Erreur lors de la récupération des badges, utilisation du fallback:', error);
-      return this.availableBadges;
+      console.error('Erreur lors de la récupération des badges depuis la BDD:', error);
+      return [];
     }
   }
 
@@ -283,15 +192,16 @@ export class BadgeService {
       return filteredBadges;
     } catch (error) {
       console.error('Erreur lors du filtrage des badges:', error);
-      return this.availableBadges.slice(0, 15); // Fallback avec les 15 premiers hardcodés
+      return []; // Plus de fallback hardcodé
     }
   }
 
   /**
-   * Version synchrone pour compatibilité (utilise les badges codés en dur)
+   * Version synchrone pour compatibilité - retourne un tableau vide car on n'utilise plus les badges hardcodés
    */
   getAllAvailableBadgesSync(): Badge[] {
-    return this.availableBadges;
+    console.warn('getAllAvailableBadgesSync est dépréciée - utilisez getAllAvailableBadges() à la place');
+    return []; // Plus de badges hardcodés
   }
 
   /**
@@ -302,25 +212,66 @@ export class BadgeService {
   }
 
   /**
+   * Récupère les badges d'un utilisateur spécifique (pour admin)
+   */
+  async getUserBadgesForUser(userId: string): Promise<Badge[]> {
+    try {
+      console.log('🏆 BadgeService: Getting badges for user:', userId);
+
+      // Récupérer les IDs des badges de l'utilisateur
+      const badgeIds = await this.supabase.getUserBadgesNew(userId);
+      console.log('🏆 BadgeService: User badge IDs:', badgeIds);
+
+      // Récupérer tous les badges disponibles
+      const allAvailableBadges = await this.getAllAvailableBadges();
+      console.log('🏆 BadgeService: Total available badges:', allAvailableBadges.length);
+
+      // Filtrer les badges débloqués avec dates
+      const userBadges = allAvailableBadges
+        .filter(badge => badgeIds.includes(badge.id))
+        .map(badge => ({ ...badge, unlockedDate: new Date() }));
+
+      console.log('🏆 BadgeService: User unlocked badges:', userBadges.length);
+      return userBadges;
+    } catch (error) {
+      console.error('❌ Error getting user badges:', error);
+      return [];
+    }
+  }
+
+  /**
    * Vérifie et déverrouille automatiquement les badges basés sur les statistiques utilisateur
    */
   async checkAndUnlockBadges(userId: string): Promise<Badge[]> {
+    console.log('🏆 BadgeService: checkAndUnlockBadges called for user:', userId);
+
     try {
+      console.log('🏆 BadgeService: Getting user stats');
       const userStats = await this.getUserStats(userId);
+      console.log('🏆 BadgeService: User stats retrieved:', userStats);
 
       // CORRECTION: Récupérer les badges depuis la BDD, pas depuis le cache local
+      console.log('🏆 BadgeService: Getting current user badges from database');
       const currentBadgeIds = await this.supabase.getUserBadgesNew(userId);
+      console.log('🏆 BadgeService: Current user badges:', currentBadgeIds);
+
+      console.log('🏆 BadgeService: Getting all available badges');
       const allAvailableBadges = await this.getAllAvailableBadges();
+      console.log('🏆 BadgeService: Total available badges:', allAvailableBadges.length);
+
       const newBadges: Badge[] = [];
 
-      console.log(`🎯 Vérification des badges pour ${allAvailableBadges.length} badges disponibles`);
-      console.log(`📊 Badges actuels en BDD: [${currentBadgeIds.join(', ')}]`);
-      console.log('📊 Stats utilisateur:', userStats);
+      console.log(`� BadgeService: Vérification des badges pour ${allAvailableBadges.length} badges disponibles`);
+      console.log(`🏆 BadgeService: Badges actuels en BDD: [${currentBadgeIds.join(', ')}]`);
+      console.log('🏆 BadgeService: Stats utilisateur:', userStats);
 
       // Vérifier chaque badge avec le nouveau système
       for (const badge of allAvailableBadges) {
+        console.log('🏆 BadgeService: Checking badge:', badge.id, 'already has?', currentBadgeIds.includes(badge.id));
         if (!currentBadgeIds.includes(badge.id)) {
+          console.log('🏆 BadgeService: Badge not unlocked yet, checking requirements for:', badge.id);
           if (this.checkBadgeRequirementsNew(badge, userStats)) {
+            console.log('🏆 BadgeService: Requirements met, unlocking badge:', badge.id);
             const unlocked = await this.unlockBadge(badge.id);
             if (unlocked) {
               newBadges.push(badge);
@@ -339,15 +290,67 @@ export class BadgeService {
   }
 
   /**
-   * Nouvelle méthode qui utilise requirement_type et requirement_value de ta BDD
+   * 🚀 MÉTHODE DEBUG - Pour tester les badges de bruno manuellement
+   */
+  async debugBadgeCheck(userId: string): Promise<any> {
+    console.log('🚀 DEBUG: Vérification complète des badges pour:', userId);
+
+    try {
+      // 1. Stats utilisateur
+      const userStats = await this.getUserStats(userId);
+      console.log('📊 Stats utilisateur:', userStats);
+
+      // 2. Badges actuels en BDD
+      const currentBadgeIds = await this.supabase.getUserBadgesNew(userId);
+      console.log('✅ Badges actuellement possédés:', currentBadgeIds);
+
+      // 3. Tous les badges disponibles
+      const allBadges = await this.getAllAvailableBadges();
+      console.log('🏆 Total badges disponibles:', allBadges.length);
+
+      // 4. Test de chaque badge
+      const results = [];
+      for (const badge of allBadges) {
+        const alreadyHas = currentBadgeIds.includes(badge.id);
+        const meetsReqs = this.checkBadgeRequirementsNew(badge, userStats);
+
+        results.push({
+          id: badge.id,
+          name: badge.name,
+          requirementType: badge.requirementType,
+          requirementValue: badge.requirementValue,
+          alreadyHas,
+          meetsRequirements: meetsReqs,
+          status: alreadyHas ? '✅ Possédé' : (meetsReqs ? '🎯 Éligible' : '❌ Pas encore')
+        });
+
+        console.log(`🏆 ${badge.id}: ${results[results.length - 1].status}`);
+      }
+
+      return {
+        userStats,
+        currentBadgeIds,
+        totalBadges: allBadges.length,
+        badgeAnalysis: results
+      };
+
+    } catch (error) {
+      console.error('❌ Erreur debug badges:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Nouvelle méthode qui utilise requirement_type et requirement_value de la BDD
    */
   private checkBadgeRequirementsNew(badge: Badge, userStats: any): boolean {
     if (!badge.requirementType || !badge.requirementValue) {
-      // Fallback vers l'ancien système pour les badges hardcodés
-      return this.checkBadgeRequirements(badge, userStats);
+      console.warn(`⚠️ Badge ${badge.id} n'a pas de requirements définis en BDD - ignoré`);
+      return false; // Plus de fallback vers les badges hardcodés
     }
 
     const requiredValue = parseInt(badge.requirementValue, 10);
+    console.log(`🔍 Vérification badge ${badge.id}: requirement ${badge.requirementType} >= ${requiredValue}`);
 
     switch (badge.requirementType) {
       case 'fail_count':
@@ -451,70 +454,6 @@ export class BadgeService {
 
       default:
         console.warn(`⚠️ Type de requirement inconnu: ${badge.requirementType}`);
-        return false;
-    }
-  }
-
-  private checkBadgeRequirements(badge: Badge, userStats: any): boolean {
-    switch (badge.id) {
-      // Badges de base
-      case 'first-fail':
-        return userStats.totalFails >= 1;
-      case 'first-reaction':
-        return userStats.totalReactions >= 1;
-
-      // Badges de volume - Fails  
-      case 'fails-5':
-        return userStats.totalFails >= 5;
-      case 'fails-10':
-        return userStats.totalFails >= 10;
-      case 'fails-25':
-        return userStats.totalFails >= 25;
-      case 'fails-50':
-        return userStats.totalFails >= 50;
-      case 'fails-100':
-        return userStats.totalFails >= 100;
-
-      // Badges de réactions
-      case 'reactions-10':
-        return userStats.totalReactions >= 10;
-      case 'reactions-25':
-        return userStats.totalReactions >= 25;
-      case 'reactions-50':
-        return userStats.totalReactions >= 50;
-      case 'reactions-100':
-        return userStats.totalReactions >= 100;
-      case 'reactions-250':
-        return userStats.totalReactions >= 250;
-
-      // Badges de diversité
-      case 'all-categories':
-        return userStats.categoriesUsed >= 5;
-      case 'master-explorer':
-        return userStats.categoriesUsed >= 10;
-
-      // Badges de popularité
-      case 'popular-fail':
-        return userStats.maxReactionsOnFail >= 10;
-      case 'viral-fail':
-        return userStats.maxReactionsOnFail >= 25;
-      case 'legendary-fail':
-        return userStats.maxReactionsOnFail >= 50;
-
-      // Autres badges (à implémenter selon les statistiques disponibles)
-      case 'week-streak':
-      case 'month-streak':
-      case 'year-warrior':
-      case 'comedian':
-      case 'jester':
-      case 'night-owl':
-      case 'early-bird':
-      case 'weekend-warrior':
-      case 'helper':
-      case 'empathy-master':
-        return false; // Pas encore implémenté
-
-      default:
         return false;
     }
   }
@@ -738,11 +677,19 @@ export class BadgeService {
    * @deprecated Utiliser EventBus à la place
    */
   async checkBadgesAfterAction(action: 'fail_posted' | 'reaction_given'): Promise<Badge[]> {
-    console.warn('checkBadgesAfterAction est déprécié, utiliser EventBus à la place');
-    const user = await this.supabase.getCurrentUser();
-    if (!user) return [];
+    console.log('🏆 BadgeService: checkBadgesAfterAction called with action:', action);
+    console.warn('🏆 BadgeService: checkBadgesAfterAction est déprécié, utiliser EventBus à la place');
 
-    return await this.checkAndUnlockBadges(user.id);
+    const user = await this.supabase.getCurrentUser();
+    if (!user) {
+      console.log('🏆 BadgeService: No user found, returning empty badges array');
+      return [];
+    }
+
+    console.log('🏆 BadgeService: User found, checking and unlocking badges for user:', user.id);
+    const result = await this.checkAndUnlockBadges(user.id);
+    console.log('🏆 BadgeService: Badge check completed, found', result.length, 'new badges');
+    return result;
   }
 
   /**
@@ -759,7 +706,7 @@ export class BadgeService {
 
       console.log('🔍 Vérification forcée des badges pour:', user.email);
       const newBadges = await this.checkAndUnlockBadges(user.id);
-      
+
       if (newBadges.length > 0) {
         console.log(`🏆 ${newBadges.length} nouveaux badges débloqués:`, newBadges.map(b => b.name));
         // Émettre l'événement pour les notifications

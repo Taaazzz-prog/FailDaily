@@ -1,31 +1,38 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { Observable, map, take, filter, timeout, catchError } from 'rxjs';
-import { of } from 'rxjs';
+import { Observable, from } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
   constructor(private authService: AuthService, private router: Router) { }
 
   canActivate(): Observable<boolean> {
-    return this.authService.currentUser$.pipe(
-      filter(user => user !== undefined), // Attendre que l'état soit défini (null ou User)
-      take(1), // Prendre seulement la première valeur définie
-      timeout(5000), // Timeout après 5 secondes
-      map(user => {
-        if (user) {
-          return true; // Utilisateur connecté
-        } else {
-          this.router.navigate(['/auth/login']); // Redirection vers login
-          return false;
-        }
-      }),
-      catchError(() => {
-        // En cas de timeout ou erreur, rediriger vers login
+    console.log('🛡️ AuthGuard: Checking authentication...');
+
+    // ✅ SOLUTION ROBUSTE : Utiliser la méthode garantie d'initialisation
+    return from(this.checkAuthStatus());
+  }
+
+  private async checkAuthStatus(): Promise<boolean> {
+    try {
+      console.log('🛡️ AuthGuard: Ensuring auth service is initialized...');
+
+      // Garantir que l'AuthService est complètement initialisé
+      const user = await this.authService.ensureInitialized();
+
+      if (user) {
+        console.log('🛡️ AuthGuard: User authenticated, access granted');
+        return true;
+      } else {
+        console.log('🛡️ AuthGuard: No authenticated user, redirecting to login');
         this.router.navigate(['/auth/login']);
-        return of(false);
-      })
-    );
+        return false;
+      }
+    } catch (error) {
+      console.error('🛡️ AuthGuard: Error during auth check:', error);
+      this.router.navigate(['/auth/login']);
+      return false;
+    }
   }
 }
