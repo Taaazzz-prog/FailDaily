@@ -46,4 +46,4 @@ Thumbs.db
 # Testing
 /coverage/
 e2e/reports/
-test-results/" > .gitignore
+test-results/" > .gitignorepostgresql.zip
