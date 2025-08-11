@@ -15,7 +15,7 @@ async function testProfileUpdate() {
         console.log('📋 Récupération des profils disponibles...');
         const { data: profiles, error: listError } = await supabase
             .from('profiles')
-            .select('id, username, display_name')
+            .select('id, username, display_name, email')
             .limit(5);
 
         if (listError) {
