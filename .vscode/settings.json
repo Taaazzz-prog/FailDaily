@@ -3,5 +3,10 @@
     "@ionic/angular/common",
     "@ionic/angular"
   ],
-  "java.configuration.updateBuildConfiguration": "interactive"
+  "java.configuration.updateBuildConfiguration": "interactive",
+  "supabase.projectRef": "wzvhqygjkdxqfgwakyjy",
+  "supabase.localDatabaseUrl": "postgresql://postgres:postgres@localhost:54322/postgres",
+  "supabase.showSystemSchemas": false,
+  "supabase.autoRefresh": true,
+  "typescript.preferences.includePackageJsonAutoImports": "on"
 }
