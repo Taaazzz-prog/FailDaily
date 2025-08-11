@@ -10,17 +10,23 @@
 
 ## 🔧 Configuration actuelle
 
-### État actuel dans `environment.prod.ts`
+### ✅ État actuel dans `environment.prod.ts` - CONFIGURÉ
 ```typescript
-// APIs externes (Local)
+// APIs externes (Local) - Configuration sécurisée via .env
 api: {
-  baseUrl: 'http://127.0.0.1:54321',
-  moderationUrl: 'https://api.openai.com/v1',
-  moderationKey: 'sk-proj-s3nOskB1rZ66f559WWzvmRGZ...',
+  baseUrl: process.env['SUPABASE_URL'] || 'http://127.0.0.1:54321',
+  moderationUrl: process.env['OPENAI_API_URL'] || 'https://api.openai.com/v1',
+  moderationKey: process.env['OPENAI_API_KEY'] || 'sk-proj-placeholder',
   uploadMaxSize: 5 * 1024 * 1024,
   imageQuality: 85
 }
 ```
+
+### ✅ Configuration sécurisée - IMPLÉMENTÉE
+- **Clé API OpenAI** : Stockée dans `.env` et protégée par `.gitignore`
+- **Variables d'environnement** : Chargées via `process.env`
+- **Fallbacks** : Valeurs par défaut pour le développement
+- **Sécurité** : Clés sensibles jamais committées dans Git
 
 ### Utilisation prévue
 - **Endpoint** : `https://api.openai.com/v1/moderations`

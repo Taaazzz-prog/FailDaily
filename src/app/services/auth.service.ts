@@ -622,6 +622,43 @@ export class AuthService {
     }
   }
 
+  async updateUserProfile(profileData: any): Promise<void> {
+    try {
+      console.log('🔐 AuthService: Mise à jour du profil utilisateur:', profileData);
+
+      const currentUser = this.getCurrentUser();
+      if (!currentUser) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      // Mettre à jour le profil dans Supabase
+      await this.supabase.updateProfile(currentUser.id, profileData);
+
+      // Récupérer le profil mis à jour
+      const updatedProfile = await this.supabase.getProfile(currentUser.id);
+
+      if (updatedProfile) {
+        // Mettre à jour l'utilisateur local avec les nouvelles données
+        const updatedUser: User = {
+          ...currentUser,
+          displayName: updatedProfile.display_name || currentUser.displayName,
+          preferences: {
+            ...currentUser.preferences,
+            ...updatedProfile.preferences,
+            bio: updatedProfile.bio
+          }
+        };
+
+        await this.updateCurrentUser(updatedUser);
+      }
+
+      console.log('🔐 AuthService: Profil utilisateur mis à jour avec succès');
+    } catch (error) {
+      console.error('🔐 AuthService: Erreur lors de la mise à jour du profil:', error);
+      throw error;
+    }
+  }
+
   isAuthenticated(): boolean {
     return !!this.currentUserSubject.value;
   }

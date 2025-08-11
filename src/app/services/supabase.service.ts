@@ -17,7 +17,7 @@ export class SupabaseService {
     constructor() {
         this.supabase = createClient(
             environment.supabase.url,
-            environment.supabase.key,
+            environment.supabase.anonKey,
             {
                 auth: {
                     persistSession: true, // ✅ CORRECTION: Activer la persistance de session

@@ -58,22 +58,6 @@ export const routes: Routes = [
       }
     ]
   },
-  // Route de test pour privacy-settings (sans AuthGuard)
-  {
-    path: 'test-privacy',
-    loadComponent: () => import('./pages/privacy-settings/privacy-settings.page').then(m => {
-      console.log('Chargement du composant PrivacySettings (test)...', m);
-      return m.PrivacySettingsPage;
-    })
-  },
-  // Route de test pour edit-profile (sans AuthGuard)
-  {
-    path: 'test-edit-profile',
-    loadComponent: () => import('./pages/edit-profile/edit-profile.page').then(m => {
-      console.log('Chargement du composant EditProfile (test)...', m);
-      return m.EditProfilePage;
-    })
-  },
   // Pages légales
   {
     path: 'legal',

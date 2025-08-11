@@ -57,8 +57,8 @@ export class ProfilePage implements OnInit {
             handler: () => {
                 this.closeActionSheet();
                 setTimeout(() => {
-                    console.log('Navigation vers test-edit-profile...');
-                    this.router.navigate(['/test-edit-profile']).then(success => {
+                    console.log('Navigation vers edit-profile...');
+                    this.router.navigate(['/edit-profile']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -72,8 +72,8 @@ export class ProfilePage implements OnInit {
             handler: () => {
                 this.closeActionSheet();
                 setTimeout(() => {
-                    console.log('Navigation vers test-edit-profile...');
-                    this.router.navigate(['/test-edit-profile']).then(success => {
+                    console.log('Navigation vers edit-profile...');
+                    this.router.navigate(['/edit-profile']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -88,8 +88,8 @@ export class ProfilePage implements OnInit {
                 this.closeActionSheet();
                 // Petit délai pour permettre à l'action sheet de se fermer complètement
                 setTimeout(() => {
-                    console.log('Navigation vers test-privacy...');
-                    this.router.navigate(['/test-privacy']).then(success => {
+                    console.log('Navigation vers privacy-settings...');
+                    this.router.navigate(['/privacy-settings']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -250,10 +250,10 @@ export class ProfilePage implements OnInit {
         this.router.navigate(['/badges']);
     }
 
-    // Méthode temporaire pour tester l'accès direct aux paramètres
+    // Méthode pour accès direct aux paramètres de confidentialité
     goToPrivacySettings() {
-        console.log('Navigation vers test-edit-profile...');
-        this.router.navigate(['/test-edit-profile']).then(success => {
+        console.log('Navigation vers privacy-settings...');
+        this.router.navigate(['/privacy-settings']).then(success => {
             console.log('Navigation réussie:', success);
         }).catch(error => {
             console.error('Erreur de navigation:', error);

@@ -5,10 +5,10 @@
 export const environment = {
   production: false,
 
-  // Configuration Supabase (développement)
+  // Configuration Supabase (développement local)
   supabase: {
-    url: 'https://wzvhqygjkdxqfgwakyjy.supabase.co',
-    key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6dmhxeWdqa2R4cWZnd2FreWp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ1NzA2NjAsImV4cCI6MjA3MDE0NjY2MH0.zJ5wfeVqP2H-WsYkS1hbRCUawrSKS5P-sDs1rvCgUMo'
+    url: 'http://127.0.0.1:54321',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0'
   },
 
   // Configuration Firebase (désactivée - utilise Supabase)

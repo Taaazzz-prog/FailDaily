@@ -177,19 +177,33 @@ export class EditProfilePage implements OnInit {
     }
 
     private async saveUserProfile(userData: Partial<User>) {
-        // Simuler un appel API
-        console.log('Sauvegarde du profil:', userData);
+        console.log('🔄 Sauvegarde du profil dans Supabase:', userData);
 
-        // Sauvegarder localement pour la démo
-        const currentUserStr = localStorage.getItem(`user_${this.currentUser?.id}`);
-        if (currentUserStr) {
-            const currentUserData = JSON.parse(currentUserStr);
-            const updatedUserData = { ...currentUserData, ...userData };
-            localStorage.setItem(`user_${this.currentUser?.id}`, JSON.stringify(updatedUserData));
+        if (!this.currentUser?.id) {
+            throw new Error('Utilisateur non authentifié');
         }
 
-        // Simuler un délai d'API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            // Préparer les données pour la base de données Supabase
+            const profileData = {
+                id: this.currentUser.id,
+                display_name: userData.displayName,
+                bio: userData.preferences?.bio || null,
+                preferences: userData.preferences || {},
+                updated_at: new Date().toISOString()
+            };
+
+            console.log('📤 Envoi vers Supabase profiles:', profileData);
+
+            // Mettre à jour dans Supabase via le service d'authentification
+            await this.authService.updateUserProfile(profileData);
+
+            console.log('✅ Profil mis à jour avec succès dans Supabase');
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la sauvegarde Supabase:', error);
+            throw error;
+        }
     }
 
     resetForm() {

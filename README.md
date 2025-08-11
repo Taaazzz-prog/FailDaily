@@ -1,9 +1,33 @@
 # FailDaily - L'App qui Célèbre l'Imperfection
 
-## Concept Principal
+[![Status](https://img.shields.io/badge/Status-85%25%20Complete-brightgreen.svg)](https://github.com/Taaazzz-prog/FailDaily)
+[![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue.svg)](#)
+[![Framework](https://img.shields.io/badge/Framework-Ionic%208%20%7C%20Angular%2020-red.svg)](#)
+
+## 🎯 Concept Principal
 Une application mobile qui inverse complètement les codes des réseaux sociaux traditionnels en encourageant les utilisateurs à partager leurs échecs, galères et moments gênants quotidiens.
 
-## Fonctionnalités Principales
+## ⚡ État du Développement
+
+### ✅ **IMPLÉMENTÉ ET FONCTIONNEL**
+- 🔐 **Authentification complète** - Login/Register avec consentement RGPD
+- 📱 **Interface utilisateur** - 10 pages fonctionnelles avec navigation
+- 🗄️ **Base de données Supabase** - Local et production avec RLS
+- 🏆 **Système de badges** - 58 badges dans 6 catégories
+- 👤 **Profils utilisateur** - Stats, progression, préférences
+- 📝 **Publication de fails** - Upload images, catégories, anonymat
+- 💖 **Réactions positives** - Système de "Courage Hearts" et soutien
+- 🛡️ **Modération IA** - OpenAI pour filtrer le contenu inapproprié
+- 🔒 **Sécurité RGPD** - Consentement, gestion mineurs, privacy settings
+- 👑 **Interface Admin** - Gestion utilisateurs et modération
+
+### 🚧 **EN DÉVELOPPEMENT**
+- 🔔 **Notifications push** - Configuré, en phase de test
+- 📧 **Système d'email** - Pour consentement parental et notifications
+- 🎮 **Features avancées** - Voice Notes, Group Challenges, AI Counselor
+- 📊 **Analytics avancées** - Tracking détaillé des interactions
+
+## 🚀 Fonctionnalités Principales
 
 ### 📱 Le "Fail du Jour"
 - **Notification quotidienne aléatoire** (entre 18h-22h) : "Il est temps de partager ton fail du jour !"
@@ -93,4 +117,90 @@ Une application mobile qui inverse complètement les codes des réseaux sociaux 
 
 ---
 
+## 🛠️ **Stack Technique**
+
+### Frontend
+- **Ionic 8** - Framework mobile cross-platform
+- **Angular 20** - Framework JavaScript
+- **TypeScript** - Langage typé
+- **SCSS** - Styles avancés avec animations
+
+### Backend
+- **Supabase** - Backend-as-a-Service
+- **PostgreSQL** - Base de données relationnelle
+- **Row Level Security** - Sécurité des données
+
+### APIs Externes
+- **OpenAI** - Modération de contenu IA
+- **Firebase** - Notifications push (optionnel)
+
+### Outils de Développement
+- **Capacitor** - Accès aux APIs natives
+- **Supabase CLI** - Développement local
+- **ESLint** - Linting du code
+
+## 📦 **Installation & Développement**
+
+### Prérequis
+```bash
+# Node.js 18+ et npm
+node --version && npm --version
+
+# Ionic CLI
+npm install -g @ionic/cli
+
+# Supabase CLI
+npm install -g supabase
+```
+
+### Setup Local
+```bash
+# Cloner le repository
+git clone https://github.com/Taaazzz-prog/FailDaily
+cd FailDaily
+
+# Installer les dépendances
+npm install
+
+# Configurer les variables d'environnement
+cp .env.example .env
+# Éditer .env avec vos clés API
+
+# Démarrer Supabase local
+supabase start
+
+# Lancer l'application
+ionic serve
+```
+
+### Build Mobile
+```bash
+# iOS
+ionic capacitor build ios
+
+# Android  
+ionic capacitor build android
+```
+
+## 📁 **Structure du Projet**
+
+```
+src/
+├── app/
+│   ├── components/         # Composants réutilisables
+│   ├── guards/            # Guards d'authentification
+│   ├── models/            # Modèles TypeScript
+│   ├── pages/             # Pages de l'application
+│   ├── pipes/             # Pipes personnalisés
+│   ├── services/          # Services business
+│   └── utils/             # Utilitaires et helpers
+├── assets/                # Images et ressources
+├── environments/          # Configuration des environnements
+└── theme/                 # Styles globaux et thèmes
+```
+
+---
+
 *FailDaily : Où l'imperfection devient inspirante* ✨
+
+**Status MVP : 🟢 Prêt pour les tests utilisateurs**
