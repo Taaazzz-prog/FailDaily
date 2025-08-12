@@ -85,6 +85,85 @@
         </ion-card-content>
     </ion-card>
 
+    <!-- Réinitialisation de la Base de Données -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>
+                <ion-icon name="warning" color="danger"></ion-icon>
+                🔥 Réinitialisation Complète
+            </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <p><strong>⚠️ ATTENTION - OPÉRATION DESTRUCTRICE !</strong></p>
+            <p>Cette action va supprimer TOUTES les données suivantes :</p>
+            <ul>
+                <li>🗑️ Tous les utilisateurs de la table auth</li>
+                <li>👤 Tous les profils utilisateurs</li>
+                <li>❌ Tous les fails/échecs</li>
+                <li>❤️ Toutes les réactions</li>
+                <li>🏆 Tous les badges utilisateurs</li>
+                <li>📊 Toutes les statistiques</li>
+            </ul>
+            <p><strong>✅ Seules les définitions de badges seront préservées.</strong></p>
+
+            <!-- Étape 0: Bouton initial -->
+            <div *ngIf="resetConfirmationStep === 0 && !isResettingDatabase">
+                <ion-button expand="block" color="danger" fill="outline" (click)="startDatabaseReset()">
+                    <ion-icon name="trash-bin" slot="start"></ion-icon>
+                    Réinitialiser la Base de Données
+                </ion-button>
+            </div>
+
+            <!-- Étape 1: Première confirmation -->
+            <div *ngIf="resetConfirmationStep === 1" class="confirmation-step">
+                <p><strong>🚨 Êtes-vous sûr de vouloir supprimer TOUTES les données ?</strong></p>
+                <div class="button-group">
+                    <ion-button color="medium" fill="outline" (click)="cancelDatabaseReset()">
+                        Annuler
+                    </ion-button>
+                    <ion-button color="warning" (click)="confirmDatabaseReset()">
+                        <ion-icon name="shield" slot="start"></ion-icon>
+                        Oui, continuer
+                    </ion-button>
+                </div>
+            </div>
+
+            <!-- Étape 2: Confirmation finale -->
+            <div *ngIf="resetConfirmationStep === 2" class="final-confirmation">
+                <p><strong>🔥 DERNIÈRE CHANCE !</strong></p>
+                <p>Tapez "SUPPRIMER TOUT" pour confirmer la suppression définitive :</p>
+                <ion-item>
+                    <ion-label position="stacked">Confirmation</ion-label>
+                    <ion-input [(ngModel)]="confirmationText" placeholder="SUPPRIMER TOUT">
+                    </ion-input>
+                </ion-item>
+                <div class="button-group">
+                    <ion-button color="medium" fill="outline" (click)="cancelDatabaseReset()">
+                        Annuler
+                    </ion-button>
+                    <ion-button color="danger" [disabled]="confirmationText !== 'SUPPRIMER TOUT'"
+                        (click)="confirmDatabaseReset()">
+                        <ion-icon name="trash-bin" slot="start"></ion-icon>
+                        SUPPRIMER DÉFINITIVEMENT
+                    </ion-button>
+                </div>
+            </div>
+
+            <!-- Indicateur de progression -->
+            <div *ngIf="isResettingDatabase" class="reset-progress">
+                <ion-spinner name="crescent" color="danger"></ion-spinner>
+                <p><strong>🔥 Suppression en cours...</strong></p>
+                <p><em>Veuillez patienter, cette opération peut prendre quelques minutes.</em></p>
+            </div>
+
+            <!-- Résultats de la réinitialisation -->
+            <div *ngIf="resetResults.length > 0" class="reset-results">
+                <h4>📊 Résultats de la réinitialisation :</h4>
+                <div *ngFor="let result of resetResults" [innerHTML]="result"></div>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
     <!-- Détails utilisateur sélectionné -->
     <div *ngIf="selectedUser">
         <!-- Informations générales -->

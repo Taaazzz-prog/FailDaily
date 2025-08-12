@@ -5,10 +5,10 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
     IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
-    IonButtons, IonBackButton
+    IonButtons, IonBackButton, IonInput
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync } from 'ionicons/icons';
+import { bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync, trashBin, warning, shield } from 'ionicons/icons';
 import { SupabaseService } from '../../services/supabase.service';
 import { AuthService } from '../../services/auth.service';
 import { BadgeService } from '../../services/badge.service';
@@ -65,7 +65,7 @@ interface UserActivity {
         IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle,
         IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
-        IonButtons, IonBackButton
+        IonButtons, IonBackButton, IonInput
     ]
 })
 export class AdminPage implements OnInit {
@@ -86,6 +86,12 @@ export class AdminPage implements OnInit {
     migrationResults: { added: number; existing: number; errors: number } | null = null;
     private badgeMigration: BadgeMigration;
 
+    // Propriétés pour la réinitialisation de la base de données
+    isResettingDatabase = false;
+    resetConfirmationStep = 0; // 0: initial, 1: première confirmation, 2: confirmation finale
+    resetResults: string[] = [];
+    confirmationText = ''; // Texte de confirmation pour la suppression
+
     constructor(
         private supabaseService: SupabaseService,
         private authService: AuthService,
@@ -93,7 +99,7 @@ export class AdminPage implements OnInit {
     ) {
         // Configuration des icônes
         addIcons({
-            bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync
+            bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync, trashBin, warning, shield
         });
 
         this.badgeMigration = new BadgeMigration(this.supabaseService);
@@ -739,6 +745,114 @@ export class AdminPage implements OnInit {
             console.error('❌ Test failed:', error);
         } finally {
             this.isMigratingBadges = false;
+        }
+    }
+
+    // === MÉTHODES DE RÉINITIALISATION DE LA BASE DE DONNÉES ===
+
+    startDatabaseReset(): void {
+        this.resetConfirmationStep = 1;
+        this.resetResults = [];
+        this.confirmationText = ''; // Reset du texte de confirmation
+    }
+
+    confirmDatabaseReset(): void {
+        if (this.resetConfirmationStep === 1) {
+            this.resetConfirmationStep = 2;
+            this.confirmationText = ''; // Reset du texte pour l'étape 2
+        } else if (this.resetConfirmationStep === 2) {
+            this.executeDatabaseReset();
+        }
+    }
+
+    cancelDatabaseReset(): void {
+        this.resetConfirmationStep = 0;
+        this.resetResults = [];
+        this.confirmationText = ''; // Reset du texte de confirmation
+    }
+
+    async executeDatabaseReset(): Promise<void> {
+        console.log('🔥 RÉINITIALISATION COMPLÈTE DE LA BASE DE DONNÉES DÉMARRÉE');
+        this.isResettingDatabase = true;
+        this.resetResults = [];
+
+        try {
+            // 1. Supprimer tous les user_badges
+            await this.deleteTableData('user_badges', 'badges utilisateurs');
+
+            // 2. Supprimer tous les badges (sauf badge_definitions)
+            await this.deleteTableData('badges', 'badges');
+
+            // 3. Supprimer toutes les réactions
+            await this.deleteTableData('reactions', 'réactions');
+
+            // 4. Supprimer tous les fails
+            await this.deleteTableData('fails', 'échecs/fails');
+
+            // 5. Supprimer tous les profils
+            await this.deleteTableData('profiles', 'profils utilisateurs');
+
+            // 6. Supprimer les utilisateurs de la table auth (via RPC si disponible)
+            await this.deleteAuthUsers();
+
+            this.resetResults.push('✅ RÉINITIALISATION TERMINÉE - Base de données nettoyée !');
+            this.resetResults.push('🎯 Seules les définitions de badges ont été préservées');
+
+            // Recharger les données
+            this.users = [];
+            this.selectedUser = null;
+            this.userFails = [];
+            this.userReactions = [];
+            this.userActivity = [];
+            this.userBadges = [];
+
+            await this.loadUsers();
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la réinitialisation:', error);
+            this.resetResults.push(`❌ Erreur: ${error}`);
+        } finally {
+            this.isResettingDatabase = false;
+            this.resetConfirmationStep = 0;
+            this.confirmationText = ''; // Reset du texte de confirmation
+        }
+    }
+
+    private async deleteTableData(tableName: string, displayName: string): Promise<void> {
+        try {
+            const { error } = await this.supabaseService.client
+                .from(tableName)
+                .delete()
+                .neq('id', 'impossible-id'); // Condition qui match tout
+
+            if (error) {
+                throw error;
+            }
+
+            this.resetResults.push(`✅ ${displayName} supprimés`);
+            console.log(`✅ Table ${tableName} vidée`);
+
+        } catch (error) {
+            console.error(`❌ Erreur suppression ${tableName}:`, error);
+            this.resetResults.push(`❌ Erreur suppression ${displayName}: ${error}`);
+        }
+    }
+
+    private async deleteAuthUsers(): Promise<void> {
+        try {
+            // Tentative de suppression via RPC (nécessite une fonction côté Supabase)
+            const { error } = await this.supabaseService.client.rpc('delete_all_auth_users');
+
+            if (error) {
+                console.log('⚠️ RPC delete_all_auth_users non disponible:', error);
+                this.resetResults.push('⚠️ Utilisateurs auth: suppression manuelle requise via le dashboard Supabase');
+            } else {
+                this.resetResults.push('✅ Utilisateurs authentifiés supprimés');
+            }
+
+        } catch (error) {
+            console.log('⚠️ Suppression auth users non disponible:', error);
+            this.resetResults.push('⚠️ Utilisateurs auth: suppression manuelle requise via le dashboard Supabase');
         }
     }
 }
