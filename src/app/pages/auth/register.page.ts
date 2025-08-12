@@ -11,6 +11,7 @@ import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
   IonInput, IonButton, IonSpinner, IonButtons, IonBackButton, IonText, IonIcon
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
 
 @Component({
   selector: 'app-register',
@@ -36,6 +37,9 @@ export class RegisterPage implements OnInit {
     private toastController: ToastController,
     private modalController: ModalController
   ) {
+    // Configuration des icônes
+    // Aucune icône spécifique nécessaire pour cette page
+
     console.log('📝 RegisterPage - Constructor called');
     this.registerForm = this.fb.group({
       displayName: ['', [Validators.required, CustomValidators.minLength(2), CustomValidators.noWhitespace]],
@@ -265,3 +269,4 @@ export class RegisterPage implements OnInit {
     this.router.navigate(['/auth/login']);
   }
 }
+

@@ -8,6 +8,8 @@ import {
   IonIcon,
   IonLabel
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { homeOutline, addCircle, ribbonOutline, personOutline, settingsOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-tabs',
@@ -24,4 +26,11 @@ import {
     IonLabel
   ]
 })
-export class TabsPage { }
+export class TabsPage {
+  constructor() {
+    // Configuration des icônes pour les tabs
+    addIcons({
+      homeOutline, addCircle, ribbonOutline, personOutline, settingsOutline
+    });
+  }
+}

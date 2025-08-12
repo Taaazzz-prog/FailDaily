@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { CanActivate, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { Observable, from } from 'rxjs';
+import { navigationLog } from '../utils/logger';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
   constructor(private authService: AuthService, private router: Router) { }
 
   canActivate(): Observable<boolean> {
-    console.log('🛡️ AuthGuard: Checking authentication...');
+    navigationLog('🛡️ AuthGuard: Checking authentication...');
 
     // ✅ SOLUTION ROBUSTE : Utiliser la méthode garantie d'initialisation
     return from(this.checkAuthStatus());
@@ -16,16 +17,16 @@ export class AuthGuard implements CanActivate {
 
   private async checkAuthStatus(): Promise<boolean> {
     try {
-      console.log('🛡️ AuthGuard: Ensuring auth service is initialized...');
+      navigationLog('🛡️ AuthGuard: Ensuring auth service is initialized...');
 
       // Garantir que l'AuthService est complètement initialisé
       const user = await this.authService.ensureInitialized();
 
       if (user) {
-        console.log('🛡️ AuthGuard: User authenticated, access granted');
+        navigationLog('🛡️ AuthGuard: User authenticated, access granted');
         return true;
       } else {
-        console.log('🛡️ AuthGuard: No authenticated user, redirecting to login');
+        navigationLog('🛡️ AuthGuard: No authenticated user, redirecting to login');
         this.router.navigate(['/auth/login']);
         return false;
       }
@@ -36,3 +37,4 @@ export class AuthGuard implements CanActivate {
     }
   }
 }
+

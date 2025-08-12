@@ -6,6 +6,8 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
     IonIcon, IonToggle, IonButton, IonSpinner, IonAlert, AlertController
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { chatbubbleOutline, checkmarkCircleOutline, documentTextOutline, downloadOutline, eyeOutline, folderOutline, notificationsOutline, shieldCheckmarkOutline, shieldOutline, trashOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { UserPrivacySettings, DEFAULT_PRIVACY_SETTINGS } from '../../models/user-privacy-settings.model';
 import { User } from '../../models/user.model';
@@ -49,7 +51,12 @@ export class PrivacySettingsPage implements OnInit {
         private authService: AuthService,
         private alertController: AlertController,
         private router: Router
-    ) { }
+    ) {
+        // Configuration des icônes
+        addIcons({
+            chatbubbleOutline, checkmarkCircleOutline, documentTextOutline, downloadOutline, eyeOutline, folderOutline, notificationsOutline, shieldCheckmarkOutline, shieldOutline, trashOutline
+        });
+    }
 
     async ngOnInit() {
         await this.loadCurrentUser();
@@ -253,3 +260,4 @@ export class PrivacySettingsPage implements OnInit {
         }, 3000);
     }
 }
+

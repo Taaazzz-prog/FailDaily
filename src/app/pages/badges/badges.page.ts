@@ -6,6 +6,8 @@ import {
     IonRefresher, IonRefresherContent,
     RefresherCustomEvent
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { apps, appsOutline, buildOutline, chevronDownCircleOutline, chevronDownOutline, diamondOutline, funnelOutline, hourglassOutline, informationOutline, lockClosed, shareOutline, starOutline, trophyOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { BadgeService } from '../../services/badge.service';
 import { FailService } from '../../services/fail.service';
@@ -85,6 +87,11 @@ export class BadgesPage implements OnInit {
         private router: Router,
         private route: ActivatedRoute
     ) {
+    // Configuration des icônes
+    addIcons({
+      apps, appsOutline, buildOutline, chevronDownCircleOutline, chevronDownOutline, diamondOutline, funnelOutline, hourglassOutline, informationOutline, lockClosed, shareOutline, starOutline, trophyOutline
+    });
+
         console.log('🏆 BadgesPage - Constructor called');
         // Badges complets (pour les statistiques)
         this.allBadges$ = from(this.badgeService.getAllAvailableBadges());
@@ -463,3 +470,4 @@ export class BadgesPage implements OnInit {
         }
     }
 }
+

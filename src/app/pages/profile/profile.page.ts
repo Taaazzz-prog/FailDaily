@@ -7,6 +7,13 @@ import {
     IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
     RefresherCustomEvent
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import {
+    calendar, createOutline, shareOutline, trophy, documentText, heart,
+    flame, analytics, add, ribbonOutline, arrowForward, ellipsisHorizontal,
+    documentOutline, shieldCheckmark, chevronForward, settingsOutline,
+    lockClosed, chevronDownCircleOutline
+} from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
@@ -124,12 +131,23 @@ export class ProfilePage implements OnInit {
         "Tes fails deviennent des victoires pour tous ! 🏆"
     ];
 
+    // Message d'encouragement fixe pour éviter ExpressionChangedAfterItHasBeenCheckedError
+    currentEncouragementMessage: string = '';
+
     constructor(
         private authService: AuthService,
         private failService: FailService,
         private badgeService: BadgeService,
         private router: Router
     ) {
+        // Configuration des icônes
+        addIcons({
+            calendar, createOutline, shareOutline, trophy, documentText, heart,
+            flame, analytics, add, ribbonOutline, arrowForward, ellipsisHorizontal,
+            documentOutline, shieldCheckmark, chevronForward, settingsOutline,
+            lockClosed, chevronDownCircleOutline
+        });
+
         console.log('👤 ProfilePage - Constructor called');
         this.userBadges$ = this.badgeService.getBadges();
         console.log('👤 ProfilePage - UserBadges observable initialized');
@@ -158,6 +176,8 @@ export class ProfilePage implements OnInit {
 
     ngOnInit() {
         console.log('👤 ProfilePage - ngOnInit called');
+        // Initialiser le message d'encouragement une seule fois
+        this.currentEncouragementMessage = this.getRandomEncouragement();
     }
 
     async handleRefresh(event: RefresherCustomEvent) {

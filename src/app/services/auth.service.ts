@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, from, map, catchError, switchMap, filter, take, timeout } from 'rxjs';
 import { User } from '../models/user.model';
 import { SupabaseService } from './supabase.service';
+import { authLog } from '../utils/logger';
 
 export interface LoginCredentials {
   email: string;
@@ -27,7 +28,7 @@ export class AuthService {
   private initPromise: Promise<void> | null = null;
 
   constructor(private supabase: SupabaseService) {
-    console.log('🔐 AuthService: Constructor called - initializing authentication service');
+    authLog('🔐 AuthService: Constructor called - initializing authentication service');
     this.initializeAuth();
   }
 
@@ -41,7 +42,7 @@ export class AuthService {
     }
 
     if (!this.initPromise) {
-      console.log('🔐 AuthService: Force initialization...');
+      authLog('🔐 AuthService: Force initialization...');
       this.initPromise = this.initializeAuth();
     }
 
@@ -55,21 +56,21 @@ export class AuthService {
    */
   private getCachedUser(): User | null {
     try {
-      console.log('🔐 AuthService: Vérification du cache localStorage...');
+      authLog('🔐 AuthService: Vérification du cache localStorage...');
       const cached = localStorage.getItem('faildaily_user_cache');
       if (cached) {
-        console.log('🔐 AuthService: Cache trouvé, parsing...');
+        authLog('🔐 AuthService: Cache trouvé, parsing...');
         const parsed = JSON.parse(cached);
         // Vérifier que le cache n'est pas trop vieux (max 1 heure)
         if (parsed.timestamp && (Date.now() - parsed.timestamp) < 3600000) {
-          console.log('🔐 AuthService: Cache utilisateur valide trouvé pour:', parsed.user?.email);
+          authLog('🔐 AuthService: Cache utilisateur valide trouvé pour:', parsed.user?.email);
           return parsed.user;
         } else {
-          console.log('🔐 AuthService: Cache expiré, suppression...');
+          authLog('🔐 AuthService: Cache expiré, suppression...');
           localStorage.removeItem('faildaily_user_cache');
         }
       } else {
-        console.log('🔐 AuthService: Aucun cache trouvé dans localStorage');
+        authLog('🔐 AuthService: Aucun cache trouvé dans localStorage');
       }
     } catch (error) {
       console.error('🔐 AuthService: Erreur lecture cache:', error);
@@ -84,7 +85,7 @@ export class AuthService {
         timestamp: Date.now()
       };
       localStorage.setItem('faildaily_user_cache', JSON.stringify(cacheData));
-      console.log('🔐 AuthService: Utilisateur mis en cache');
+      authLog('🔐 AuthService: Utilisateur mis en cache');
     } catch (error) {
       console.error('🔐 AuthService: Erreur écriture cache:', error);
     }
@@ -93,7 +94,7 @@ export class AuthService {
   private clearCachedUser(): void {
     try {
       localStorage.removeItem('faildaily_user_cache');
-      console.log('🔐 AuthService: Cache utilisateur nettoyé');
+      authLog('🔐 AuthService: Cache utilisateur nettoyé');
     } catch (error) {
       console.error('🔐 AuthService: Erreur nettoyage cache:', error);
     }
@@ -116,15 +117,15 @@ export class AuthService {
    */
   private async attemptSessionRefresh(): Promise<boolean> {
     try {
-      console.log('🔄 AuthService: Tentative de refresh de session...');
+      authLog('🔄 AuthService: Tentative de refresh de session...');
       const { data, error } = await this.supabase.client.auth.refreshSession();
 
       if (error || !data.session) {
-        console.log('🔄 AuthService: Refresh de session échoué:', error?.message || 'No session');
+        authLog('🔄 AuthService: Refresh de session échoué:', error?.message || 'No session');
         return false;
       }
 
-      console.log('🔄 AuthService: Session rafraîchie avec succès');
+      authLog('🔄 AuthService: Session rafraîchie avec succès');
       return true;
     } catch (error) {
       console.error('🔄 AuthService: Erreur lors du refresh:', error);
@@ -137,20 +138,20 @@ export class AuthService {
    */
   private async forceSupabaseReconnection(cachedUser: User): Promise<boolean> {
     try {
-      console.log('🔄 AuthService: Tentative de restauration forcée de session Supabase...');
+      authLog('🔄 AuthService: Tentative de restauration forcée de session Supabase...');
 
       // Essayer d'abord de récupérer une session valide via le token stocké
       const { data: { session }, error: sessionError } = await this.supabase.client.auth.getSession();
 
       if (session) {
-        console.log('🔄 AuthService: Session Supabase trouvée après re-vérification');
+        authLog('🔄 AuthService: Session Supabase trouvée après re-vérification');
         return true;
       }
 
       // Essayer de trouver le token de session dans localStorage
       // Supabase stocke généralement sous la forme 'sb-<project-id>-auth-token'
       const storageKeys = Object.keys(localStorage).filter(key => key.includes('auth-token'));
-      console.log('🔄 AuthService: Clés auth trouvées:', storageKeys);
+      authLog('🔄 AuthService: Clés auth trouvées:', storageKeys);
 
       for (const key of storageKeys) {
         try {
@@ -158,7 +159,7 @@ export class AuthService {
           if (storedSession) {
             const sessionData = JSON.parse(storedSession);
             if (sessionData.access_token && sessionData.refresh_token) {
-              console.log('🔄 AuthService: Tentative de restauration via tokens stockés...');
+              authLog('🔄 AuthService: Tentative de restauration via tokens stockés...');
 
               const { data, error } = await this.supabase.client.auth.setSession({
                 access_token: sessionData.access_token,
@@ -166,20 +167,20 @@ export class AuthService {
               });
 
               if (data.session && !error) {
-                console.log('🔄 AuthService: Session Supabase restaurée via tokens');
+                authLog('🔄 AuthService: Session Supabase restaurée via tokens');
                 return true;
               }
             }
           }
         } catch (tokenError) {
-          console.log('🔄 AuthService: Erreur restauration via token:', tokenError);
+          authLog('🔄 AuthService: Erreur restauration via token:', tokenError);
           continue; // Essayer le prochain token
         }
       }
 
       // Si aucun token n'a fonctionné, maintenir l'utilisateur en cache
-      console.log('🔄 AuthService: Session Supabase non récupérable - maintien du cache utilisateur');
-      console.log('🔄 AuthService: L\'utilisateur reste connecté via le cache pour:', cachedUser.email);
+      authLog('🔄 AuthService: Session Supabase non récupérable - maintien du cache utilisateur');
+      authLog('🔄 AuthService: L\'utilisateur reste connecté via le cache pour:', cachedUser.email);
 
       // Assurer que l'utilisateur reste défini dans le subject
       this.currentUserSubject.next(cachedUser);
@@ -192,18 +193,18 @@ export class AuthService {
   }
 
   private async initializeAuth() {
-    console.log('🔐 AuthService: initializeAuth called');
+    authLog('🔐 AuthService: initializeAuth called');
 
     try {
       // ✅ CORRECTION : Vérifier d'abord le cache localStorage pour une réponse IMMEDIATE
       const cachedUser = this.getCachedUser();
       if (cachedUser) {
-        console.log('🔐 AuthService: Cache trouvé - utilisateur défini immédiatement');
+        authLog('🔐 AuthService: Cache trouvé - utilisateur défini immédiatement');
         this.currentUserSubject.next(cachedUser);
       }
 
       // ✅ CORRECTION : Maintenant que Supabase persiste les sessions, vérification plus simple
-      console.log('🔐 AuthService: Vérification de la session Supabase...');
+      authLog('🔐 AuthService: Vérification de la session Supabase...');
       const { data: { session }, error } = await this.supabase.client.auth.getSession();
 
       if (error) {
@@ -217,15 +218,15 @@ export class AuthService {
       }
 
       if (session?.user) {
-        console.log('🔐 AuthService: Session Supabase trouvée pour:', session.user.email);
+        authLog('🔐 AuthService: Session Supabase trouvée pour:', session.user.email);
 
         try {
           let profile = await this.supabase.getProfile(session.user.id);
-          console.log('🔐 AuthService: Profile chargé:', profile ? 'trouvé' : 'non trouvé');
+          authLog('🔐 AuthService: Profile chargé:', profile ? 'trouvé' : 'non trouvé');
 
           // Si pas de profil, en créer un
           if (!profile) {
-            console.log('🔐 AuthService: Création du profil');
+            authLog('🔐 AuthService: Création du profil');
             profile = await this.supabase.createProfile(session.user);
           }
 
@@ -258,7 +259,7 @@ export class AuthService {
             } : undefined
           };
 
-          console.log('🔐 AuthService: Utilisateur défini avec session Supabase');
+          authLog('🔐 AuthService: Utilisateur défini avec session Supabase');
           this.setCurrentUser(user);
         } catch (profileError) {
           console.error('🔐 AuthService: Erreur chargement profil:', profileError);
@@ -283,30 +284,30 @@ export class AuthService {
       } else {
         // ✅ Pas de session Supabase - garder le cache si disponible sinon déconnecter
         if (cachedUser) {
-          console.log('🔐 AuthService: Pas de session Supabase mais cache valide - maintenir la connexion');
+          authLog('🔐 AuthService: Pas de session Supabase mais cache valide - maintenir la connexion');
         } else {
-          console.log('🔐 AuthService: Aucune session - déconnexion');
+          authLog('🔐 AuthService: Aucune session - déconnexion');
           this.setCurrentUser(null);
         }
       }
 
       this.sessionInitialized = true;
 
-      console.log('🔐 AuthService: Configuration de l\'écoute des changements Supabase');
+      authLog('🔐 AuthService: Configuration de l\'écoute des changements Supabase');
       // Écouter les changements d'authentification Supabase
       this.supabase.currentUser$.subscribe(async (supabaseUser: any) => {
-        console.log('🔐 AuthService: Changement utilisateur Supabase:', supabaseUser?.id || 'null');
+        authLog('🔐 AuthService: Changement utilisateur Supabase:', supabaseUser?.id || 'null');
 
         if (!supabaseUser) {
           // ✅ SIMPLIFICATION : Avec persistSession=true, les déconnexions sont plus fiables
-          console.log('🔐 AuthService: Déconnexion Supabase détectée');
+          authLog('🔐 AuthService: Déconnexion Supabase détectée');
           this.setCurrentUser(null);
           return;
         }
 
         // Si nouvel utilisateur connecté, charger son profil
         if (supabaseUser.id !== this.currentUserSubject.value?.id) {
-          console.log('🔐 AuthService: Nouvel utilisateur connecté - chargement du profil');
+          authLog('🔐 AuthService: Nouvel utilisateur connecté - chargement du profil');
           try {
             let profile = await this.supabase.getProfile(supabaseUser.id);
             if (!profile) {
@@ -401,21 +402,21 @@ export class AuthService {
   }
 
   async login(credentials: LoginCredentials): Promise<User | null> {
-    console.log('🔐 AuthService: login called for email:', credentials.email);
+    authLog('🔐 AuthService: login called for email:', credentials.email);
 
     try {
       // Authentification Supabase - retour immédiat
       const result = await this.supabase.signIn(credentials.email, credentials.password);
-      console.log('🔐 AuthService: Supabase signIn result:', !!result);
+      authLog('🔐 AuthService: Supabase signIn result:', !!result);
 
       if (result?.user) {
-        console.log('🔐 AuthService: User authenticated successfully');
+        authLog('🔐 AuthService: User authenticated successfully');
 
         // Récupérer immédiatement le profil utilisateur
         let profile = await this.supabase.getProfile(result.user.id);
 
         if (!profile) {
-          console.log('🔐 AuthService: No profile found, creating one');
+          authLog('🔐 AuthService: No profile found, creating one');
           profile = await this.supabase.createProfile(result.user);
         }
 
@@ -449,13 +450,13 @@ export class AuthService {
         };
 
         // Mettre à jour immédiatement le BehaviorSubject AVEC cache
-        console.log('🔐 AuthService: Setting user as current with cache...');
+        authLog('🔐 AuthService: Setting user as current with cache...');
         this.setCurrentUser(user);
-        console.log('🔐 AuthService: User profile loaded, cached, and set as current user');
+        authLog('🔐 AuthService: User profile loaded, cached, and set as current user');
 
         return user;
       } else {
-        console.log('🔐 AuthService: No user in authentication result');
+        authLog('🔐 AuthService: No user in authentication result');
         this.currentUserSubject.next(null);
         return null;
       }
@@ -463,30 +464,30 @@ export class AuthService {
       console.error('🔐 AuthService: Login error:', error);
 
       if (error.message?.includes('Email not confirmed')) {
-        console.log('🔐 AuthService: Email not confirmed error');
+        authLog('🔐 AuthService: Email not confirmed error');
         throw new Error('Votre compte doit être confirmé par email avant de pouvoir vous connecter. Vérifiez votre boîte mail et cliquez sur le lien de confirmation.');
       }
 
       if (error.message?.includes('Invalid credentials') || error.message?.includes('Invalid login credentials')) {
-        console.log('🔐 AuthService: Invalid credentials error');
+        authLog('🔐 AuthService: Invalid credentials error');
         throw new Error('Email ou mot de passe incorrect.');
       }
 
-      console.log('🔐 AuthService: Unknown login error');
+      authLog('🔐 AuthService: Unknown login error');
       throw new Error(error.message || 'Erreur de connexion inconnue.');
     }
   }
 
   register(data: RegisterData): Observable<User | null> {
-    console.log('🔐 AuthService: register called for email:', data.email, 'username:', data.username);
+    authLog('🔐 AuthService: register called for email:', data.email, 'username:', data.username);
 
     return from(this.supabase.signUp(data.email, data.password, data.username))
       .pipe(
         switchMap(async (result) => {
-          console.log('🔐 AuthService: Supabase signUp result:', result?.user ? 'success' : 'failed');
+          authLog('🔐 AuthService: Supabase signUp result:', result?.user ? 'success' : 'failed');
 
           if (result?.user) {
-            console.log('🔐 AuthService: User created, creating profile data');
+            authLog('🔐 AuthService: User created, creating profile data');
             // Créer immédiatement un profil simple
             const profileData = {
               id: result.user.id,
@@ -499,15 +500,15 @@ export class AuthService {
             };
 
             try {
-              console.log('🔐 AuthService: Updating profile in Supabase');
+              authLog('🔐 AuthService: Updating profile in Supabase');
               await this.supabase.updateProfile(result.user.id, profileData);
-              console.log('🔐 AuthService: Profile updated successfully');
+              authLog('🔐 AuthService: Profile updated successfully');
             } catch (error) {
-              console.warn('🔐 AuthService: Profil sera créé plus tard:', error);
+              authLog('🔐 AuthService: Profil sera créé plus tard:', error);
             }
 
             // Retourner l'utilisateur simple
-            console.log('🔐 AuthService: Creating user object for registration');
+            authLog('🔐 AuthService: Creating user object for registration');
             const user: User = {
               id: result.user.id,
               email: data.email,
@@ -524,11 +525,11 @@ export class AuthService {
               ageVerification: undefined
             };
 
-            console.log('🔐 AuthService: Setting new user as current user');
+            authLog('🔐 AuthService: Setting new user as current user');
             this.currentUserSubject.next(user);
             return user;
           }
-          console.log('🔐 AuthService: No user returned from signUp');
+          authLog('🔐 AuthService: No user returned from signUp');
           return null;
         }),
         catchError((error) => {
@@ -594,7 +595,7 @@ export class AuthService {
       await this.supabase.signOut();
       this.clearCachedUser(); // ✅ Nettoyer le cache lors de la déconnexion
       this.currentUserSubject.next(null);
-      console.log('🔐 AuthService: Utilisateur déconnecté et cache nettoyé');
+      authLog('🔐 AuthService: Utilisateur déconnecté et cache nettoyé');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;
@@ -607,7 +608,7 @@ export class AuthService {
 
   async updateCurrentUser(updatedUser: User): Promise<void> {
     try {
-      console.log('🔐 AuthService: Mise à jour de l\'utilisateur:', updatedUser.id);
+      authLog('🔐 AuthService: Mise à jour de l\'utilisateur:', updatedUser.id);
 
       // Mettre à jour le cache local
       this.setCachedUser(updatedUser);
@@ -615,7 +616,7 @@ export class AuthService {
       // Mettre à jour le BehaviorSubject
       this.setCurrentUser(updatedUser);
 
-      console.log('🔐 AuthService: Utilisateur mis à jour avec succès');
+      authLog('🔐 AuthService: Utilisateur mis à jour avec succès');
     } catch (error) {
       console.error('🔐 AuthService: Erreur lors de la mise à jour de l\'utilisateur:', error);
       throw error;
@@ -624,7 +625,7 @@ export class AuthService {
 
   async updateUserProfile(profileData: any): Promise<void> {
     try {
-      console.log('🔐 AuthService: Mise à jour du profil utilisateur:', profileData);
+      authLog('🔐 AuthService: Mise à jour du profil utilisateur:', profileData);
 
       const currentUser = this.getCurrentUser();
       if (!currentUser) {
@@ -652,7 +653,7 @@ export class AuthService {
         await this.updateCurrentUser(updatedUser);
       }
 
-      console.log('🔐 AuthService: Profil utilisateur mis à jour avec succès');
+      authLog('🔐 AuthService: Profil utilisateur mis à jour avec succès');
     } catch (error) {
       console.error('🔐 AuthService: Erreur lors de la mise à jour du profil:', error);
       throw error;
@@ -672,3 +673,4 @@ export class AuthService {
     }
   }
 }
+

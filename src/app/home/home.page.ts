@@ -5,6 +5,8 @@ import {
   IonRefresher, IonRefresherContent, IonSpinner, IonFab, IonFabButton,
   RefresherCustomEvent, ViewWillEnter
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { person, addCircle, documentOutline, add, chevronDownCircleOutline } from 'ionicons/icons';
 import { FailService } from '../services/fail.service';
 import { AuthService } from '../services/auth.service';
 import { Fail } from '../models/fail.model';
@@ -33,6 +35,11 @@ export class HomePage implements OnInit, ViewWillEnter {
     private authService: AuthService,
     private router: Router
   ) {
+    // Configuration des icônes
+    addIcons({
+      person, addCircle, documentOutline, add, chevronDownCircleOutline
+    });
+
     console.log('🏠 HomePage - Constructor called');
     this.fails$ = this.failService.getFails();
     console.log('🏠 HomePage - Fails observable initialized');

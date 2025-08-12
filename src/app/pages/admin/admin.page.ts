@@ -7,6 +7,8 @@ import {
     IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
     IonButtons, IonBackButton
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync } from 'ionicons/icons';
 import { SupabaseService } from '../../services/supabase.service';
 import { AuthService } from '../../services/auth.service';
 import { BadgeService } from '../../services/badge.service';
@@ -89,6 +91,11 @@ export class AdminPage implements OnInit {
         private authService: AuthService,
         private badgeService: BadgeService
     ) {
+        // Configuration des icônes
+        addIcons({
+            bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync
+        });
+
         this.badgeMigration = new BadgeMigration(this.supabaseService);
     }
 

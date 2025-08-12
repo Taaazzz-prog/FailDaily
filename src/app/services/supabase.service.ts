@@ -3,6 +3,8 @@ import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { safeAuthOperation } from '../utils/mobile-fixes';
+import { supabaseLog } from '../utils/logger';
+import { SUPABASE_CONFIG, withTimeout, retryWithBackoff } from '../utils/supabase-config';
 
 @Injectable({
     providedIn: 'root'
@@ -18,20 +20,12 @@ export class SupabaseService {
         this.supabase = createClient(
             environment.supabase.url,
             environment.supabase.anonKey,
-            {
-                auth: {
-                    persistSession: true, // ✅ CORRECTION: Activer la persistance de session
-                    detectSessionInUrl: false,
-                    autoRefreshToken: true, // ✅ CORRECTION: Activer le refresh automatique des tokens
-                    storage: window.localStorage, // ✅ AJOUT: Explicitement utiliser localStorage
-                    storageKey: 'faildaily-supabase-auth', // ✅ AJOUT: Clé personnalisée pour éviter les conflits
-                }
-            }
+            SUPABASE_CONFIG
         );
         this.client = this.supabase;
 
         this.supabase.auth.onAuthStateChange((event, session) => {
-            console.log('🔐 SupabaseService: Auth state change:', event, session?.user?.id || 'no user');
+            supabaseLog('🔐 SupabaseService: Auth state change:', event, session?.user?.id || 'no user');
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                 this.currentUser.next(session?.user || null);
             } else if (event === 'SIGNED_OUT') {
@@ -40,9 +34,9 @@ export class SupabaseService {
         });
 
         // Initialiser l'utilisateur actuel sans nettoyer les sessions
-        console.log('🔐 SupabaseService: Initializing current user state...');
+        supabaseLog('🔐 SupabaseService: Initializing current user state...');
         this.getCurrentUser().then(user => {
-            console.log('🔐 SupabaseService: Initial user loaded:', user?.id || 'no user');
+            supabaseLog('🔐 SupabaseService: Initial user loaded:', user?.id || 'no user');
         });
     }
 
@@ -60,7 +54,7 @@ export class SupabaseService {
 
             const { data: { user }, error } = await this.supabase.auth.getUser();
             if (error) {
-                console.log('🔐 SupabaseService: Session expirée ou manquante (normal):', error.message);
+                supabaseLog('🔐 SupabaseService: Session expirée ou manquante (normal):', error.message);
                 return null;
             }
             this.currentUser.next(user);
@@ -124,7 +118,7 @@ export class SupabaseService {
 
     async clearAllSessions(): Promise<void> {
         try {
-            console.log('🔐 SupabaseService: Clearing all sessions and local storage');
+            supabaseLog('🔐 SupabaseService: Clearing all sessions and local storage');
 
             // Déconnecter de Supabase
             await this.supabase.auth.signOut();
@@ -135,7 +129,7 @@ export class SupabaseService {
                 keys.forEach(key => {
                     if (key.includes('supabase') || key.includes('sb-')) {
                         localStorage.removeItem(key);
-                        console.log('🔐 SupabaseService: Removed localStorage key:', key);
+                        supabaseLog('🔐 SupabaseService: Removed localStorage key:', key);
                     }
                 });
             }
@@ -143,7 +137,7 @@ export class SupabaseService {
             // Réinitialiser l'utilisateur courant
             this.currentUser.next(null);
 
-            console.log('🔐 SupabaseService: All sessions cleared');
+            supabaseLog('🔐 SupabaseService: All sessions cleared');
         } catch (error) {
             console.error('🔐 SupabaseService: Error clearing sessions:', error);
             throw error;
@@ -164,19 +158,19 @@ export class SupabaseService {
                 .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
 
             if (error) {
-                console.warn('Erreur récupération profil:', error);
+                supabaseLog('Erreur récupération profil:', error);
                 return null;
             }
             return data;
         } catch (error) {
-            console.warn('Erreur lors de la récupération du profil:', error);
+            supabaseLog('Erreur lors de la récupération du profil:', error);
             return null;
         }
     }
 
     async createProfile(user: any): Promise<any> {
         try {
-            console.log('🔐 SupabaseService: Creating profile for user:', user.id);
+            supabaseLog('🔐 SupabaseService: Creating profile for user:', user.id);
 
             const profileData = {
                 id: user.id,
@@ -203,7 +197,7 @@ export class SupabaseService {
                 throw error;
             }
 
-            console.log('🔐 SupabaseService: Profile created successfully:', data);
+            supabaseLog('🔐 SupabaseService: Profile created successfully:', data);
             return data;
         } catch (error) {
             console.error('🔐 SupabaseService: Error in createProfile:', error);
@@ -212,6 +206,8 @@ export class SupabaseService {
     }
 
     async updateProfile(userId: string, profile: any): Promise<any> {
+        supabaseLog('🔄 SupabaseService.updateProfile called with:', { userId, profile });
+
         const { data, error } = await this.supabase
             .from('profiles')
             .upsert(profile) // UTILISER UPSERT au lieu d'UPDATE !
@@ -219,7 +215,14 @@ export class SupabaseService {
             .select()
             .single();
 
-        if (error) throw error;
+        supabaseLog('📤 Supabase response:', { data, error });
+
+        if (error) {
+            console.error('❌ Supabase updateProfile error:', error);
+            throw error;
+        }
+
+        supabaseLog('✅ Profile updated successfully:', data);
         return data;
     }
 
@@ -262,7 +265,7 @@ export class SupabaseService {
                 throw new Error(`Catégorie invalide: ${failData.category}`);
             }
 
-            console.log('Données à insérer:', failData);
+            supabaseLog('Données à insérer:', failData);
 
             const { data, error } = await this.supabase
                 .from('fails')
@@ -336,37 +339,58 @@ export class SupabaseService {
         if (!user) throw new Error('Utilisateur non authentifié');
 
         try {
-            // Vérifier si l'utilisateur a déjà cette réaction spécifique
-            const { data: existingReaction, error: checkError } = await this.supabase
-                .from('reactions')
-                .select('id')
-                .match({
-                    fail_id: failId,
-                    user_id: user.id,
-                    reaction_type: reactionType
-                })
-                .single();
+            // Vérifier si l'utilisateur a déjà cette réaction spécifique avec retry et timeout
+            const existingReaction = await retryWithBackoff(async () => {
+                return await withTimeout(
+                    Promise.resolve(
+                        this.supabase
+                            .from('reactions')
+                            .select('id')
+                            .eq('fail_id', failId)
+                            .eq('user_id', user.id)
+                            .eq('reaction_type', reactionType)
+                            .maybeSingle()
+                    ),
+                    8000, // 8 secondes max
+                    'Timeout lors de la vérification de réaction'
+                );
+            }, 2); // Max 2 retries pour la vérification
 
-            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows found
-                throw checkError;
+            const checkResult = existingReaction as { data: any, error: any };
+            if (checkResult.error) {
+                supabaseLog(`Erreur lors de la vérification: ${checkResult.error.message}`);
+                throw checkResult.error;
             }
 
             // Si l'utilisateur a déjà cette réaction, on ne fait rien
-            if (existingReaction) {
-                console.log(`L'utilisateur a déjà la réaction ${reactionType} sur ce fail`);
+            if (checkResult.data) {
+                supabaseLog(`L'utilisateur a déjà la réaction ${reactionType} sur ce fail`);
                 return;
             }
 
-            // Sinon, ajouter la nouvelle réaction
-            const { error } = await this.supabase
-                .from('reactions')
-                .insert({
-                    fail_id: failId,
-                    user_id: user.id,
-                    reaction_type: reactionType
-                });
+            // Sinon, ajouter la nouvelle réaction avec retry et timeout
+            await retryWithBackoff(async () => {
+                const result = await withTimeout(
+                    Promise.resolve(
+                        this.supabase
+                            .from('reactions')
+                            .insert({
+                                fail_id: failId,
+                                user_id: user.id,
+                                reaction_type: reactionType
+                            })
+                    ),
+                    8000, // 8 secondes max
+                    'Timeout lors de l\'ajout de réaction'
+                );
 
-            if (error) throw error;
+                const insertResult = result as { data: any, error: any };
+                if (insertResult.error) {
+                    supabaseLog(`Erreur lors de l'ajout: ${insertResult.error.message}`);
+                    throw insertResult.error;
+                }
+                return insertResult;
+            }, 2); // Max 2 retries pour l'ajout
 
             // Incrémenter le compteur
             await this.updateReactionCount(failId, reactionType, 1);
@@ -553,7 +577,7 @@ export class SupabaseService {
 
             if (error) throw error;
 
-            console.log(`📊 Badges récupérés depuis badge_definitions: ${data?.length || 0} badges`);
+            supabaseLog(`📊 Badges récupérés depuis badge_definitions: ${data?.length || 0} badges`);
             return data || [];
         } catch (error) {
             console.error('Erreur lors de la récupération des badges disponibles:', error);
@@ -661,7 +685,7 @@ export class SupabaseService {
                 return false;
             }
 
-            console.log(`Badge ${badgeId} débloqué pour l'utilisateur ${userId}`);
+            supabaseLog(`Badge ${badgeId} débloqué pour l'utilisateur ${userId}`);
             return true;
         } catch (error) {
             console.error('Erreur dans unlockBadge:', error);
@@ -669,3 +693,5 @@ export class SupabaseService {
         }
     }
 }
+
+

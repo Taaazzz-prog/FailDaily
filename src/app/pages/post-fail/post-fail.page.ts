@@ -8,6 +8,8 @@ import {
   IonItem, IonLabel, IonTextarea, IonSelect, IonSelectOption, IonButton,
   IonIcon, IonCheckbox, IonSpinner, ToastController, ActionSheetController
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { camera } from 'ionicons/icons';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { FailService } from '../../services/fail.service';
 import { ModerationService } from '../../services/moderation.service';
@@ -43,6 +45,11 @@ export class PostFailPage implements OnInit {
     private toastController: ToastController,
     private actionSheetController: ActionSheetController
   ) {
+    // Configuration des icônes
+    addIcons({
+      camera
+    });
+
     console.log('📝 PostFailPage - Constructor called');
     this.postFailForm = this.fb.group({
       title: ['', [Validators.required, Validators.minLength(5)]],
@@ -276,3 +283,4 @@ export class PostFailPage implements OnInit {
     }
   }
 }
+

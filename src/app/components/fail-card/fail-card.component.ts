@@ -7,6 +7,7 @@ import { BadgeService } from '../../services/badge.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { failLog } from '../../utils/logger';
 
 @Component({
   selector: 'app-fail-card',
@@ -47,7 +48,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     try {
       this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
     } catch (error) {
-      console.error('❌ Error loading user reactions:', error);
+      failLog('Erreur lors du chargement des réactions utilisateur:', error);
       this.userReactions = [];
     }
   }
@@ -58,26 +59,34 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       return;
     }
 
-    try {
-      await Haptics.impact({ style: ImpactStyle.Light });
-    } catch (error) {
-      // Fallback si haptics non disponible
-    }
+    // Sauvegarder l'état actuel pour le rollback
+    const originalCount = this.fail.reactions.courage;
+    const originalReactions = [...this.userReactions];
 
     try {
-      await this.failService.addReaction(this.fail.id, 'courage');
+      // Haptics avec gestion d'erreur silencieuse
+      try {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      } catch (hapticError) {
+        // Ignore les erreurs de haptic
+      }
 
-      // Mise à jour optimiste locale
+      // Mise à jour optimiste immédiate
       this.userReactions.push('courage');
       this.fail.reactions.courage++;
 
-      // Vérifier les nouveaux badges (sans logs excessifs)
+      // Tenter l'ajout de la réaction
+      await this.failService.addReaction(this.fail.id, 'courage');
+
+      // Vérifier les nouveaux badges seulement si la réaction a réussi
       this.checkForNewBadges();
     } catch (error) {
-      console.error('❌ Error during courage reaction:', error);
-      // Rollback en cas d'erreur
-      this.userReactions = this.userReactions.filter(r => r !== 'courage');
-      this.fail.reactions.courage--;
+      // Rollback complet en cas d'erreur
+      this.userReactions = originalReactions;
+      this.fail.reactions.courage = originalCount;
+
+      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      failLog('Erreur lors de la réaction courage:', error);
     }
   }
 
@@ -87,26 +96,34 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       return;
     }
 
-    try {
-      await Haptics.impact({ style: ImpactStyle.Light });
-    } catch (error) {
-      // Fallback si haptics non disponible
-    }
+    // Sauvegarder l'état actuel pour le rollback
+    const originalCount = this.fail.reactions.laugh;
+    const originalReactions = [...this.userReactions];
 
     try {
-      await this.failService.addReaction(this.fail.id, 'laugh');
+      // Haptics avec gestion d'erreur silencieuse
+      try {
+        await Haptics.impact({ style: ImpactStyle.Light });
+      } catch (hapticError) {
+        // Ignore les erreurs de haptic
+      }
 
-      // Mise à jour optimiste locale
+      // Mise à jour optimiste immédiate
       this.userReactions.push('laugh');
       this.fail.reactions.laugh++;
 
-      // Vérifier les nouveaux badges
+      // Tenter l'ajout de la réaction
+      await this.failService.addReaction(this.fail.id, 'laugh');
+
+      // Vérifier les nouveaux badges seulement si la réaction a réussi
       this.checkForNewBadges();
     } catch (error) {
-      console.error('❌ Error during laugh reaction:', error);
-      // Rollback en cas d'erreur
-      this.userReactions = this.userReactions.filter(r => r !== 'laugh');
-      this.fail.reactions.laugh--;
+      // Rollback complet en cas d'erreur
+      this.userReactions = originalReactions;
+      this.fail.reactions.laugh = originalCount;
+
+      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      failLog('Erreur lors de la réaction laugh:', error);
     }
   }
 
@@ -116,26 +133,37 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       return;
     }
 
-    try {
-      await Haptics.impact({ style: ImpactStyle.Medium });
-    } catch (error) {
-      // Fallback si haptics non disponible
-    }
+    // Sauvegarder l'état actuel pour le rollback
+    const originalCount = this.fail.reactions.empathy;
+    const originalReactions = [...this.userReactions];
 
     try {
-      await this.failService.addReaction(this.fail.id, 'empathy');
+      // Haptics avec gestion d'erreur silencieuse
+      try {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      } catch (hapticError) {
+        // Ignore les erreurs de haptic
+      }
 
-      // Mise à jour optimiste locale
+      // Mise à jour optimiste immédiate
       this.userReactions.push('empathy');
       this.fail.reactions.empathy++;
 
-      // Vérifier les nouveaux badges
+      // Tenter l'ajout de la réaction
+      await this.failService.addReaction(this.fail.id, 'empathy');
+
+      // Vérifier les nouveaux badges seulement si la réaction a réussi
       this.checkForNewBadges();
     } catch (error) {
-      console.error('❌ Error during empathy reaction:', error);
-      // Rollback en cas d'erreur
-      this.userReactions = this.userReactions.filter(r => r !== 'empathy');
-      this.fail.reactions.empathy--;
+      // Rollback complet en cas d'erreur
+      this.userReactions = originalReactions;
+      this.fail.reactions.empathy = originalCount;
+
+      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      failLog('Erreur lors de la réaction empathy:', error);
+
+      // Optionnel: Afficher un toast discret à l'utilisateur
+      // this.presentErrorToast('Impossible d\'ajouter la réaction pour le moment');
     }
   }
 
@@ -145,26 +173,37 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       return;
     }
 
-    try {
-      await Haptics.impact({ style: ImpactStyle.Medium });
-    } catch (error) {
-      // Fallback si haptics non disponible
-    }
+    // Sauvegarder l'état actuel pour le rollback
+    const originalCount = this.fail.reactions.support;
+    const originalReactions = [...this.userReactions];
 
     try {
-      await this.failService.addReaction(this.fail.id, 'support');
+      // Haptics avec gestion d'erreur silencieuse
+      try {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      } catch (hapticError) {
+        // Ignore les erreurs de haptic
+      }
 
-      // Mise à jour optimiste locale
+      // Mise à jour optimiste immédiate
       this.userReactions.push('support');
       this.fail.reactions.support++;
 
-      // Vérifier les nouveaux badges
+      // Tenter l'ajout de la réaction
+      await this.failService.addReaction(this.fail.id, 'support');
+
+      // Vérifier les nouveaux badges seulement si la réaction a réussi
       this.checkForNewBadges();
     } catch (error) {
-      console.error('❌ Error during support reaction:', error);
-      // Rollback en cas d'erreur
-      this.userReactions = this.userReactions.filter(r => r !== 'support');
-      this.fail.reactions.support--;
+      // Rollback complet en cas d'erreur
+      this.userReactions = originalReactions;
+      this.fail.reactions.support = originalCount;
+
+      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      failLog('Erreur lors de la réaction support:', error);
+
+      // Optionnel: Afficher un toast discret à l'utilisateur
+      // this.presentErrorToast('Impossible d\'ajouter la réaction pour le moment');
     }
   }
 

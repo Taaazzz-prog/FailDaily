@@ -8,6 +8,8 @@ import {
     IonSelectOption, IonToggle, IonSpinner, IonAlert,
     AlertController, ActionSheetController
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { createOutline, informationCircleOutline, mailOutline, optionsOutline, personOutline, refreshOutline, saveOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/user.model';
 import { firstValueFrom } from 'rxjs';
@@ -68,6 +70,11 @@ export class EditProfilePage implements OnInit {
         private alertController: AlertController,
         private actionSheetController: ActionSheetController
     ) {
+        // Configuration des icônes
+        addIcons({
+            createOutline, informationCircleOutline, mailOutline, optionsOutline, personOutline, refreshOutline, saveOutline
+        });
+
         this.editForm = this.createForm();
     }
 
@@ -126,12 +133,22 @@ export class EditProfilePage implements OnInit {
     }
 
     async saveProfile() {
-        if (!this.editForm.valid || !this.currentUser) return;
+        console.log('🔄 DÉBUT saveProfile()');
+        console.log('📋 Form valid:', this.editForm.valid);
+        console.log('👤 Current user:', this.currentUser);
+        console.log('📝 Form values:', this.editForm.value);
+
+        if (!this.editForm.valid || !this.currentUser) {
+            console.log('❌ ARRÊT: Form invalid ou user null');
+            return;
+        }
 
         try {
             this.isLoading = true;
+            console.log('🔄 isLoading = true');
 
             const formValue = this.editForm.value;
+            console.log('📝 Form value extracted:', formValue);
 
             // Construire l'objet utilisateur mis à jour
             const updatedUser: Partial<User> = {
@@ -254,3 +271,4 @@ export class EditProfilePage implements OnInit {
         return true;
     }
 }
+
