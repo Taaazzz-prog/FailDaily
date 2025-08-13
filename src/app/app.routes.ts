@@ -5,18 +5,20 @@ import { NoAuthGuard } from './guards/no-auth.guard';
 export const routes: Routes = [
   {
     path: '',
+    redirectTo: '/home',
+    pathMatch: 'full'
+  },
+  {
+    path: 'tabs',
     loadComponent: () => import('./pages/tabs/tabs.page').then(m => m.TabsPage),
-    canActivate: [AuthGuard],
     children: [
       {
         path: 'home',
-        loadComponent: () => import('./home/home.page').then(m => m.HomePage),
-        canActivate: [AuthGuard]
+        loadComponent: () => import('./home/home.page').then(m => m.HomePage)
       },
       {
         path: 'post-fail',
-        loadComponent: () => import('./pages/post-fail/post-fail.page').then(m => m.PostFailPage),
-        canActivate: [AuthGuard]
+        loadComponent: () => import('./pages/post-fail/post-fail.page').then(m => m.PostFailPage)
       },
       {
         path: 'profile',
@@ -58,6 +60,11 @@ export const routes: Routes = [
       }
     ]
   },
+  // Route directe pour home
+  {
+    path: 'home',
+    loadComponent: () => import('./home/home.page').then(m => m.HomePage)
+  },
   // Pages légales
   {
     path: 'legal',
@@ -85,7 +92,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '/auth/login',
+    redirectTo: '/home',
     pathMatch: 'full'
   }
 ];

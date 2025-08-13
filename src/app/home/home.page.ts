@@ -2,11 +2,11 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
-  IonRefresher, IonRefresherContent, IonSpinner, IonFab, IonFabButton,
+  IonRefresher, IonRefresherContent, IonSpinner,
   RefresherCustomEvent, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { person, addCircle, documentOutline, add, chevronDownCircleOutline } from 'ionicons/icons';
+import { person, addCircle, documentOutline, add, chevronDownCircleOutline, heart, people, trophy } from 'ionicons/icons';
 import { FailService } from '../services/fail.service';
 import { AuthService } from '../services/auth.service';
 import { Fail } from '../models/fail.model';
@@ -21,12 +21,12 @@ import { FailCardComponent } from '../components/fail-card/fail-card.component';
   imports: [
     CommonModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
-    IonRefresher, IonRefresherContent, IonSpinner, IonFab, IonFabButton,
+    IonRefresher, IonRefresherContent, IonSpinner,
     FailCardComponent
   ],
 })
 export class HomePage implements OnInit, ViewWillEnter {
-  fails$: Observable<Fail[]>;
+  fails$: Observable<Fail[]> | null = null;
   isLoading = false;
   currentUser$ = this.authService.currentUser$;
 
@@ -37,17 +37,29 @@ export class HomePage implements OnInit, ViewWillEnter {
   ) {
     // Configuration des icônes
     addIcons({
-      person, addCircle, documentOutline, add, chevronDownCircleOutline
+      person, addCircle, documentOutline, add, chevronDownCircleOutline,
+      heart, people, trophy
     });
 
     console.log('🏠 HomePage - Constructor called');
-    this.fails$ = this.failService.getFails();
-    console.log('🏠 HomePage - Fails observable initialized');
+
+    // Ne charger les fails que si l'utilisateur est connecté
+    this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        this.fails$ = this.failService.getFails();
+        console.log('🏠 HomePage - Fails observable initialized for logged user');
+      } else {
+        console.log('🏠 HomePage - User not logged in, showing welcome screen');
+      }
+    });
   }
 
   ngOnInit() {
     console.log('🏠 HomePage - ngOnInit called');
-    this.loadInitialData();
+    // Charger les données seulement si connecté
+    if (this.authService.isAuthenticated()) {
+      this.loadInitialData();
+    }
   }
 
   ionViewWillEnter() {
@@ -88,16 +100,13 @@ export class HomePage implements OnInit, ViewWillEnter {
 
   goToPostFail() {
     console.log('🏠 HomePage - goToPostFail called');
-    const isAuth = this.authService.isAuthenticated();
-    console.log('🏠 HomePage - User authenticated:', isAuth);
+    console.log('🏠 HomePage - Navigating to post-fail');
+    this.router.navigate(['/tabs/post-fail']);
+  }
 
-    if (isAuth) {
-      console.log('🏠 HomePage - Navigating to post-fail');
-      this.router.navigate(['/post-fail']);
-    } else {
-      console.log('🏠 HomePage - Not authenticated, redirecting to login');
-      this.router.navigate(['/auth/login']);
-    }
+  goToRegister() {
+    console.log('🏠 HomePage - goToRegister called');
+    this.router.navigate(['/auth/register']);
   }
 
   goToLogin() {

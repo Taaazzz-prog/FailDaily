@@ -209,13 +209,10 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
   private async checkForNewBadges(): Promise<void> {
     try {
-      const newBadges = await this.badgeService.checkBadgesAfterAction('reaction_given');
-
-      if (newBadges.length > 0) {
-        for (const badge of newBadges) {
-          await this.showBadgeUnlockedToast(badge);
-        }
-      }
+      // Ne plus déclencher de vérification ici car c'est déjà géré par l'EventBus
+      // L'EventBus écoute REACTION_GIVEN et déclenche automatiquement la vérification
+      // Évite les doublons et améliore les performances
+      console.log('🏆 Badge check delegated to EventBus system');
     } catch (error) {
       console.error('❌ Error checking badges:', error);
     }

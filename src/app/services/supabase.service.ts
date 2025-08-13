@@ -577,7 +577,8 @@ export class SupabaseService {
 
             if (error) throw error;
 
-            supabaseLog(`📊 Badges récupérés depuis badge_definitions: ${data?.length || 0} badges`);
+            // supabaseLog(`📊 Badges récupérés depuis badge_definitions: ${data?.length || 0} badges`);
+            // Log réduit pour éviter le spam dans la console
             return data || [];
         } catch (error) {
             console.error('Erreur lors de la récupération des badges disponibles:', error);

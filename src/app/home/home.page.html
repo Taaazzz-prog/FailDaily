@@ -6,10 +6,14 @@
       <ion-button (click)="goToLogin()">
         <ion-icon name="person" slot="icon-only"></ion-icon>
       </ion-button>
-      }
+      <ion-button (click)="goToRegister()">
+        <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+      </ion-button>
+      } @else {
       <ion-button (click)="goToPostFail()">
         <ion-icon name="add-circle" slot="icon-only"></ion-icon>
       </ion-button>
+      }
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -23,21 +27,50 @@
   </ion-refresher>
 
   <div class="home-container">
-    <!-- En-tête avec message d'accueil -->
-    @if (currentUser$ | async; as user) {
-    <div class="welcome-section">
-      <h1 class="handwriting">Salut {{ user.displayName }} ! 👋</h1>
-      <p class="comfort-text">Prêt(e) à partager ton fail du jour ?</p>
+    <!-- Écran de bienvenue pour visiteurs non connectés -->
+    @if (!(currentUser$ | async)) {
+    <div class="welcome-guest-section">
+      <div class="app-preview">
+        <h1 class="handwriting main-title">FailDaily 🌟</h1>
+        <p class="app-description">
+          La communauté qui célèbre l'imperfection et transforme chaque échec en apprentissage
+        </p>
+
+        <!-- Carrousel de présentation -->
+        <div class="features-carousel">
+          <div class="feature-slide active">
+            <ion-icon name="heart" size="large" class="feature-icon"></ion-icon>
+            <h3>Partage authentique</h3>
+            <p>Racontez vos échecs sans jugement dans une communauté bienveillante</p>
+          </div>
+          <div class="feature-slide">
+            <ion-icon name="people" size="large" class="feature-icon"></ion-icon>
+            <h3>Soutien communautaire</h3>
+            <p>Recevez des encouragements et partagez vos expériences</p>
+          </div>
+          <div class="feature-slide">
+            <ion-icon name="trophy" size="large" class="feature-icon"></ion-icon>
+            <h3>Badges de courage</h3>
+            <p>Gagnez des récompenses pour votre authenticité et votre courage</p>
+          </div>
+        </div>
+
+        <div class="cta-buttons">
+          <ion-button expand="block" (click)="goToLogin()" class="primary-cta">
+            Rejoindre la communauté
+          </ion-button>
+          <ion-button expand="block" fill="outline" (click)="goToRegister()" class="secondary-cta">
+            Créer un compte
+          </ion-button>
+        </div>
+      </div>
     </div>
     } @else {
+    <!-- Section pour utilisateurs connectés -->
     <div class="welcome-section">
-      <h1 class="handwriting">Bienvenue sur FailDaily ! 🌟</h1>
-      <p class="comfort-text">Découvrez une communauté bienveillante qui célèbre l'imperfection</p>
-      <ion-button expand="block" (click)="goToLogin()" class="login-cta imperfect-element">
-        Rejoindre la communauté
-      </ion-button>
+      <h1 class="handwriting">Salut {{ (currentUser$ | async)?.displayName }} ! 👋</h1>
+      <p class="comfort-text">Prêt(e) à partager ton fail du jour ?</p>
     </div>
-    }
 
     <!-- Loading spinner -->
     @if (isLoading) {
@@ -47,8 +80,8 @@
     </div>
     }
 
-    <!-- Feed de fails -->
-    @if (!isLoading) {
+    <!-- Feed de fails pour utilisateurs connectés -->
+    @if (!isLoading && fails$) {
     <div class="fails-feed">
       @if (fails$ | async; as fails) {
       <!-- Message si aucun fail -->
@@ -78,12 +111,6 @@
       }
     </div>
     }
+    }
   </div>
-
-  <!-- Floating Action Button -->
-  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-    <ion-fab-button (click)="goToPostFail()" class="fab-button">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
 </ion-content>
