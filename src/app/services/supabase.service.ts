@@ -604,6 +604,20 @@ export class SupabaseService {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', userId);
 
+            // Statistiques détaillées par type de réaction données
+            const { data: reactionsByType } = await this.supabase
+                .from('reactions')
+                .select('reaction_type')
+                .eq('user_id', userId);
+
+            let courageReactions = 0, supportReactions = 0, empathyReactions = 0, laughReactions = 0;
+            if (reactionsByType) {
+                courageReactions = reactionsByType.filter(r => r.reaction_type === 'courage').length;
+                supportReactions = reactionsByType.filter(r => r.reaction_type === 'support').length;
+                empathyReactions = reactionsByType.filter(r => r.reaction_type === 'empathy').length;
+                laughReactions = reactionsByType.filter(r => r.reaction_type === 'laugh').length;
+            }
+
             // Catégories utilisées
             const { data: categoryData } = await this.supabase
                 .from('fails')
@@ -633,16 +647,26 @@ export class SupabaseService {
             return {
                 totalFails: totalFails || 0,
                 totalReactions: totalReactionsGiven || 0,
+                courageReactions,
+                supportReactions,
+                empathyReactions,
+                laughReactions,
                 categoriesUsed,
-                maxReactionsOnFail
+                maxReactionsOnFail,
+                activeDays: 1 // Placeholder - nécessiterait un tracking plus sophistiqué
             };
         } catch (error) {
             console.error('Erreur lors de la récupération des statistiques:', error);
             return {
                 totalFails: 0,
                 totalReactions: 0,
+                courageReactions: 0,
+                supportReactions: 0,
+                empathyReactions: 0,
+                laughReactions: 0,
                 categoriesUsed: 0,
-                maxReactionsOnFail: 0
+                maxReactionsOnFail: 0,
+                activeDays: 0
             };
         }
     }

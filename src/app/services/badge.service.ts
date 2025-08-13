@@ -415,6 +415,9 @@ export class BadgeService {
       case 'major_comebacks':
         return (userStats.majorComebacks || 0) >= requiredValue;
 
+      case 'max_reactions_on_fail':
+        return (userStats.maxReactionsOnFail || 0) >= requiredValue;
+
       case 'positive_days':
         return (userStats.positiveDays || 0) >= requiredValue;
 
