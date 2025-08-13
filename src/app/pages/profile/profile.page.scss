@@ -9,6 +9,83 @@
     --hover-shadow: 0 8px 25px rgba(99, 102, 241, 0.12);
 }
 
+// Conteneur principal pour centrer le contenu comme home et post-fail
+.profile-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 1rem;
+
+    // Sections principales avec cadres
+    .welcome-section,
+    .level-section,
+    .stats-section,
+    .badges-section,
+    .recent-fails-section,
+    .actions-section {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--ion-color-light);
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        // Titre des sections
+        h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: var(--ion-color-primary);
+            border-bottom: 2px solid var(--ion-color-light);
+            padding-bottom: 0.5rem;
+        }
+    }
+
+    // Séparateurs internes pour les éléments d'une même section
+    .section-separator {
+        height: 1px;
+        background: var(--ion-color-light);
+        margin: 1rem 0;
+        opacity: 0.5;
+    }
+
+    // Éléments de liste avec séparateurs
+    .badge-preview,
+    .fail-preview {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--ion-color-light);
+
+        &:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        &:first-child {
+            padding-top: 0;
+        }
+    }
+
+    // Grille des stats avec meilleure séparation
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+
+        .stat-card {
+            padding: 1rem;
+            border: 1px solid var(--ion-color-light);
+            border-radius: 8px;
+            background: var(--ion-color-light-tint);
+        }
+    }
+
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
 .profile-content {
     --background: linear-gradient(180deg, #f8faff 0%, #ffffff 100%);
 }
