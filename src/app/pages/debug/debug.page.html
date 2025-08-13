@@ -1,0 +1,114 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-title>🐛 Debug Console</ion-title>
+        <ion-button slot="end" fill="clear" (click)="refreshLogs()">
+            <ion-icon name="refresh-outline"></ion-icon>
+        </ion-button>
+    </ion-toolbar>
+</ion-header>
+
+
+<ion-content>
+    <!-- Statistiques -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>📊 Statistiques</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-grid>
+                <ion-row>
+                    <ion-col size="3">
+                        <div class="stat-item">
+                            <ion-badge color="medium">{{ stats.total }}</ion-badge>
+                            <ion-label>Total</ion-label>
+                        </div>
+                    </ion-col>
+                    <ion-col size="3">
+                        <div class="stat-item">
+                            <ion-badge color="danger">{{ stats.errors }}</ion-badge>
+                            <ion-label>Erreurs</ion-label>
+                        </div>
+                    </ion-col>
+                    <ion-col size="3">
+                        <div class="stat-item">
+                            <ion-badge color="warning">{{ stats.warnings }}</ion-badge>
+                            <ion-label>Warnings</ion-label>
+                        </div>
+                    </ion-col>
+                    <ion-col size="3">
+                        <div class="stat-item">
+                            <ion-badge color="primary">{{ stats.info }}</ion-badge>
+                            <ion-label>Info</ion-label>
+                        </div>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Actions rapides -->
+    <ion-card>
+        <ion-card-content>
+            <ion-grid>
+                <ion-row>
+                    <ion-col size="4">
+                        <ion-button expand="block" color="success" (click)="copyErrorsForCopilot()">
+                            <ion-icon name="copy-outline" slot="start"></ion-icon>
+                            Copier Erreurs ({{ stats.errors }})
+                        </ion-button>
+                    </ion-col>
+                    <ion-col size="4">
+                        <ion-button expand="block" color="primary" (click)="copyAllLogs()">
+                            <ion-icon name="copy-outline" slot="start"></ion-icon>
+                            Copier Tout ({{ stats.total }})
+                        </ion-button>
+                    </ion-col>
+                    <ion-col size="4">
+                        <ion-button expand="block" color="warning" (click)="clearLogs()">
+                            <ion-icon name="trash-outline" slot="start"></ion-icon>
+                            Clear Logs
+                        </ion-button>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Logs -->
+    <div class="logs-container">
+        <ion-card *ngFor="let log of filteredLogs; trackBy: trackByLogId" class="log-card"
+            [class.error-log]="log.level === 'error'" [class.warn-log]="log.level === 'warn'">
+            <ion-card-header>
+                <div class="log-header">
+                    <div class="log-info">
+                        <ion-badge [color]="getLevelColor(log.level)">
+                            <ion-icon [name]="getLevelIcon(log.level)"></ion-icon>
+                            {{ log.level.toUpperCase() }}
+                        </ion-badge>
+                        <ion-badge color="medium" class="service-badge">{{ log.service }}</ion-badge>
+                        <span class="timestamp">{{ formatTimestamp(log.timestamp) }}</span>
+                    </div>
+                </div>
+            </ion-card-header>
+
+            <ion-card-content>
+                <div class="log-message">{{ log.message }}</div>
+
+                <div *ngIf="log.data" class="log-data">
+                    <strong>Data:</strong>
+                    <pre>{{ formatData(log.data) }}</pre>
+                </div>
+
+                <div *ngIf="log.stackTrace" class="log-stack">
+                    <strong>Stack Trace:</strong>
+                    <pre>{{ log.stackTrace }}</pre>
+                </div>
+            </ion-card-content>
+        </ion-card>
+    </div>
+
+    <div *ngIf="filteredLogs.length === 0" class="no-logs">
+        <ion-icon name="information-circle-outline"></ion-icon>
+        <p>Aucun log correspondant aux filtres</p>
+    </div>
+</ion-content>

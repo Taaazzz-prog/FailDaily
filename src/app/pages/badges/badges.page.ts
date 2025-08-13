@@ -87,10 +87,10 @@ export class BadgesPage implements OnInit {
         private router: Router,
         private route: ActivatedRoute
     ) {
-    // Configuration des icônes
-    addIcons({
-      apps, appsOutline, buildOutline, chevronDownCircleOutline, chevronDownOutline, diamondOutline, funnelOutline, hourglassOutline, informationOutline, lockClosed, shareOutline, starOutline, trophyOutline
-    });
+        // Configuration des icônes
+        addIcons({
+            apps, appsOutline, buildOutline, chevronDownCircleOutline, chevronDownOutline, diamondOutline, funnelOutline, hourglassOutline, informationOutline, lockClosed, shareOutline, starOutline, trophyOutline
+        });
 
         console.log('🏆 BadgesPage - Constructor called');
         // Badges complets (pour les statistiques)
@@ -307,8 +307,6 @@ export class BadgesPage implements OnInit {
             progress: 0
         };
 
-        // TODO: Implémenter la logique pour trouver le prochain badge à débloquer
-        // dans la catégorie donnée et récupérer sa progression réelle
         return defaultProgress;
     }
 

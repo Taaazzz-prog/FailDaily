@@ -16,6 +16,14 @@ export class SupabaseService {
     public currentUser$: Observable<User | null> = this.currentUser.asObservable();
     public client: SupabaseClient;
 
+    // ✅ NOUVEAU : Debounce pour éviter les NavigatorLockAcquireTimeoutError
+    private authChangeTimeout: any = null;
+    private lastAuthUserId: string | null = null;
+
+    // ✅ NOUVEAU : Debounce pour les opérations de profil
+    private profileOperationTimeout: any = null;
+    private lastProfileUserId: string | null = null;
+
     constructor() {
         this.supabase = createClient(
             environment.supabase.url,
@@ -26,11 +34,30 @@ export class SupabaseService {
 
         this.supabase.auth.onAuthStateChange((event, session) => {
             supabaseLog('🔐 SupabaseService: Auth state change:', event, session?.user?.id || 'no user');
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                this.currentUser.next(session?.user || null);
-            } else if (event === 'SIGNED_OUT') {
-                this.currentUser.next(null);
+
+            // ✅ PROTECTION : Debounce pour éviter les appels multiples rapprochés
+            if (this.authChangeTimeout) {
+                clearTimeout(this.authChangeTimeout);
             }
+
+            const currentUserId = session?.user?.id || null;
+
+            // ✅ PROTECTION : Ignorer si c'est le même utilisateur
+            if (this.lastAuthUserId === currentUserId && event !== 'SIGNED_OUT') {
+                supabaseLog('🔐 SupabaseService: Même utilisateur, événement ignoré');
+                return;
+            }
+
+            this.authChangeTimeout = setTimeout(() => {
+                this.lastAuthUserId = currentUserId;
+
+                if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                    this.currentUser.next(session?.user || null);
+                } else if (event === 'SIGNED_OUT') {
+                    this.lastAuthUserId = null;
+                    this.currentUser.next(null);
+                }
+            }, 100); // Debounce de 100ms
         });
 
         // Initialiser l'utilisateur actuel sans nettoyer les sessions
@@ -62,14 +89,13 @@ export class SupabaseService {
         });
     }
 
-    async signUp(email: string, password: string, username: string): Promise<any> {
+    async signUp(email: string, password: string, displayName: string): Promise<any> {
         const { data, error } = await this.supabase.auth.signUp({
             email,
             password,
             options: {
                 data: {
-                    username,
-                    display_name: username
+                    display_name: displayName
                 }
             }
         });
@@ -79,26 +105,31 @@ export class SupabaseService {
     }
 
     async completeRegistration(userId: string, legalConsent: any, ageVerification: any): Promise<any> {
-        const { data, error } = await this.supabase
-            .rpc('complete_user_registration', {
-                user_id: userId,
-                legal_consent_data: legalConsent,
-                age_verification_data: ageVerification
-            });
+        console.log('🔧 SupabaseService - Completing registration for user:', userId);
+        console.log('🔧 Legal consent:', legalConsent);
+        console.log('🔧 Age verification:', ageVerification);
 
-        if (error) throw error;
+        const { data, error } = await this.supabase
+            .from('profiles')
+            .update({
+                legal_consent: legalConsent,
+                age_verification: ageVerification,
+                registration_completed: true,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', userId)
+            .select();
+
+        if (error) {
+            console.error('🔧 SupabaseService - Error completing registration:', error);
+            throw error;
+        }
+
+        console.log('🔧 SupabaseService - Registration completed successfully:', data);
         return data;
     }
 
-    async checkRegistrationStatus(userId: string): Promise<any> {
-        const { data, error } = await this.supabase
-            .rpc('check_user_registration_status', {
-                user_id: userId
-            });
 
-        if (error) throw error;
-        return data;
-    }
 
     async signIn(email: string, password: string): Promise<any> {
         const { data, error } = await this.supabase.auth.signInWithPassword({
@@ -150,80 +181,134 @@ export class SupabaseService {
     }
 
     async getProfile(userId: string): Promise<any> {
-        try {
-            const { data, error } = await this.supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', userId)
-                .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
-
-            if (error) {
-                supabaseLog('Erreur récupération profil:', error);
-                return null;
-            }
-            return data;
-        } catch (error) {
-            supabaseLog('Erreur lors de la récupération du profil:', error);
+        // ✅ Protection contre les appels multiples simultanés
+        if (this.profileOperationTimeout && this.lastProfileUserId === userId) {
+            supabaseLog('🔐 🔐 SupabaseService: Même utilisateur pour getProfile, opération ignorée');
             return null;
         }
+
+        if (this.profileOperationTimeout) {
+            clearTimeout(this.profileOperationTimeout);
+        }
+
+        this.lastProfileUserId = userId;
+        this.profileOperationTimeout = setTimeout(() => {
+            this.profileOperationTimeout = null;
+            this.lastProfileUserId = null;
+        }, 50); // Réduit à 50ms pour permettre les opérations utilisateur
+
+        return safeAuthOperation(async () => {
+            try {
+                const { data, error } = await this.supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', userId)
+                    .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
+
+                if (error) {
+                    supabaseLog('Erreur récupération profil:', error);
+                    return null;
+                }
+                return data;
+            } catch (error) {
+                supabaseLog('Erreur lors de la récupération du profil:', error);
+                return null;
+            }
+        });
     }
 
     async createProfile(user: any): Promise<any> {
-        try {
-            supabaseLog('🔐 SupabaseService: Creating profile for user:', user.id);
+        return safeAuthOperation(async () => {
+            try {
+                supabaseLog('🔐 SupabaseService: Creating profile for user:', user.id);
 
-            const profileData = {
-                id: user.id,
-                email: user.email,
-                display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur',
-                username: user.user_metadata?.username || user.email?.split('@')[0] || 'user',
-                avatar_url: 'assets/anonymous-avatar.svg',
-                email_confirmed: true,
-                registration_completed: false,
-                legal_consent: null,
-                age_verification: null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            };
+                const profileData = {
+                    id: user.id,
+                    email: user.email,
+                    display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur',
+                    avatar_url: 'assets/anonymous-avatar.svg',
+                    email_confirmed: true,
+                    registration_completed: false,
+                    legal_consent: null,
+                    age_verification: null,
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                };
 
-            const { data, error } = await this.supabase
-                .from('profiles')
-                .insert(profileData)
-                .select()
-                .single();
+                // Utiliser upsert pour gérer le cas où le profil existe déjà
+                const { data, error } = await this.supabase
+                    .from('profiles')
+                    .upsert(profileData, {
+                        onConflict: 'id',
+                        ignoreDuplicates: false
+                    })
+                    .select()
+                    .single();
 
-            if (error) {
-                console.error('🔐 SupabaseService: Error creating profile:', error);
+                if (error) {
+                    console.error('❌ SupabaseService: Error creating/updating profile:', error);
+                    throw error;
+                }
+
+                console.log('✅ SupabaseService: Profile created/updated successfully');
+                return data;
+            } catch (error) {
+                console.error('❌ SupabaseService: Error in createProfile:', error);
                 throw error;
             }
-
-            supabaseLog('🔐 SupabaseService: Profile created successfully:', data);
-            return data;
-        } catch (error) {
-            console.error('🔐 SupabaseService: Error in createProfile:', error);
-            throw error;
-        }
+        });
     }
 
     async updateProfile(userId: string, profile: any): Promise<any> {
-        supabaseLog('🔄 SupabaseService.updateProfile called with:', { userId, profile });
+        return safeAuthOperation(async () => {
+            supabaseLog('🔄 SupabaseService.updateProfile called with:', { userId, profile });
 
-        const { data, error } = await this.supabase
-            .from('profiles')
-            .upsert(profile) // UTILISER UPSERT au lieu d'UPDATE !
-            .eq('id', userId)
-            .select()
-            .single();
+            // Filtrer SEULEMENT les champs qui existent dans la base de données
+            const allowedFields = [
+                'id', 'email', 'display_name', 'avatar_url',
+                'bio', 'preferences', 'stats', 'badges', 'email_confirmed',
+                'registration_completed', 'legal_consent', 'age_verification',
+                'created_at', 'updated_at'
+            ];
 
-        supabaseLog('📤 Supabase response:', { data, error });
+            const profileToUpdate: any = {
+                id: userId  // S'assurer que l'ID est présent
+            };
 
-        if (error) {
-            console.error('❌ Supabase updateProfile error:', error);
-            throw error;
-        }
+            // Ne copier QUE les champs autorisés
+            allowedFields.forEach(field => {
+                if (profile[field] !== undefined) {
+                    profileToUpdate[field] = profile[field];
+                }
+            });
 
-        supabaseLog('✅ Profile updated successfully:', data);
-        return data;
+            // Si l'objet contient 'avatar', le convertir en 'avatar_url'
+            if (profile.avatar && !profile.avatar_url) {
+                profileToUpdate.avatar_url = profile.avatar;
+                supabaseLog('⚠️ Conversion avatar → avatar_url:', profile.avatar);
+            }
+
+            supabaseLog('📤 Envoi vers Supabase profiles (filtré):', profileToUpdate);
+
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .upsert(profileToUpdate, {
+                    onConflict: 'id',
+                    ignoreDuplicates: false
+                })
+                .select()
+                .single();
+
+            supabaseLog('� Supabase response:', { data, error });
+
+            if (error) {
+                console.error('❌ Supabase updateProfile error:', error);
+                throw error;
+            }
+
+            supabaseLog('✅ Profile updated successfully:', data);
+            return data;
+        });
     }
 
     async createFail(fail: any): Promise<any> {

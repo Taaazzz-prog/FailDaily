@@ -5,7 +5,7 @@ import { NoAuthGuard } from './guards/no-auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    redirectTo: '/home',
+    redirectTo: '/tabs/home',
     pathMatch: 'full'
   },
   {
@@ -60,10 +60,11 @@ export const routes: Routes = [
       }
     ]
   },
-  // Route directe pour home
+  // Redirection home directe vers tabs
   {
     path: 'home',
-    loadComponent: () => import('./home/home.page').then(m => m.HomePage)
+    redirectTo: '/tabs/home',
+    pathMatch: 'full'
   },
   // Pages légales
   {
@@ -73,6 +74,11 @@ export const routes: Routes = [
   {
     path: 'legal-document/:id',
     loadComponent: () => import('./pages/legal-document/legal-document.page').then(m => m.LegalDocumentPage)
+  },
+  // Page de debug (développement uniquement)
+  {
+    path: 'debug',
+    loadComponent: () => import('./pages/debug/debug.page').then(m => m.DebugPage)
   },
   {
     path: 'auth',
@@ -92,7 +98,7 @@ export const routes: Routes = [
   },
   {
     path: '**',
-    redirectTo: '/home',
+    redirectTo: '/tabs/home',
     pathMatch: 'full'
   }
 ];

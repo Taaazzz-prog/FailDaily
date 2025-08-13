@@ -175,7 +175,9 @@ export class EditProfilePage implements OnInit {
             await this.saveUserProfile(updatedUser);
 
             // Mettre à jour le service d'authentification
-            await this.authService.updateCurrentUser(updatedUser as User);
+            // On a déjà fait la mise à jour via saveUserProfile, 
+            // pas besoin de rappeler updateUserProfile
+            console.log('✅ Profil utilisateur synchronisé');
 
             this.showSaveMessage('Profil sauvegardé avec succès !', 'checkmark-circle-outline', 'success');
             this.editForm.markAsPristine();
@@ -205,6 +207,7 @@ export class EditProfilePage implements OnInit {
             const profileData = {
                 id: this.currentUser.id,
                 display_name: userData.displayName,
+                username: userData.displayName, // Synchroniser username avec display_name
                 bio: userData.preferences?.bio || null,
                 preferences: userData.preferences || {},
                 updated_at: new Date().toISOString()

@@ -76,12 +76,10 @@ export async function retryOnMobile<T>(
 }
 
 /**
- * Wrapper pour les opérations Supabase auth sur mobile
+ * Wrapper pour les opérations Supabase auth sur mobile ET web
+ * Gère maintenant les NavigatorLockAcquireTimeoutError sur toutes les plateformes
  */
 export async function safeAuthOperation<T>(operation: () => Promise<T>): Promise<T> {
-    if (!isMobilePlatform()) {
-        return operation();
-    }
-
-    return retryOnMobile(operation, 3, 300);
+    // ✅ CORRECTION : Gérer les NavigatorLock sur toutes les plateformes, pas seulement mobile
+    return retryOnMobile(operation, 3, 100); // Délai plus court sur web
 }

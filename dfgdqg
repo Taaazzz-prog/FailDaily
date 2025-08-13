@@ -1,0 +1,21 @@
+[
+  {
+    "id": "bf9d54e8-ada1-4684-a843-0e763ebba9d3",
+    "display_name": "alexiaforever ever",
+    "preferences": {
+      "bio": "rzgergeatg",
+      "theme": "light",
+      "darkMode": false,
+      "reminderTime": "09:00",
+      "soundEnabled": true,
+      "anonymousMode": false,
+      "notifications": {
+        "encouragement": true,
+        "reminderFrequency": "weekly"
+      },
+      "shareLocation": false,
+      "hapticsEnabled": true,
+      "notificationsEnabled": true
+    }
+  }
+]

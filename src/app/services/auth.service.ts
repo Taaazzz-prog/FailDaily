@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, from, map, catchError, switchMap, filter, take, timeout } from 'rxjs';
+import { Observable, BehaviorSubject, from, catchError, switchMap } from 'rxjs';
 import { User } from '../models/user.model';
 import { SupabaseService } from './supabase.service';
+import { DebugService } from './debug.service';
 import { authLog } from '../utils/logger';
 
 export interface LoginCredentials {
@@ -12,8 +13,7 @@ export interface LoginCredentials {
 export interface RegisterData {
   email: string;
   password: string;
-  username: string;
-  displayName?: string;
+  displayName: string;
   legalConsent?: any;
   ageVerification?: any;
 }
@@ -27,7 +27,14 @@ export class AuthService {
   private sessionInitialized = false;
   private initPromise: Promise<void> | null = null;
 
-  constructor(private supabase: SupabaseService) {
+  // ✅ NOUVEAU : Protection contre les appels concurrents
+  private processingProfileLoad = false;
+  private lastProcessedUserId: string | null = null;
+
+  constructor(
+    private supabase: SupabaseService,
+    private debugService: DebugService
+  ) {
     authLog('🔐 AuthService: Constructor called - initializing authentication service');
     this.initializeAuth();
   }
@@ -112,85 +119,7 @@ export class AuthService {
     }
   }
 
-  /**
-   * ✅ REFRESH SESSION : Tenter de rafraîchir une session Supabase expirée
-   */
-  private async attemptSessionRefresh(): Promise<boolean> {
-    try {
-      authLog('🔄 AuthService: Tentative de refresh de session...');
-      const { data, error } = await this.supabase.client.auth.refreshSession();
 
-      if (error || !data.session) {
-        authLog('🔄 AuthService: Refresh de session échoué:', error?.message || 'No session');
-        return false;
-      }
-
-      authLog('🔄 AuthService: Session rafraîchie avec succès');
-      return true;
-    } catch (error) {
-      console.error('🔄 AuthService: Erreur lors du refresh:', error);
-      return false;
-    }
-  }
-
-  /**
-   * ✅ RESTAURATION SESSION : Forcer Supabase à se reconnecter avec le cache utilisateur
-   */
-  private async forceSupabaseReconnection(cachedUser: User): Promise<boolean> {
-    try {
-      authLog('🔄 AuthService: Tentative de restauration forcée de session Supabase...');
-
-      // Essayer d'abord de récupérer une session valide via le token stocké
-      const { data: { session }, error: sessionError } = await this.supabase.client.auth.getSession();
-
-      if (session) {
-        authLog('🔄 AuthService: Session Supabase trouvée après re-vérification');
-        return true;
-      }
-
-      // Essayer de trouver le token de session dans localStorage
-      // Supabase stocke généralement sous la forme 'sb-<project-id>-auth-token'
-      const storageKeys = Object.keys(localStorage).filter(key => key.includes('auth-token'));
-      authLog('🔄 AuthService: Clés auth trouvées:', storageKeys);
-
-      for (const key of storageKeys) {
-        try {
-          const storedSession = localStorage.getItem(key);
-          if (storedSession) {
-            const sessionData = JSON.parse(storedSession);
-            if (sessionData.access_token && sessionData.refresh_token) {
-              authLog('🔄 AuthService: Tentative de restauration via tokens stockés...');
-
-              const { data, error } = await this.supabase.client.auth.setSession({
-                access_token: sessionData.access_token,
-                refresh_token: sessionData.refresh_token
-              });
-
-              if (data.session && !error) {
-                authLog('🔄 AuthService: Session Supabase restaurée via tokens');
-                return true;
-              }
-            }
-          }
-        } catch (tokenError) {
-          authLog('🔄 AuthService: Erreur restauration via token:', tokenError);
-          continue; // Essayer le prochain token
-        }
-      }
-
-      // Si aucun token n'a fonctionné, maintenir l'utilisateur en cache
-      authLog('🔄 AuthService: Session Supabase non récupérable - maintien du cache utilisateur');
-      authLog('🔄 AuthService: L\'utilisateur reste connecté via le cache pour:', cachedUser.email);
-
-      // Assurer que l'utilisateur reste défini dans le subject
-      this.currentUserSubject.next(cachedUser);
-
-      return false; // Session Supabase non restaurée mais utilisateur maintenu
-    } catch (error) {
-      console.error('🔄 AuthService: Erreur restauration forcée:', error);
-      return false;
-    }
-  }
 
   private async initializeAuth() {
     authLog('🔐 AuthService: initializeAuth called');
@@ -234,8 +163,7 @@ export class AuthService {
           const user: User = {
             id: session.user.id,
             email: session.user.email!,
-            displayName: profile?.display_name || profile?.username || 'Utilisateur',
-            username: profile?.username || 'user',
+            displayName: profile?.display_name || 'Utilisateur',
             avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
             joinDate: new Date(profile?.created_at || session.user.created_at),
             totalFails: profile?.stats?.totalFails || 0,
@@ -268,7 +196,6 @@ export class AuthService {
             id: session.user.id,
             email: session.user.email!,
             displayName: session.user.user_metadata?.['display_name'] || 'Utilisateur',
-            username: session.user.user_metadata?.['username'] || 'user',
             avatar: 'assets/anonymous-avatar.svg',
             joinDate: new Date(session.user.created_at),
             totalFails: 0,
@@ -317,8 +244,7 @@ export class AuthService {
             const user: User = {
               id: supabaseUser.id,
               email: supabaseUser.email!,
-              displayName: profile?.display_name || profile?.username || 'Utilisateur',
-              username: profile?.username || 'user',
+              displayName: profile?.display_name || 'Utilisateur',
               avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
               joinDate: new Date(profile?.created_at || supabaseUser.created_at),
               totalFails: profile?.stats?.totalFails || 0,
@@ -344,13 +270,13 @@ export class AuthService {
 
             this.setCurrentUser(user);
           } catch (error) {
-            console.error('🔐 AuthService: Erreur lors du chargement du profil utilisateur:', error);
+            this.debugService.logError('AuthService', 'Erreur lors du chargement du profil utilisateur', error);
           }
         }
       });
 
     } catch (error) {
-      console.error('🔐 AuthService: Erreur lors de l\'initialisation:', error);
+      this.debugService.logError('AuthService', 'Erreur lors de l\'initialisation', error);
       this.sessionInitialized = true;
       // En cas d'erreur globale, garder le cache si disponible
       const cachedUser = this.getCachedUser();
@@ -360,63 +286,23 @@ export class AuthService {
     }
   }
 
-  private async createDefaultProfile(supabaseUser: any) {
-    try {
-      const username = supabaseUser.user_metadata?.username ||
-        supabaseUser.email?.split('@')[0] ||
-        'user_' + Date.now();
 
-      const profileData = {
-        id: supabaseUser.id,
-        username,
-        email: supabaseUser.email!,
-        display_name: supabaseUser.user_metadata?.display_name || username,
-        stats: {
-          totalFails: 0,
-          couragePoints: 0,
-          badges: []
-        },
-        preferences: {}
-      };
-
-      // Insérer le profil dans Supabase
-      const profile = await this.supabase.updateProfile(supabaseUser.id, profileData);
-
-      const user: User = {
-        id: supabaseUser.id,
-        email: supabaseUser.email!,
-        displayName: profile.display_name || username,
-        username: profile.username,
-        avatar: 'assets/anonymous-avatar.svg',
-        joinDate: new Date(),
-        totalFails: 0,
-        couragePoints: 0,
-        badges: []
-      };
-
-      this.currentUserSubject.next(user);
-    } catch (error) {
-      console.error('Error creating default profile:', error);
-      this.currentUserSubject.next(null);
-    }
-  }
 
   async login(credentials: LoginCredentials): Promise<User | null> {
-    authLog('🔐 AuthService: login called for email:', credentials.email);
+    console.log('🔐 AuthService: Login attempt for:', credentials.email);
 
     try {
       // Authentification Supabase - retour immédiat
       const result = await this.supabase.signIn(credentials.email, credentials.password);
-      authLog('🔐 AuthService: Supabase signIn result:', !!result);
 
       if (result?.user) {
-        authLog('🔐 AuthService: User authenticated successfully');
+        console.log('✅ AuthService: User authenticated successfully');
 
         // Récupérer immédiatement le profil utilisateur
         let profile = await this.supabase.getProfile(result.user.id);
 
         if (!profile) {
-          authLog('🔐 AuthService: No profile found, creating one');
+          console.log('� AuthService: No profile found, creating one');
           profile = await this.supabase.createProfile(result.user);
         }
 
@@ -424,8 +310,7 @@ export class AuthService {
         const user: User = {
           id: result.user.id,
           email: result.user.email!,
-          displayName: profile?.display_name || profile?.username || 'Utilisateur',
-          username: profile?.username || 'user',
+          displayName: profile?.display_name || 'Utilisateur',
           avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
           joinDate: new Date(profile?.created_at || result.user.created_at),
           totalFails: profile?.stats?.totalFails || 0,
@@ -479,41 +364,35 @@ export class AuthService {
   }
 
   register(data: RegisterData): Observable<User | null> {
-    authLog('🔐 AuthService: register called for email:', data.email, 'username:', data.username);
+    console.log('🔐 AuthService: Registration attempt for:', data.email);
 
-    return from(this.supabase.signUp(data.email, data.password, data.username))
+    return from(this.supabase.signUp(data.email, data.password, data.displayName))
       .pipe(
         switchMap(async (result) => {
-          authLog('🔐 AuthService: Supabase signUp result:', result?.user ? 'success' : 'failed');
-
           if (result?.user) {
-            authLog('🔐 AuthService: User created, creating profile data');
+            console.log('✅ AuthService: User registered successfully');
             // Créer immédiatement un profil simple
             const profileData = {
               id: result.user.id,
-              username: data.username,
               email: data.email,
-              display_name: data.username,
+              display_name: data.displayName,
               registration_completed: false,
               stats: { totalFails: 0, couragePoints: 0, badges: [] },
               preferences: {}
             };
 
             try {
-              authLog('🔐 AuthService: Updating profile in Supabase');
               await this.supabase.updateProfile(result.user.id, profileData);
-              authLog('🔐 AuthService: Profile updated successfully');
+              console.log('✅ AuthService: Profile updated successfully');
             } catch (error) {
-              authLog('🔐 AuthService: Profil sera créé plus tard:', error);
+              console.log('ℹ️ AuthService: Profile will be created later:', error);
             }
 
             // Retourner l'utilisateur simple
-            authLog('🔐 AuthService: Creating user object for registration');
             const user: User = {
               id: result.user.id,
               email: data.email,
-              displayName: data.username,
-              username: data.username,
+              displayName: data.displayName,
               avatar: 'assets/anonymous-avatar.svg',
               joinDate: new Date(),
               totalFails: 0,
@@ -525,30 +404,36 @@ export class AuthService {
               ageVerification: undefined
             };
 
-            authLog('🔐 AuthService: Setting new user as current user');
             this.currentUserSubject.next(user);
             return user;
           }
-          authLog('🔐 AuthService: No user returned from signUp');
+          console.log('❌ AuthService: No user returned from signUp');
           return null;
         }),
         catchError((error) => {
-          console.error('🔐 AuthService: Registration error:', error);
+          this.debugService.logError('AuthService', 'Registration error', error);
           throw error;
         })
       );
   }
 
   async completeRegistration(legalConsent: any, ageVerification: any): Promise<User | null> {
+    console.log('🔐 AuthService: Starting registration completion...');
+
     const currentUser = this.getCurrentUser();
     if (!currentUser) {
-      throw new Error('Aucun utilisateur connecté');
+      console.error('🔐 AuthService: ERREUR CRITIQUE - Aucun utilisateur connecté pour finaliser l\'inscription');
+      throw new Error('Aucun utilisateur connecté - impossible de finaliser l\'inscription');
     }
 
+    console.log('🔐 AuthService: User found for completion:', currentUser.email, currentUser.id);
+
     try {
+      console.log('🔐 AuthService: Calling supabase.completeRegistration...');
       await this.supabase.completeRegistration(currentUser.id, legalConsent, ageVerification);
 
       // Recharger le profil complet
+      console.log('🔐 AuthService: Reloading complete profile...');
       const profile = await this.supabase.getProfile(currentUser.id);
       const updatedUser: User = {
         ...currentUser,
@@ -565,10 +450,15 @@ export class AuthService {
           parentEmail: ageVerification.parentEmail,
           parentConsentDate: ageVerification.parentConsentDate ?
             new Date(ageVerification.parentConsentDate) : undefined
-        }
+        },
+        registrationCompleted: true
       };
 
+      // Mettre à jour le cache utilisateur
+      this.setCachedUser(updatedUser);
       this.currentUserSubject.next(updatedUser);
+      console.log('🔐 AuthService: Registration completion successful');
+
       return updatedUser;
     } catch (error) {
       console.error('Complete registration error:', error);
@@ -576,19 +466,7 @@ export class AuthService {
     }
   }
 
-  async checkRegistrationStatus(userId?: string): Promise<any> {
-    const targetUserId = userId || this.getCurrentUser()?.id;
-    if (!targetUserId) {
-      throw new Error('Aucun utilisateur spécifié');
-    }
 
-    try {
-      return await this.supabase.checkRegistrationStatus(targetUserId);
-    } catch (error) {
-      console.error('Check registration status error:', error);
-      throw error;
-    }
-  }
 
   async logout(): Promise<void> {
     try {
@@ -606,22 +484,7 @@ export class AuthService {
     return this.currentUserSubject.value ?? null;
   }
 
-  async updateCurrentUser(updatedUser: User): Promise<void> {
-    try {
-      authLog('🔐 AuthService: Mise à jour de l\'utilisateur:', updatedUser.id);
 
-      // Mettre à jour le cache local
-      this.setCachedUser(updatedUser);
-
-      // Mettre à jour le BehaviorSubject
-      this.setCurrentUser(updatedUser);
-
-      authLog('🔐 AuthService: Utilisateur mis à jour avec succès');
-    } catch (error) {
-      console.error('🔐 AuthService: Erreur lors de la mise à jour de l\'utilisateur:', error);
-      throw error;
-    }
-  }
 
   async updateUserProfile(profileData: any): Promise<void> {
     try {
@@ -650,7 +513,7 @@ export class AuthService {
           }
         };
 
-        await this.updateCurrentUser(updatedUser);
+        this.setCurrentUser(updatedUser);
       }
 
       authLog('🔐 AuthService: Profil utilisateur mis à jour avec succès');

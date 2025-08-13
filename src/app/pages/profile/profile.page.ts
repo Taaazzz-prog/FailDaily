@@ -65,7 +65,7 @@ export class ProfilePage implements OnInit {
                 this.closeActionSheet();
                 setTimeout(() => {
                     console.log('Navigation vers edit-profile...');
-                    this.router.navigate(['/edit-profile']).then(success => {
+                    this.router.navigate(['/tabs/edit-profile']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -80,7 +80,7 @@ export class ProfilePage implements OnInit {
                 this.closeActionSheet();
                 setTimeout(() => {
                     console.log('Navigation vers edit-profile...');
-                    this.router.navigate(['/edit-profile']).then(success => {
+                    this.router.navigate(['/tabs/edit-profile']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -96,7 +96,7 @@ export class ProfilePage implements OnInit {
                 // Petit délai pour permettre à l'action sheet de se fermer complètement
                 setTimeout(() => {
                     console.log('Navigation vers privacy-settings...');
-                    this.router.navigate(['/privacy-settings']).then(success => {
+                    this.router.navigate(['/tabs/privacy-settings']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -267,13 +267,13 @@ export class ProfilePage implements OnInit {
 
     async viewAllBadges() {
         // Navigation vers tous les badges
-        this.router.navigate(['/badges']);
+        this.router.navigate(['/tabs/badges']);
     }
 
     // Méthode pour accès direct aux paramètres de confidentialité
     goToPrivacySettings() {
         console.log('Navigation vers privacy-settings...');
-        this.router.navigate(['/privacy-settings']).then(success => {
+        this.router.navigate(['/tabs/privacy-settings']).then(success => {
             console.log('Navigation réussie:', success);
         }).catch(error => {
             console.error('Erreur de navigation:', error);

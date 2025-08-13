@@ -137,12 +137,12 @@ export class RegisterPage implements OnInit {
       };
       console.log('📝 RegisterPage - Calling authService.register');
 
-      await this.authService.register(registerData).toPromise();
-      console.log('📝 RegisterPage - User registration successful');
+      const registeredUser = await this.authService.register(registerData).toPromise();
+      console.log('📝 RegisterPage - User registration successful:', registeredUser?.email);
 
-      // Attendre un peu pour que l'utilisateur soit bien créé
-      console.log('📝 RegisterPage - Waiting for user creation...');
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!registeredUser) {
+        throw new Error('Erreur lors de la création du compte');
+      }
 
       // Étape 2: Préparer les données de consentement légal
       const legalConsent = {
