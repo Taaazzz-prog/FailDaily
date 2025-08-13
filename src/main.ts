@@ -1,75 +1,29 @@
 import { bootstrapApplication } from '@angular/platform-browser';
 import { RouteReuseStrategy, provideRouter, withPreloading, PreloadAllModules } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular/standalone';
-import { addIcons } from 'ionicons';
-import {
-  homeOutline,
-  addCircleOutline,
-  ribbonOutline,
-  personOutline,
-  settingsOutline,
-  addCircle,
-  add,
-  person,
-  chevronDownCircleOutline,
-  heart,
-  happy,
-  handLeft,
-  camera,
-  appsOutline,
-  trophyOutline,
-  shareOutline,
-  lockClosedOutline,
-  checkmarkCircle,
-  shieldOutline,
-  peopleOutline,
-  happyOutline,
-  fitnessOutline,
-  starOutline,
-  heartOutline,
-  footstepsOutline,
-  calendarOutline,
-  flagOutline
-} from 'ionicons/icons';
+import { importProvidersFrom } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
+import { AuthService } from './app/services/auth.service';
+import { SupabaseService } from './app/services/supabase.service';
+import { initializeIcons } from './app/utils/icons';
 
-// Enregistrer toutes les icônes utilisées dans l'application
-addIcons({
-  'home-outline': homeOutline,
-  'add-circle-outline': addCircleOutline,
-  'ribbon-outline': ribbonOutline,
-  'person-outline': personOutline,
-  'settings-outline': settingsOutline,
-  'add-circle': addCircle,
-  'add': add,
-  'person': person,
-  'chevron-down-circle-outline': chevronDownCircleOutline,
-  'heart': heart,
-  'happy': happy,
-  'hand-left': handLeft,
-  'camera': camera,
-  'apps-outline': appsOutline,
-  'trophy-outline': trophyOutline,
-  'share-outline': shareOutline,
-  'lock-closed-outline': lockClosedOutline,
-  'checkmark-circle': checkmarkCircle,
-  'shield-outline': shieldOutline,
-  'people-outline': peopleOutline,
-  'happy-outline': happyOutline,
-  'fitness-outline': fitnessOutline,
-  'star-outline': starOutline,
-  'heart-outline': heartOutline,
-  'footsteps-outline': footstepsOutline,
-  'calendar-outline': calendarOutline,
-  'flag-outline': flagOutline
-});
+// Initialiser toutes les icônes au démarrage de l'application
+initializeIcons();
 
 bootstrapApplication(AppComponent, {
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
     provideRouter(routes, withPreloading(PreloadAllModules)),
+    importProvidersFrom(BrowserModule),
+    AuthService,
+    SupabaseService,
   ],
+}).then(() => {
+  console.log('FailDaily application started');
+}).catch(err => {
+  console.error('Error starting FailDaily application:', err);
 });

@@ -6,14 +6,16 @@ import {
     IonRefresher, IonRefresherContent,
     RefresherCustomEvent
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import { apps, appsOutline, buildOutline, chevronDownCircleOutline, chevronDownOutline, diamondOutline, funnelOutline, hourglassOutline, informationOutline, lockClosed, shareOutline, starOutline, trophyOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { BadgeService } from '../../services/badge.service';
 import { FailService } from '../../services/fail.service';
 import { Badge } from '../../models/badge.model';
 import { BadgeCategory } from '../../models/enums';
 import { User } from '../../models/user.model';
-import { Router } from '@angular/router';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Router, ActivatedRoute } from '@angular/router';
+import { Observable, combineLatest, map, BehaviorSubject, from } from 'rxjs';
 
 interface BadgeProgress {
     current: number;
@@ -30,6 +32,12 @@ interface BadgeStats {
     epicCount: number;
     legendaryCount: number;
     favoriteCategory: string;
+    rarityStats: {
+        common: { unlocked: number; total: number; };
+        rare: { unlocked: number; total: number; };
+        epic: { unlocked: number; total: number; };
+        legendary: { unlocked: number; total: number; };
+    };
 }
 
 @Component({
@@ -46,13 +54,18 @@ interface BadgeStats {
 export class BadgesPage implements OnInit {
     currentUser$ = this.authService.currentUser$;
     allBadges$: Observable<Badge[]>;
+    displayBadges$: Observable<Badge[]>; // Badges filtrés pour l'affichage par défaut
     userBadges$: Observable<Badge[]>;
     badgeStats$: Observable<BadgeStats>;
+    nextChallenges$ = new BehaviorSubject<any[]>([]);
 
     // Filtres et UI
-    selectedCategory: BadgeCategory | 'all' = 'all';
+    selectedCategory: BadgeCategory | 'all' | 'unlocked' = 'all';
     availableCategories = Object.values(BadgeCategory);
-    isDropdownOpen = false;    // Messages d'encouragement pour les badges
+    isDropdownOpen = false;
+    viewMode: 'overview' | 'category' | 'unlocked' = 'overview'; // Mode d'affichage
+
+    // Messages d'encouragement pour les badges
     private encouragementMessages = [
         "Chaque badge raconte une histoire de courage ! 🌟",
         "Ta collection grandit, comme ta confiance ! 💪",
@@ -64,96 +77,87 @@ export class BadgesPage implements OnInit {
     // Message d'encouragement fixe
     encouragementMessage = '';
 
-    // Mock data pour la démonstration
-    private mockBadges: Badge[] = [
-        {
-            id: 'first-fail',
-            name: 'Premier Pas',
-            description: 'Félicitations pour votre premier fail partagé !',
-            icon: 'footsteps-outline',
-            category: BadgeCategory.COURAGE,
-            rarity: 'common',
-            unlockedDate: new Date()
-        },
-        {
-            id: 'daily-streak-7',
-            name: 'Persévérant',
-            description: '7 jours de partage consécutifs',
-            icon: 'calendar-outline',
-            category: BadgeCategory.PERSEVERANCE,
-            rarity: 'rare'
-        },
-        {
-            id: 'courage-hearts-50',
-            name: 'Cœur Courageux',
-            description: 'Recevoir 50 cœurs de courage',
-            icon: 'heart-outline',
-            category: BadgeCategory.COURAGE,
-            rarity: 'epic'
-        },
-        {
-            id: 'community-helper',
-            name: 'Ange Gardien',
-            description: 'Aider 25 membres de la communauté',
-            icon: 'people-outline',
-            category: BadgeCategory.ENTRAIDE,
-            rarity: 'legendary'
-        },
-        {
-            id: 'funny-fail',
-            name: 'Roi du Rire',
-            description: 'Un fail qui a fait rire 100 personnes',
-            icon: 'happy-outline',
-            category: BadgeCategory.HUMOUR,
-            rarity: 'epic',
-            unlockedDate: new Date(Date.now() - 86400000 * 3) // Il y a 3 jours
-        },
-        {
-            id: 'early-adopter',
-            name: 'Pionnier',
-            description: 'Membre des 1000 premiers utilisateurs',
-            icon: 'flag-outline',
-            category: BadgeCategory.SPECIAL,
-            rarity: 'legendary',
-            unlockedDate: new Date(Date.now() - 86400000 * 30) // Il y a 30 jours
-        }
-    ];
+    // Paramètre de mise en surbrillance
+    highlightMode = false;
 
     constructor(
         private authService: AuthService,
         private badgeService: BadgeService,
         private failService: FailService,
-        private router: Router
+        private router: Router,
+        private route: ActivatedRoute
     ) {
-        // Pour la démo, on utilise les badges mockés
-        this.allBadges$ = new Observable(subscriber => {
-            subscriber.next(this.mockBadges);
-        });
+    // Configuration des icônes
+    addIcons({
+      apps, appsOutline, buildOutline, chevronDownCircleOutline, chevronDownOutline, diamondOutline, funnelOutline, hourglassOutline, informationOutline, lockClosed, shareOutline, starOutline, trophyOutline
+    });
 
-        this.userBadges$ = combineLatest([this.currentUser$, this.allBadges$]).pipe(
-            map(([user, badges]) => badges.filter(badge => badge.unlockedDate))
-        );
+        console.log('🏆 BadgesPage - Constructor called');
+        // Badges complets (pour les statistiques)
+        this.allBadges$ = from(this.badgeService.getAllAvailableBadges());
+        // Badges filtrés pour l'affichage par défaut (sans legendaires, 2-3 par catégorie)
+        this.displayBadges$ = from(this.badgeService.getFilteredBadgesForDisplay());
+        this.userBadges$ = this.badgeService.getUserBadges();
+        console.log('🏆 BadgesPage - Observables initialized');
 
         this.badgeStats$ = combineLatest([this.allBadges$, this.userBadges$]).pipe(
             map(([allBadges, userBadges]) => this.calculateBadgeStats(allBadges, userBadges))
         );
+        console.log('🏆 BadgesPage - BadgeStats observable initialized');
     }
 
     ngOnInit() {
+        console.log('🏆 BadgesPage - ngOnInit called');
+
+        // Vérifier si on arrive depuis une notification de badge
+        this.route.queryParams.subscribe(params => {
+            if (params['highlight'] === 'recent') {
+                this.highlightMode = true;
+                this.viewMode = 'unlocked';
+                console.log('🏆 Mode surbrillance activé - Affichage des badges récents');
+
+                // Désactiver le mode après quelques secondes
+                setTimeout(() => {
+                    this.highlightMode = false;
+                }, 5000);
+            }
+        });
+
         // Générer le message d'encouragement une seule fois
         this.encouragementMessage = this.getRandomEncouragement();
+        console.log('🏆 BadgesPage - Encouragement message:', this.encouragementMessage);
 
         // Initialiser les observables
         this.initializeObservables();
+
+        // Charger les challenges
+        this.loadNextChallenges();
+    }
+
+    private async loadNextChallenges() {
+        try {
+            const challenges = await this.badgeService.getNextChallengesStats();
+            this.nextChallenges$.next(challenges);
+        } catch (error) {
+            console.error('Erreur lors du chargement des challenges:', error);
+        }
     }
 
     private initializeObservables() { }
 
     async handleRefresh(event: RefresherCustomEvent) {
-        // Simulation du rechargement des badges
-        setTimeout(() => {
+        try {
+            // Forcer le rechargement des badges utilisateur
+            await this.badgeService.refreshUserBadges();
+
+            // Recharger les challenges
+            await this.loadNextChallenges();
+
             event.target.complete();
-        }, 1500);
+        } catch (error) {
+            console.error('Erreur lors du rafraîchissement des badges:', error);
+            event.target.complete();
+        }
     }
 
     getFilteredBadges(badges: Badge[]): Badge[] {
@@ -200,6 +204,26 @@ export class BadgesPage implements OnInit {
             categoryCount[a] > categoryCount[b] ? a : b, Object.keys(categoryCount)[0] || 'courage'
         );
 
+        // Calculer les statistiques par rareté
+        const rarityStats = {
+            common: {
+                unlocked: userBadges.filter(b => b.rarity === 'common').length,
+                total: allBadges.filter(b => b.rarity === 'common').length
+            },
+            rare: {
+                unlocked: userBadges.filter(b => b.rarity === 'rare').length,
+                total: allBadges.filter(b => b.rarity === 'rare').length
+            },
+            epic: {
+                unlocked: userBadges.filter(b => b.rarity === 'epic').length,
+                total: allBadges.filter(b => b.rarity === 'epic').length
+            },
+            legendary: {
+                unlocked: userBadges.filter(b => b.rarity === 'legendary').length,
+                total: allBadges.filter(b => b.rarity === 'legendary').length
+            }
+        };
+
         return {
             totalBadges,
             unlockedBadges,
@@ -207,7 +231,8 @@ export class BadgesPage implements OnInit {
             rareCount,
             epicCount,
             legendaryCount,
-            favoriteCategory
+            favoriteCategory,
+            rarityStats
         };
     }
 
@@ -242,6 +267,10 @@ export class BadgesPage implements OnInit {
         }
     }
 
+    formatRarityStats(stats: { unlocked: number; total: number }): string {
+        return `${stats.unlocked}/${stats.total}`;
+    }
+
     getCategoryDisplayName(category: string): string {
         switch (category) {
             case BadgeCategory.COURAGE: return 'Courage';
@@ -249,7 +278,7 @@ export class BadgesPage implements OnInit {
             case BadgeCategory.ENTRAIDE: return 'Entraide';
             case BadgeCategory.PERSEVERANCE: return 'Persévérance';
             case BadgeCategory.SPECIAL: return 'Spécial';
-            default: return category;
+            default: return 'Autre';
         }
     }
 
@@ -259,7 +288,7 @@ export class BadgesPage implements OnInit {
             case 'rare': return 'Rare';
             case 'epic': return 'Épique';
             case 'legendary': return 'Légendaire';
-            default: return rarity;
+            default: return 'Inconnu';
         }
     }
 
@@ -269,15 +298,80 @@ export class BadgesPage implements OnInit {
     }
 
     getNextBadgeProgress(category: BadgeCategory): BadgeProgress {
-        // Simulation d'un système de progression
-        const mockProgress = {
-            current: Math.floor(Math.random() * 80) + 10,
-            required: 100,
+        // Récupérer la progression réelle depuis le service Badge
+        // Pour l'instant, on renvoie un objet par défaut
+        // À améliorer en fonction des badges disponibles dans cette catégorie
+        const defaultProgress = {
+            current: 0,
+            required: 1,
             progress: 0
         };
-        mockProgress.progress = mockProgress.current / mockProgress.required;
 
-        return mockProgress;
+        // TODO: Implémenter la logique pour trouver le prochain badge à débloquer
+        // dans la catégorie donnée et récupérer sa progression réelle
+        return defaultProgress;
+    }
+
+    /**
+     * Change le mode d'affichage des badges
+     */
+    setViewMode(mode: 'overview' | 'category' | 'unlocked') {
+        this.viewMode = mode;
+
+        if (mode === 'unlocked') {
+            // Afficher seulement les badges débloqués
+            this.selectedCategory = 'unlocked';
+        } else if (mode === 'category') {
+            // Mode catégorie - garder la catégorie sélectionnée
+            if (this.selectedCategory === 'unlocked') {
+                this.selectedCategory = 'all';
+            }
+        } else {
+            // Mode overview - affichage filtré par défaut
+            this.selectedCategory = 'all';
+        }
+
+        console.log(`🔄 Mode d'affichage: ${mode}`);
+    }
+
+    /**
+     * Récupère les badges à afficher selon le mode et filtre actuels
+     */
+    getBadgesToDisplay(): Observable<Badge[]> {
+        if (this.viewMode === 'unlocked') {
+            // Afficher seulement les badges débloqués
+            return this.userBadges$;
+        } else if (this.viewMode === 'category' && this.selectedCategory !== 'all') {
+            // Filtrer par catégorie spécifique
+            return this.allBadges$.pipe(
+                map(badges => badges.filter(badge => badge.category === this.selectedCategory))
+            );
+        } else {
+            // Mode overview - affichage filtré par défaut
+            return this.displayBadges$;
+        }
+    }
+
+    /**
+     * Récupère les badges débloqués pour l'affichage
+     */
+    getUnlockedBadges(): Observable<Badge[]> {
+        return this.userBadges$;
+    }
+
+    /**
+     * Récupère les badges par catégorie pour l'affichage filtré
+     */
+    getBadgesBySelectedCategory(): Observable<Badge[]> {
+        if (this.selectedCategory === 'all') {
+            return this.getBadgesToDisplay();
+        } else if (this.selectedCategory === 'unlocked') {
+            return this.userBadges$;
+        } else {
+            return this.allBadges$.pipe(
+                map(badges => badges.filter(badge => badge.category === this.selectedCategory))
+            );
+        }
     }
 
     // Méthodes pour le dropdown de catégories
@@ -312,17 +406,68 @@ export class BadgesPage implements OnInit {
     }
 
     getAllBadgesCount(): number {
-        return this.mockBadges.filter(badge => badge.unlockedDate).length;
+        // Utilise userBadges$ pour compter les badges débloqués
+        let count = 0;
+        this.userBadges$.subscribe(badges => count = badges.length).unsubscribe();
+        return count;
     }
 
     getCategorySpecificBadgeCount(category: BadgeCategory): number {
-        return this.mockBadges.filter(badge =>
-            badge.category === category && badge.unlockedDate
-        ).length;
+        // Utilise userBadges$ filtrés par catégorie
+        let count = 0;
+        this.userBadges$.subscribe(badges =>
+            count = badges.filter(badge => badge.category === category).length
+        ).unsubscribe();
+        return count;
     }
 
     shareBadgeCollection() {
         // Logique de partage de la collection
         console.log('Partager la collection de badges');
     }
+
+    /**
+     * Obtient un message de félicitation pour les nouveaux badges
+     */
+    getWelcomeMessage(): string {
+        if (this.highlightMode) {
+            return "🎉 Félicitations pour ton nouveau badge ! Regarde comme ta collection s'enrichit !";
+        }
+        return this.encouragementMessage;
+    }
+
+    /**
+     * Vérifie si un badge a été récemment débloqué (dans les dernières 24h)
+     */
+    isBadgeRecent(badge: Badge): boolean {
+        if (!badge.unlockedDate) return false;
+
+        const badgeDate = new Date(badge.unlockedDate);
+        const now = new Date();
+        const diffHours = (now.getTime() - badgeDate.getTime()) / (1000 * 60 * 60);
+
+        return diffHours <= 24;
+    }
+
+    /**
+     * Méthode de test pour forcer la vérification des badges
+     * À supprimer en production
+     */
+    async testForceCheckBadges() {
+        try {
+            console.log('🧪 Test: Vérification forcée des badges...');
+            const newBadges = await this.badgeService.forceCheckBadges();
+
+            if (newBadges.length > 0) {
+                console.log(`✅ Test réussi: ${newBadges.length} nouveaux badges débloqués`);
+                // Recharger les challenges
+                await this.loadNextChallenges();
+            } else {
+                console.log('ℹ️ Test: Aucun nouveau badge à débloquer');
+            }
+        } catch (error) {
+            console.error('❌ Erreur lors du test des badges:', error);
+        }
+    }
 }
+

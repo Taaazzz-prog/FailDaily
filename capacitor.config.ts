@@ -3,8 +3,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.faildaily.app',
   appName: 'FailDaily',
-  webDir: 'dist/fail-daily',
-  bundledWebRuntime: false,
+  webDir: 'www',  // ✅ Corrigé pour pointer vers le bon dossier
 
   plugins: {
     // Configuration des notifications push

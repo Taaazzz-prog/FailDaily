@@ -31,45 +31,74 @@ export class LoginPage implements OnInit {
     private router: Router,
     private toastController: ToastController
   ) {
+    console.log('🔐 LoginPage - Constructor called');
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, CustomValidators.minLength(6)]]
     });
+    console.log('🔐 LoginPage - Form initialized');
   }
 
-  ngOnInit() { }
+  ngOnInit() {
+    console.log('🔐 LoginPage - ngOnInit called');
+  }
 
   async onLogin() {
+    console.log('🔐 LoginPage - onLogin called');
+    console.log('🔐 LoginPage - Form valid:', this.loginForm.valid);
+    console.log('🔐 LoginPage - Form values:', this.loginForm.value);
+
     if (this.loginForm.valid) {
       this.isLoading = true;
+      console.log('🔐 LoginPage - Loading started');
 
       try {
         const { email, password } = this.loginForm.value;
-        await this.authService.login(email, password).toPromise();
+        console.log('🔐 LoginPage - Attempting login with email:', email);
 
-        const toast = await this.toastController.create({
-          message: 'Connexion réussie !',
-          duration: 2000,
-          color: 'success',
-          cssClass: 'toast-encourage'
-        });
-        await toast.present();
+        // Appel direct et immédiat de la méthode login
+        const user = await this.authService.login({ email, password });
+        console.log('🔐 LoginPage - Login completed, user received:', !!user);
 
-        this.router.navigate(['/tabs/home']);
-      } catch (error) {
+        if (user) {
+          const toast = await this.toastController.create({
+            message: 'Connexion réussie !',
+            duration: 2000,
+            color: 'success',
+            cssClass: 'toast-encourage'
+          });
+          await toast.present();
+          console.log('🔐 LoginPage - Success toast shown');
+
+          // Navigation immédiate
+          console.log('🔐 LoginPage - Redirecting to home...');
+          await this.router.navigate(['/']);
+          console.log('🔐 LoginPage - Navigation completed');
+        } else {
+          throw new Error('Aucun utilisateur retourné après l\'authentification');
+        }
+
+      } catch (error: any) {
+        console.error('🔐 LoginPage - Login failed:', error);
+        const errorMessage = error?.message || 'Erreur de connexion. Vérifiez vos identifiants.';
         const toast = await this.toastController.create({
-          message: 'Erreur de connexion. Vérifiez vos identifiants.',
+          message: errorMessage,
           duration: 3000,
           color: 'danger'
         });
         await toast.present();
+        console.log('🔐 LoginPage - Error toast shown');
+      } finally {
+        this.isLoading = false;
+        console.log('🔐 LoginPage - Loading finished');
       }
-
-      this.isLoading = false;
+    } else {
+      console.warn('🔐 LoginPage - Form is invalid:', this.loginForm.errors);
     }
   }
 
   goToRegister() {
+    console.log('🔐 LoginPage - Navigating to register');
     this.router.navigate(['/auth/register']);
   }
 }

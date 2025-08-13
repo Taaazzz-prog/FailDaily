@@ -1,11 +1,19 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonIcon, IonButton,
     IonAvatar, IonBadge, IonProgressBar,
     IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
     RefresherCustomEvent
 } from '@ionic/angular/standalone';
+import { addIcons } from 'ionicons';
+import {
+    calendar, createOutline, shareOutline, trophy, documentText, heart,
+    flame, analytics, add, ribbonOutline, arrowForward, ellipsisHorizontal,
+    documentOutline, shieldCheckmark, chevronForward, settingsOutline,
+    lockClosed, chevronDownCircleOutline
+} from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
@@ -30,7 +38,7 @@ interface ProfileStats {
     templateUrl: './profile.page.html',
     styleUrls: ['./profile.page.scss'],
     imports: [
-        CommonModule,
+        CommonModule, RouterModule,
         IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
         IonAvatar, IonBadge, IonProgressBar,
         IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,
@@ -53,17 +61,48 @@ export class ProfilePage implements OnInit {
         {
             text: 'Modifier le profil',
             icon: 'create-outline',
-            handler: () => this.closeActionSheet()
+            handler: () => {
+                this.closeActionSheet();
+                setTimeout(() => {
+                    console.log('Navigation vers edit-profile...');
+                    this.router.navigate(['/edit-profile']).then(success => {
+                        console.log('Navigation réussie:', success);
+                    }).catch(error => {
+                        console.error('Erreur de navigation:', error);
+                    });
+                }, 300);
+            }
         },
         {
             text: 'Changer la photo',
             icon: 'camera-outline',
-            handler: () => this.closeActionSheet()
+            handler: () => {
+                this.closeActionSheet();
+                setTimeout(() => {
+                    console.log('Navigation vers edit-profile...');
+                    this.router.navigate(['/edit-profile']).then(success => {
+                        console.log('Navigation réussie:', success);
+                    }).catch(error => {
+                        console.error('Erreur de navigation:', error);
+                    });
+                }, 300);
+            }
         },
         {
             text: 'Paramètres de confidentialité',
             icon: 'shield-outline',
-            handler: () => this.closeActionSheet()
+            handler: () => {
+                this.closeActionSheet();
+                // Petit délai pour permettre à l'action sheet de se fermer complètement
+                setTimeout(() => {
+                    console.log('Navigation vers privacy-settings...');
+                    this.router.navigate(['/privacy-settings']).then(success => {
+                        console.log('Navigation réussie:', success);
+                    }).catch(error => {
+                        console.error('Erreur de navigation:', error);
+                    });
+                }, 300);
+            }
         },
         {
             text: 'Annuler',
@@ -92,22 +131,37 @@ export class ProfilePage implements OnInit {
         "Tes fails deviennent des victoires pour tous ! 🏆"
     ];
 
+    // Message d'encouragement fixe pour éviter ExpressionChangedAfterItHasBeenCheckedError
+    currentEncouragementMessage: string = '';
+
     constructor(
         private authService: AuthService,
         private failService: FailService,
         private badgeService: BadgeService,
         private router: Router
     ) {
+        // Configuration des icônes
+        addIcons({
+            calendar, createOutline, shareOutline, trophy, documentText, heart,
+            flame, analytics, add, ribbonOutline, arrowForward, ellipsisHorizontal,
+            documentOutline, shieldCheckmark, chevronForward, settingsOutline,
+            lockClosed, chevronDownCircleOutline
+        });
+
+        console.log('👤 ProfilePage - Constructor called');
         this.userBadges$ = this.badgeService.getBadges();
+        console.log('👤 ProfilePage - UserBadges observable initialized');
+
         this.userFails$ = this.failService.getFails().pipe(
-            map(fails => fails.filter(fail => {
+            map((fails: Fail[]) => fails.filter((fail: Fail) => {
                 const currentUser = this.authService.getCurrentUser();
-                return currentUser && fail.author.id === currentUser.id;
+                return currentUser && fail.authorName === currentUser.displayName;
             }))
         );
+        console.log('👤 ProfilePage - UserFails observable initialized');
 
         this.recentFails$ = this.userFails$.pipe(
-            map(fails => fails.slice(0, 3)) // 3 derniers fails
+            map((fails: Fail[]) => fails.slice(0, 3)) // 3 derniers fails
         );
 
         this.profileStats$ = combineLatest([
@@ -115,16 +169,27 @@ export class ProfilePage implements OnInit {
             this.userFails$,
             this.userBadges$
         ]).pipe(
-            map(([user, fails, badges]) => this.calculateStats(user, fails, badges))
+            map(([user, fails, badges]) => this.calculateStats(user ?? null, fails, badges))
         );
+        console.log('👤 ProfilePage - ProfileStats observable initialized');
     }
 
-    ngOnInit() { }
+    ngOnInit() {
+        console.log('👤 ProfilePage - ngOnInit called');
+        // Initialiser le message d'encouragement une seule fois
+        this.currentEncouragementMessage = this.getRandomEncouragement();
+    }
 
     async handleRefresh(event: RefresherCustomEvent) {
+        console.log('👤 ProfilePage - handleRefresh called');
         // Rafraîchit les données utilisateur
-        await this.authService.loadUserFromStorage();
-        await this.failService.loadFailsFromStorage();
+        try {
+            console.log('👤 ProfilePage - Refreshing fails...');
+            await this.failService.refreshFails();
+            console.log('👤 ProfilePage - Refresh successful');
+        } catch (error) {
+            console.error('👤 ProfilePage - Error refreshing data:', error);
+        }
 
         setTimeout(() => {
             event.target.complete();
@@ -144,7 +209,7 @@ export class ProfilePage implements OnInit {
         }
 
         const totalReactions = fails.reduce((sum, fail) =>
-            sum + fail.reactions.courageHearts + fail.reactions.laughs + fail.reactions.supports, 0
+            sum + fail.reactions.courage + fail.reactions.laugh + fail.reactions.empathy + fail.reactions.support, 0
         );
 
         const joinedDaysAgo = Math.floor(
@@ -203,6 +268,16 @@ export class ProfilePage implements OnInit {
     async viewAllBadges() {
         // Navigation vers tous les badges
         this.router.navigate(['/badges']);
+    }
+
+    // Méthode pour accès direct aux paramètres de confidentialité
+    goToPrivacySettings() {
+        console.log('Navigation vers privacy-settings...');
+        this.router.navigate(['/privacy-settings']).then(success => {
+            console.log('Navigation réussie:', success);
+        }).catch(error => {
+            console.error('Erreur de navigation:', error);
+        });
     }
 
     async logout() {

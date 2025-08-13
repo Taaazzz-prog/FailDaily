@@ -1,0 +1,208 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-title class="handwriting">Acceptation des conditions</ion-title>
+        <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="cancel()">
+                <ion-icon name="close"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+    <form [formGroup]="consentForm" (ngSubmit)="onSubmit()">
+
+        <div class="consent-container">
+
+            <!-- Introduction -->
+            <div class="intro-section imperfect-element">
+                <h2 class="handwriting">Bienvenue sur FailDaily ! 🎉</h2>
+                <p class="comfort-text">
+                    Avant de commencer, nous devons vérifier quelques informations importantes
+                    pour respecter les réglementations et assurer votre sécurité.
+                </p>
+            </div>
+
+            <!-- Vérification d'âge -->
+            <div class="age-verification imperfect-element">
+                <h3 class="handwriting">Vérification d'âge</h3>
+                <ion-item class="age-input">
+                    <ion-label position="stacked">Date de naissance</ion-label>
+                    <ion-input formControlName="birthDate" type="date" placeholder="jj/mm/aaaa" [max]="today"
+                        [min]="minDate">
+                    </ion-input>
+                </ion-item>
+
+                @if (ageCheckMessage) {
+                <ion-note [color]="canRegister ? 'primary' : 'danger'" class="age-message">
+                    <ion-icon [name]="canRegister ? 'information-circle' : 'warning'"></ion-icon>
+                    {{ ageCheckMessage }}
+                </ion-note>
+                }
+            </div>
+
+            <!-- Autorisation parentale si nécessaire -->
+            @if (needsParentalConsent && canRegister) {
+            <div class="parental-consent imperfect-element">
+                <h3 class="handwriting">Autorisation parentale requise</h3>
+                <p class="comfort-text">
+                    Étant mineur(e), l'autorisation de vos parents est nécessaire.
+                    Un email de validation sera envoyé à l'adresse indiquée.
+                </p>
+
+                <ion-item>
+                    <ion-label position="stacked">Email d'un parent/tuteur</ion-label>
+                    <ion-input formControlName="parentEmail" type="email" placeholder="parent@exemple.com">
+                    </ion-input>
+                </ion-item>
+            </div>
+            }
+
+            <!-- Documents à accepter -->
+            @if (canRegister) {
+            <div class="documents-section">
+                <h3 class="handwriting">Documents obligatoires</h3>
+                <p class="comfort-text">
+                    Veuillez lire et accepter les documents suivants :
+                </p>
+
+                <!-- Conditions générales d'utilisation -->
+                <div class="document-consent imperfect-element">
+                    <ion-item>
+                        <ion-checkbox formControlName="termsAccepted" slot="start"
+                            [color]="consentForm.get('termsAccepted')?.value ? 'success' : 'medium'">
+                        </ion-checkbox>
+                        <ion-label>
+                            <h4>Conditions Générales d'Utilisation</h4>
+                            <p class="comfort-text">Règles d'usage et responsabilités</p>
+                            <ion-button fill="clear" size="small" routerLink="/legal-document/terms-of-service"
+                                target="_blank">
+                                <ion-icon name="open-outline" slot="start"></ion-icon>
+                                Lire le document
+                            </ion-button>
+                        </ion-label>
+                    </ion-item>
+                </div>
+
+                <!-- Politique de confidentialité -->
+                <div class="document-consent imperfect-element">
+                    <ion-item>
+                        <ion-checkbox formControlName="privacyAccepted" slot="start"
+                            [color]="consentForm.get('privacyAccepted')?.value ? 'success' : 'medium'">
+                        </ion-checkbox>
+                        <ion-label>
+                            <h4>Politique de confidentialité</h4>
+                            <p class="comfort-text">Protection de vos données personnelles (RGPD)</p>
+                            <ion-button fill="clear" size="small" routerLink="/legal-document/privacy-policy"
+                                target="_blank">
+                                <ion-icon name="open-outline" slot="start"></ion-icon>
+                                Lire le document
+                            </ion-button>
+                        </ion-label>
+                    </ion-item>
+                </div>
+
+                <!-- Charte de modération -->
+                <div class="document-consent imperfect-element">
+                    <ion-item>
+                        <ion-checkbox formControlName="moderationAccepted" slot="start"
+                            [color]="consentForm.get('moderationAccepted')?.value ? 'success' : 'medium'">
+                        </ion-checkbox>
+                        <ion-label>
+                            <h4>Charte de modération</h4>
+                            <p class="comfort-text">Règles de bienveillance et sécurité</p>
+                            <ion-button fill="clear" size="small" routerLink="/legal-document/moderation-charter"
+                                target="_blank">
+                                <ion-icon name="open-outline" slot="start"></ion-icon>
+                                Lire le document
+                            </ion-button>
+                        </ion-label>
+                    </ion-item>
+                </div>
+
+                <!-- Restrictions d'âge -->
+                <div class="document-consent imperfect-element">
+                    <ion-item>
+                        <ion-checkbox formControlName="ageVerificationAccepted" slot="start"
+                            [color]="consentForm.get('ageVerificationAccepted')?.value ? 'success' : 'medium'">
+                        </ion-checkbox>
+                        <ion-label>
+                            <h4>Restrictions d'âge et protection des mineurs</h4>
+                            <p class="comfort-text">Mesures de protection et sécurité</p>
+                            <ion-button fill="clear" size="small" routerLink="/legal-document/age-restrictions"
+                                target="_blank">
+                                <ion-icon name="open-outline" slot="start"></ion-icon>
+                                Lire le document
+                            </ion-button>
+                        </ion-label>
+                    </ion-item>
+                </div>
+
+                <!-- Consentement marketing (optionnel) -->
+                <div class="optional-consent imperfect-element">
+                    <ion-item>
+                        <ion-checkbox formControlName="marketingOptIn" slot="start" color="tertiary">
+                        </ion-checkbox>
+                        <ion-label>
+                            <h4>Communications marketing (optionnel)</h4>
+                            <p class="comfort-text">
+                                Recevoir des informations sur les nouvelles fonctionnalités et événements
+                            </p>
+                        </ion-label>
+                    </ion-item>
+                </div>
+            </div>
+
+            <!-- Ressources d'aide -->
+            <div class="help-section imperfect-element">
+                <h4 class="handwriting">Besoin d'aide ? 💙</h4>
+                <p class="comfort-text">
+                    Si vous avez des questions sur ces documents ou si vous traversez une période difficile :
+                </p>
+                <div class="help-buttons">
+                    <ion-button fill="outline" size="small" routerLink="/legal-document/help-resources" target="_blank">
+                        <ion-icon name="medical" slot="start"></ion-icon>
+                        Ressources d'aide
+                    </ion-button>
+
+                    <ion-button fill="outline" size="small" color="danger" href="tel:3114">
+                        <ion-icon name="call" slot="start"></ion-icon>
+                        3114 (urgence)
+                    </ion-button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-section">
+                @if (!canRegister) {
+                <div class="cannot-register">
+                    <ion-icon name="information-circle" color="warning"></ion-icon>
+                    <p class="comfort-text">
+                        L'inscription n'est pas possible avec ces informations.
+                        Consultez nos <a routerLink="/legal-document/age-restrictions">restrictions d'âge</a> pour plus
+                        d'informations.
+                    </p>
+                </div>
+                } @else {
+                <ion-button expand="block" type="submit" [disabled]="!isFormValid || !allRequiredConsentsGiven"
+                    class="imperfect-element submit-btn">
+                    @if (needsParentalConsent) {
+                    <ion-icon name="mail-outline" slot="start"></ion-icon>
+                    Envoyer demande d'autorisation parentale
+                    } @else {
+                    <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+                    Accepter et continuer
+                    }
+                </ion-button>
+
+                <ion-button expand="block" fill="clear" (click)="cancel()" class="cancel-btn">
+                    Annuler
+                </ion-button>
+                }
+            </div>
+            }
+
+        </div>
+
+    </form>
+</ion-content>

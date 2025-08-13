@@ -16,6 +16,13 @@
 
     <form [formGroup]="postFailForm" (ngSubmit)="onPostFail()" class="post-fail-form">
 
+      <!-- Titre du fail -->
+      <ion-item class="imperfect-element">
+        <ion-label position="stacked">Titre de votre fail</ion-label>
+        <ion-textarea formControlName="title" placeholder="Un titre court pour votre fail..." rows="1" maxlength="100">
+        </ion-textarea>
+      </ion-item>
+
       <!-- Contenu du fail -->
       <ion-item class="imperfect-element">
         <ion-label position="stacked">Votre fail du jour</ion-label>
@@ -36,23 +43,27 @@
         </ion-select>
       </ion-item>
 
-      <!-- Image optionnelle -->
+      <!-- Média authentique -->
       <div class="image-section">
         @if (!selectedImage) {
         <div class="add-image-button">
           <ion-button fill="outline" (click)="selectImage()" class="imperfect-element">
             <ion-icon name="camera" slot="start"></ion-icon>
-            Ajouter une image (optionnel)
+            Capturer l'instant authentique
           </ion-button>
+          <p class="comfort-text" style="font-size: 0.8em; margin-top: 8px; color: var(--ion-color-medium);">
+            📱 Photo directe ou vidéo courte - pas de retouche possible !
+          </p>
         </div>
         }
 
         @if (selectedImage) {
         <div class="selected-image">
-          <img [src]="selectedImage" alt="Image sélectionnée">
-          <ion-button fill="clear" color="danger" (click)="removeImage()" class="remove-image-btn">
-            <ion-icon name="close-circle"></ion-icon>
-          </ion-button>
+          <img [src]="selectedImage" alt="Moment authentique capturé">
+          <div class="authentic-badge">
+            <ion-icon name="camera" color="success"></ion-icon>
+            <span>Authentique</span>
+          </div>
         </div>
         }
       </div>

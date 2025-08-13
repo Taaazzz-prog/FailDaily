@@ -5,34 +5,56 @@ import { Pipe, PipeTransform } from '@angular/core';
   standalone: true
 })
 export class TimeAgoPipe implements PipeTransform {
+
   transform(value: Date | string | number): string {
-    const now = new Date().getTime();
-    const time = new Date(value).getTime();
-    const diff = now - time;
+    if (!value) return '';
 
-    const minute = 60 * 1000;
-    const hour = minute * 60;
-    const day = hour * 24;
-    const month = day * 30;
-    const year = day * 365;
+    const now = new Date();
+    const date = new Date(value);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    if (diff < minute) {
-      return 'À l\'instant';
-    } else if (diff < hour) {
-      const minutes = Math.floor(diff / minute);
-      return `Il y a ${minutes} min`;
-    } else if (diff < day) {
-      const hours = Math.floor(diff / hour);
-      return `Il y a ${hours}h`;
-    } else if (diff < month) {
-      const days = Math.floor(diff / day);
-      return `Il y a ${days} jour${days > 1 ? 's' : ''}`;
-    } else if (diff < year) {
-      const months = Math.floor(diff / month);
-      return `Il y a ${months} mois`;
-    } else {
-      const years = Math.floor(diff / year);
-      return `Il y a ${years} an${years > 1 ? 's' : ''}`;
+    // Si la date est dans le futur, retourner "maintenant"
+    if (diffInSeconds < 0) {
+      return 'maintenant';
     }
+
+    // Moins d'une minute
+    if (diffInSeconds < 60) {
+      return 'maintenant';
+    }
+
+    // Moins d'une heure
+    if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `il y a ${minutes} minute${minutes > 1 ? 's' : ''}`;
+    }
+
+    // Moins d'un jour
+    if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `il y a ${hours} heure${hours > 1 ? 's' : ''}`;
+    }
+
+    // Moins d'une semaine
+    if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `il y a ${days} jour${days > 1 ? 's' : ''}`;
+    }
+
+    // Moins d'un mois (30 jours)
+    if (diffInSeconds < 2592000) {
+      const weeks = Math.floor(diffInSeconds / 604800);
+      return `il y a ${weeks} semaine${weeks > 1 ? 's' : ''}`;
+    }
+
+    // Moins d'un an
+    if (diffInSeconds < 31536000) {
+      const months = Math.floor(diffInSeconds / 2592000);
+      return `il y a ${months} mois`;
+    }
+
+    // Plus d'un an
+    const years = Math.floor(diffInSeconds / 31536000);
+    return `il y a ${years} an${years > 1 ? 's' : ''}`;
   }
 }

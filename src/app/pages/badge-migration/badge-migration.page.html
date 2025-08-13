@@ -1,0 +1,154 @@
+<ion-header>
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/"></ion-back-button>
+        </ion-buttons>
+        <ion-title>🔄 Migration des Badges</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+    <!-- Introduction -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>Migration des badges hardcodés</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <p>Cette page permet de migrer les badges qui étaient codés en dur dans l'application vers la base de
+                données <strong>public.badge_definitions</strong>.</p>
+
+            <div class="info-box">
+                <p><strong>⚡ Action:</strong> Vérifier et ajouter les badges manquants dans la BDD</p>
+                <p><strong>🎯 Objectif:</strong> Utiliser uniquement les badges de la base de données</p>
+                <p><strong>🔍 Test spécial:</strong> Vérifier le badge <code>reactions-25</code> pour bruno@taazzz.be
+                </p>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Actions -->
+    <ion-card>
+        <ion-card-header>
+            <ion-card-title>Actions de migration</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <div class="action-buttons">
+                <ion-button expand="block" (click)="runMigration()" [disabled]="isLoading" color="primary">
+                    <ion-icon name="sync" slot="start"></ion-icon>
+                    <span *ngIf="!isLoading">Lancer la migration complète</span>
+                    <span *ngIf="isLoading">Migration en cours...</span>
+                </ion-button>
+
+                <ion-button expand="block" fill="outline" (click)="testSpecificBadge()" [disabled]="isLoading"
+                    color="warning">
+                    <ion-icon name="bug" slot="start"></ion-icon>
+                    Tester le badge "reactions-25"
+                </ion-button>
+            </div>
+
+            <ion-spinner *ngIf="isLoading" name="crescent"></ion-spinner>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Résultats de la migration -->
+    <ion-card *ngIf="migrationResult && hasRun">
+        <ion-card-header>
+            <ion-card-title>📊 Résultats de la migration</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <!-- Statistiques globales -->
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <ion-icon name="library" color="medium"></ion-icon>
+                    <div>
+                        <h3>{{ migrationResult.existing }}</h3>
+                        <p>Badges existants</p>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <ion-icon name="add-circle" color="success"></ion-icon>
+                    <div>
+                        <h3>{{ migrationResult.added }}</h3>
+                        <p>Badges ajoutés</p>
+                    </div>
+                </div>
+
+                <div class="stat-item">
+                    <ion-icon name="close-circle" color="danger"></ion-icon>
+                    <div>
+                        <h3>{{ migrationResult.errors }}</h3>
+                        <p>Erreurs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message de succès ou d'alerte -->
+            <div class="result-message" *ngIf="migrationResult.added > 0">
+                <ion-icon name="checkmark-circle" color="success"></ion-icon>
+                <p>✅ <strong>{{ migrationResult.added }} badges ont été ajoutés avec succès!</strong></p>
+                <p><small>Redémarrez l'application pour prendre en compte les nouveaux badges.</small></p>
+            </div>
+
+            <div class="result-message" *ngIf="migrationResult.added === 0 && migrationResult.errors === 0">
+                <ion-icon name="information-circle" color="primary"></ion-icon>
+                <p>ℹ️ <strong>Tous les badges sont déjà présents en base de données.</strong></p>
+            </div>
+
+            <div class="result-message" *ngIf="migrationResult.errors > 0">
+                <ion-icon name="warning" color="danger"></ion-icon>
+                <p>⚠️ <strong>{{ migrationResult.errors }} erreurs se sont produites.</strong></p>
+                <p><small>Consultez les détails ci-dessous et la console du navigateur.</small></p>
+            </div>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Détails de chaque badge -->
+    <ion-card *ngIf="migrationResult && migrationResult.details.length > 0">
+        <ion-card-header>
+            <ion-card-title>📋 Détails par badge</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-list>
+                <ion-item *ngFor="let detail of migrationResult.details">
+                    <ion-icon [name]="getStatusIcon(detail.status)" [color]="getStatusColor(detail.status)"
+                        slot="start"></ion-icon>
+                    <ion-label>
+                        <h3>{{ detail.name }}</h3>
+                        <p><strong>ID:</strong> {{ detail.id }}</p>
+                        <p>{{ detail.message }}</p>
+                    </ion-label>
+                    <ion-badge [color]="getStatusColor(detail.status)" slot="end">
+                        {{ detail.status }}
+                    </ion-badge>
+                </ion-item>
+            </ion-list>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- Instructions post-migration -->
+    <ion-card *ngIf="hasRun && migrationResult && migrationResult.added > 0">
+        <ion-card-header>
+            <ion-card-title>🚀 Prochaines étapes</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ol>
+                <li><strong>Redémarrez l'application</strong> pour recharger les badges depuis la base de données</li>
+                <li><strong>Testez le badge "reactions-25"</strong> avec l'utilisateur bruno@taazzz.be</li>
+                <li><strong>Vérifiez dans le panel admin</strong> que les nouveaux badges apparaissent</li>
+                <li><strong>Déclenchez la vérification des badges</strong> pour les utilisateurs existants</li>
+            </ol>
+
+            <div class="warning-box">
+                <ion-icon name="information-circle" color="warning"></ion-icon>
+                <p><strong>Important:</strong> Les badges ajoutés utilisent les types de requirements suivants:</p>
+                <ul>
+                    <li><code>fail_count</code> - Nombre de fails postés</li>
+                    <li><code>reaction_given</code> - Nombre de réactions données</li>
+                    <li><code>categories_used</code> - Nombre de catégories utilisées</li>
+                    <li><code>max_reactions_on_fail</code> - Maximum de réactions reçues sur un fail</li>
+                </ul>
+            </div>
+        </ion-card-content>
+    </ion-card>
+</ion-content>

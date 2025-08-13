@@ -1,0 +1,197 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="handwriting">Paramètres de confidentialité</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+    <div class="privacy-container">
+
+        <!-- En-tête explicatif -->
+        <div class="header-section">
+            <div class="privacy-intro imperfect-element">
+                <ion-icon name="shield-outline" color="primary" size="large"></ion-icon>
+                <h2 class="handwriting">Ta vie privée compte</h2>
+                <p class="comfort-text">
+                    Contrôle qui peut voir tes informations et comment tes données sont utilisées.
+                    Tes choix restent toujours modifiables.
+                </p>
+            </div>
+        </div>
+
+        <!-- Visibilité du profil -->
+        <div class="settings-section">
+            <div class="section-header">
+                <ion-icon name="eye-outline" color="medium"></ion-icon>
+                <h3 class="handwriting">Visibilité du profil</h3>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Profil public</h4>
+                    <p class="comfort-text">Permet aux autres utilisateurs de voir ton profil et tes badges</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.publicProfile"
+                    (ionChange)="updateSetting('publicProfile', $event)" color="primary">
+                </ion-toggle>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Afficher les statistiques</h4>
+                    <p class="comfort-text">Montre tes statistiques (nombre de fails, points de courage, etc.)</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.showStats" (ionChange)="updateSetting('showStats', $event)"
+                    color="primary">
+                </ion-toggle>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Afficher les badges</h4>
+                    <p class="comfort-text">Permet aux autres de voir tes accomplissements</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.showBadges" (ionChange)="updateSetting('showBadges', $event)"
+                    color="primary">
+                </ion-toggle>
+            </div>
+        </div>
+
+        <!-- Contenu et interactions -->
+        <div class="settings-section">
+            <div class="section-header">
+                <ion-icon name="chatbubble-outline" color="medium"></ion-icon>
+                <h3 class="handwriting">Contenu et interactions</h3>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Fails anonymes</h4>
+                    <p class="comfort-text">Tes fails apparaissent sans ton nom (recommandé pour débuter)</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.anonymousFails"
+                    (ionChange)="updateSetting('anonymousFails', $event)" color="primary">
+                </ion-toggle>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Permettre les réactions</h4>
+                    <p class="comfort-text">Les autres peuvent réagir à tes publications</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.allowReactions"
+                    (ionChange)="updateSetting('allowReactions', $event)" color="primary">
+                </ion-toggle>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Autoriser les messages privés</h4>
+                    <p class="comfort-text">Les membres peuvent t'envoyer des messages d'encouragement</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.allowPrivateMessages"
+                    (ionChange)="updateSetting('allowPrivateMessages', $event)" color="primary">
+                </ion-toggle>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="settings-section">
+            <div class="section-header">
+                <ion-icon name="notifications-outline" color="medium"></ion-icon>
+                <h3 class="handwriting">Notifications</h3>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Notifications push</h4>
+                    <p class="comfort-text">Reçois des encouragements et des rappels bienveillants</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.pushNotifications"
+                    (ionChange)="updateSetting('pushNotifications', $event)" color="primary">
+                </ion-toggle>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Notifications par email</h4>
+                    <p class="comfort-text">Résumé hebdomadaire et nouvelles importantes</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.emailNotifications"
+                    (ionChange)="updateSetting('emailNotifications', $event)" color="primary">
+                </ion-toggle>
+            </div>
+
+            <div class="setting-item imperfect-element">
+                <div class="setting-info">
+                    <h4>Rappels quotidiens</h4>
+                    <p class="comfort-text">Une petite notification pour t'encourager chaque jour</p>
+                </div>
+                <ion-toggle [(ngModel)]="privacySettings.dailyReminders"
+                    (ionChange)="updateSetting('dailyReminders', $event)" color="primary">
+                </ion-toggle>
+            </div>
+        </div>
+
+        <!-- Données et vie privée -->
+        <div class="settings-section">
+            <div class="section-header">
+                <ion-icon name="folder-outline" color="medium"></ion-icon>
+                <h3 class="handwriting">Gestion des données</h3>
+            </div>
+
+            <div class="data-actions">
+                <ion-button expand="block" fill="outline" class="imperfect-element data-btn" (click)="exportData()">
+                    <ion-icon name="download-outline" slot="start"></ion-icon>
+                    Télécharger mes données
+                </ion-button>
+
+                <ion-button expand="block" fill="outline" class="imperfect-element data-btn"
+                    (click)="showDeleteAccountAlert()">
+                    <ion-icon name="trash-outline" slot="start"></ion-icon>
+                    Supprimer mon compte
+                </ion-button>
+            </div>
+        </div>
+
+        <!-- Informations légales rapides -->
+        <div class="legal-links">
+            <h4 class="handwriting">En savoir plus</h4>
+            <div class="link-group">
+                <ion-button fill="clear" size="small" routerLink="/legal-document/privacy-policy">
+                    <ion-icon name="document-text-outline" slot="start"></ion-icon>
+                    Politique de confidentialité
+                </ion-button>
+                <ion-button fill="clear" size="small" routerLink="/legal-document/terms-of-service">
+                    <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
+                    Conditions d'utilisation
+                </ion-button>
+            </div>
+        </div>
+
+        <!-- Message de sauvegarde -->
+        @if (isLoading) {
+        <div class="loading-indicator">
+            <ion-spinner name="crescent" color="primary"></ion-spinner>
+            <p class="comfort-text">Sauvegarde en cours...</p>
+        </div>
+        }
+
+        @if (saveMessage) {
+        <div class="save-message imperfect-element">
+            <ion-icon name="checkmark-circle-outline" color="success"></ion-icon>
+            <span>{{ saveMessage }}</span>
+        </div>
+        }
+
+    </div>
+</ion-content>
+
+<!-- Alert de confirmation de suppression -->
+<ion-alert [isOpen]="showDeleteAlert" header="Supprimer le compte"
+    message="Es-tu sûr(e) de vouloir supprimer ton compte ? Cette action est irréversible et toutes tes données seront perdues."
+    [buttons]="deleteAlertButtons" (didDismiss)="showDeleteAlert = false">
+</ion-alert>

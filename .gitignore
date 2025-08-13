@@ -1,6 +1,12 @@
 # Créer le .gitignore pour exclure les fichiers volumineux
 # FailDaily - Ionic Angular Project
 
+# Environment variables (SECURITY)
+.env
+.env.local
+.env.production
+*.env
+
 # Dependencies
 node_modules/
 npm-debug.log*
@@ -46,4 +52,4 @@ Thumbs.db
 # Testing
 /coverage/
 e2e/reports/
-test-results/" > .gitignore
+test-results/" > .gitignorepostgresql.zip

@@ -1,0 +1,72 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="handwriting">{{ document?.title || 'Document légal' }}</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+    @if (document) {
+    <div class="legal-document imperfect-element">
+
+        <!-- Métadonnées du document -->
+        <div class="document-meta">
+            <div class="version-info">
+                <span class="version comfort-text">Version {{ document.version }}</span>
+                <span class="separator">•</span>
+                <span class="last-updated comfort-text">Mis à jour le {{ getFormattedDate() }}</span>
+            </div>
+        </div>
+
+        <!-- Contenu du document -->
+        <div class="document-content" [innerHTML]="document.content"></div>
+
+        <!-- Actions -->
+        <div class="document-actions">
+            @if (documentId === 'help-resources') {
+            <div class="emergency-notice imperfect-element">
+                <ion-icon name="warning" class="warning-icon"></ion-icon>
+                <div class="notice-content">
+                    <h4>En cas d'urgence</h4>
+                    <p class="comfort-text">Si vous êtes en détresse, n'hésitez pas à contacter immédiatement le
+                        <strong>3114</strong> (gratuit, 24h/24)</p>
+                    <ion-button fill="solid" color="danger" size="small" href="tel:3114">
+                        <ion-icon name="call" slot="start"></ion-icon>
+                        Appeler le 3114
+                    </ion-button>
+                </div>
+            </div>
+            }
+
+            @if (documentId === 'age-restrictions') {
+            <div class="parent-notice imperfect-element">
+                <ion-icon name="people" class="info-icon"></ion-icon>
+                <div class="notice-content">
+                    <h4>Information pour les parents</h4>
+                    <p class="comfort-text">Des questions sur la sécurité de votre enfant ? Contactez-nous :</p>
+                    <ion-button fill="outline" size="small" href="mailto:parents@faildaily.app">
+                        <ion-icon name="mail" slot="start"></ion-icon>
+                        parents@faildaily.app
+                    </ion-button>
+                </div>
+            </div>
+            }
+        </div>
+
+    </div>
+    } @else {
+    <div class="error-state">
+        <ion-icon name="document-text-outline" class="error-icon"></ion-icon>
+        <h3 class="handwriting">Document introuvable</h3>
+        <p class="comfort-text">Le document demandé n'existe pas ou n'est plus disponible.</p>
+        <ion-button fill="outline" routerLink="/tabs/profile">
+            <ion-icon name="arrow-back" slot="start"></ion-icon>
+            Retour au profil
+        </ion-button>
+    </div>
+    }
+
+</ion-content>

@@ -1,0 +1,95 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="handwriting">Informations légales</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+    <div class="legal-container">
+
+        <!-- Introduction -->
+        <div class="intro-section imperfect-element">
+            <h1 class="handwriting">Transparence et sécurité 🛡️</h1>
+            <p class="comfort-text">
+                Chez FailDaily, nous croyons en la transparence. Retrouvez ici tous les documents légaux
+                et informations importantes concernant votre utilisation de l'application.
+            </p>
+        </div>
+
+        <!-- Sections organisées -->
+        @for (section of legalSections; track section.title) {
+        <div class="legal-section imperfect-element">
+            <div class="section-header">
+                <div class="section-icon" [style.color]="'var(--ion-color-' + section.color + ')'">
+                    <ion-icon [name]="section.icon"></ion-icon>
+                </div>
+                <h2 class="handwriting">{{ section.title }}</h2>
+            </div>
+
+            <ion-list class="documents-list">
+                @for (docId of section.documents; track docId) {
+                @if (getDocument(docId); as document) {
+                <ion-item [routerLink]="['/legal-document', docId]" class="document-item imperfect-element" button>
+                    <div class="item-content" slot="start">
+                        <div class="document-icon" [style.color]="'var(--ion-color-' + getDocumentColor(docId) + ')'">
+                            <ion-icon [name]="getDocumentIcon(docId)"></ion-icon>
+                        </div>
+                    </div>
+                    <ion-label>
+                        <h3 class="handwriting">{{ document.title }}</h3>
+                        <p class="comfort-text">Version {{ document.version }} • {{ document.lastUpdated |
+                            date:'dd/MM/yyyy' }}</p>
+                    </ion-label>
+                    <ion-icon name="chevron-forward" slot="end" class="chevron"></ion-icon>
+                </ion-item>
+                }
+                }
+            </ion-list>
+        </div>
+        }
+
+        <!-- Contact et support -->
+        <div class="contact-section imperfect-element">
+            <h2 class="handwriting">Besoin d'aide ? 💬</h2>
+            <p class="comfort-text">
+                Une question sur ces documents ou sur l'utilisation de FailDaily ?
+            </p>
+
+            <div class="contact-buttons">
+                <ion-button fill="outline" href="mailto:legal@faildaily.app" class="imperfect-element">
+                    <ion-icon name="mail" slot="start"></ion-icon>
+                    Questions légales
+                </ion-button>
+
+                <ion-button fill="outline" href="mailto:support@faildaily.app" class="imperfect-element">
+                    <ion-icon name="help-circle" slot="start"></ion-icon>
+                    Support général
+                </ion-button>
+            </div>
+        </div>
+
+        <!-- Urgence -->
+        <div class="emergency-section imperfect-element">
+            <div class="emergency-content">
+                <ion-icon name="warning" class="emergency-icon"></ion-icon>
+                <div class="emergency-text">
+                    <h3 class="handwriting">En cas d'urgence</h3>
+                    <p class="comfort-text">
+                        Si vous êtes en détresse, n'attendez pas. Contactez immédiatement le <strong>3114</strong>
+                        (gratuit, 24h/24).
+                    </p>
+                    <ion-button fill="solid" color="danger" href="tel:3114">
+                        <ion-icon name="call" slot="start"></ion-icon>
+                        Appeler maintenant
+                    </ion-button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</ion-content>

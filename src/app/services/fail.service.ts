@@ -1,109 +1,247 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, from, map, switchMap, catchError, of, BehaviorSubject } from 'rxjs';
+import { SupabaseService } from './supabase.service';
+import { EventBusService, AppEvents } from './event-bus.service';
 import { Fail } from '../models/fail.model';
+import { User } from '@supabase/supabase-js';
 import { FailCategory } from '../models/enums';
-import { Preferences } from '@capacitor/preferences';
+import { failLog } from '../utils/logger';
 
-@Injectable({ providedIn: 'root' })
+export interface CreateFailData {
+  title: string;
+  description: string;
+  category: FailCategory;
+  image?: File;
+  isPublic: boolean;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
 export class FailService {
   private failsSubject = new BehaviorSubject<Fail[]>([]);
   public fails$ = this.failsSubject.asObservable();
 
-  constructor() {
-    this.loadFailsFromStorage();
+  constructor(
+    private supabaseService: SupabaseService,
+    private eventBus: EventBusService
+  ) {
+    failLog('FailService: Constructor called - initializing fail service');
+    // Charger les fails au démarrage
+    this.loadFails();
   }
 
-  async loadFailsFromStorage() {
-    const { value } = await Preferences.get({ key: 'fails' });
-    if (value) {
-      const fails = JSON.parse(value).map((fail: any) => ({
-        ...fail,
-        createdAt: new Date(fail.createdAt)
-      }));
-      this.failsSubject.next(fails);
+  async createFail(failData: CreateFailData): Promise<void> {
+    // Utiliser la méthode synchrone pour éviter les problèmes de concurrence
+    const user = this.supabaseService.getCurrentUserSync();
+    if (!user) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    let imageUrl = null;
+    if (failData.image) {
+      try {
+        imageUrl = await this.supabaseService.uploadFile(
+          'fails',
+          `${user.id}/${Date.now()}`,
+          failData.image
+        );
+      } catch (error) {
+        console.error('Erreur lors de l\'upload de l\'image:', error);
+        // Continuer sans image en cas d'erreur
+      }
+    }
+
+    // Validation des données avant envoi
+    const failToCreate = {
+      title: failData.title?.trim() || 'Mon fail',
+      description: failData.description?.trim() || '',
+      category: failData.category, // Suppression du fallback
+      image_url: imageUrl,
+      is_public: Boolean(failData.isPublic),
+      user_id: user.id
+    };
+
+    // Validation supplémentaire
+    if (!failToCreate.description) {
+      throw new Error('La description ne peut pas être vide');
+    }
+
+    if (!failToCreate.category) {
+      throw new Error('La catégorie doit être sélectionnée');
+    }
+
+    try {
+      await this.supabaseService.createFail(failToCreate);
+
+      // Recharger les fails après création
+      await this.loadFails();
+
+      // Émettre un événement pour notifier la création du fail
+      this.eventBus.emit(AppEvents.FAIL_POSTED, {
+        userId: user.id,
+        failData: failData
+      });
+    } catch (error) {
+      console.error('Erreur lors de la création du fail:', error);
+      throw error;
     }
   }
 
+  private async loadFails(): Promise<void> {
+    try {
+      const fails = await this.supabaseService.getFails();
+      const formattedFails = await Promise.all(
+        fails.map(fail => this.formatFailWithAuthor(fail))
+      );
+      this.failsSubject.next(formattedFails);
+    } catch (error) {
+      console.error('Erreur lors du chargement des fails:', error);
+      this.failsSubject.next([]);
+    }
+  }
+
+  getAllFails(): Observable<Fail[]> {
+    return this.fails$;
+  }
+
+  getFailsByCategory(category: FailCategory): Observable<Fail[]> {
+    return from(this.supabaseService.getFails()).pipe(
+      switchMap((fails: any[]) => {
+        if (!fails || fails.length === 0) {
+          return of([]);
+        }
+
+        const filteredFails = fails.filter(fail => fail.category === category);
+        const failsWithAuthors = filteredFails.map(async (fail) => {
+          return await this.formatFailWithAuthor(fail);
+        });
+
+        return from(Promise.all(failsWithAuthors));
+      }),
+      catchError(error => {
+        console.error('Erreur lors de la récupération des fails par catégorie:', error);
+        return of([]);
+      })
+    );
+  }
+
+  private async formatFailWithAuthor(failData: any): Promise<Fail> {
+    // Déterminer le nom de l'auteur selon si c'est public ou anonyme
+    let authorName = 'Utilisateur anonyme';
+
+    if (failData.is_public) {
+      try {
+        // Récupérer le profil de l'utilisateur pour avoir son vrai nom
+        const profile = await this.supabaseService.getProfile(failData.user_id);
+        if (profile && (profile.username || profile.display_name)) {
+          authorName = profile.username || profile.display_name;
+        } else {
+          authorName = 'Utilisateur courageux'; // Fallback si pas de profil
+        }
+      } catch (error) {
+        // Ne pas logger l'erreur pour éviter le spam dans la console
+        authorName = 'Utilisateur courageux'; // Fallback
+      }
+    }
+
+    return {
+      id: failData.id,
+      title: failData.title,
+      description: failData.description,
+      category: failData.category as FailCategory,
+      authorName: authorName,
+      authorAvatar: '', // À implémenter plus tard
+      imageUrl: failData.image_url,
+      createdAt: new Date(failData.created_at),
+      isPublic: failData.is_public,
+      commentsCount: 0, // À implémenter plus tard
+      reactions: {
+        courage: failData.reactions?.courage || 0,
+        empathy: failData.reactions?.empathy || 0,
+        laugh: failData.reactions?.laugh || 0,
+        support: failData.reactions?.support || 0
+      }
+    };
+  }
+
+  async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+    failLog('FailService: addReaction called for fail:', failId, 'type:', reactionType);
+
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) {
+      failLog('FailService: No user connected for addReaction');
+      throw new Error('Utilisateur non connecté');
+    }
+
+    failLog('FailService: User found for reaction:', user.id);
+
+    try {
+      const result = await this.supabaseService.addReaction(failId, reactionType);
+      failLog('FailService: supabaseService.addReaction completed successfully');
+
+      // Émettre un événement pour notifier la réaction
+      failLog('FailService: Emitting REACTION_GIVEN event');
+      this.eventBus.emit(AppEvents.REACTION_GIVEN, {
+        userId: user.id,
+        failId: failId,
+        reactionType: reactionType
+      });
+      failLog('FailService: REACTION_GIVEN event emitted successfully');
+
+      return result;
+    } catch (error) {
+      console.error('❌ FailService: Error in addReaction:', error);
+      throw error;
+    }
+  }
+
+  async removeReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+    const user = await this.supabaseService.getCurrentUser();
+    if (!user) {
+      throw new Error('Utilisateur non connecté');
+    }
+
+    return this.supabaseService.removeReaction(failId, reactionType);
+  }
+
+  async getUserReactionForFail(failId: string): Promise<string | null> {
+    return this.supabaseService.getUserReactionForFail(failId);
+  }
+
+  async getUserReactionsForFail(failId: string): Promise<string[]> {
+    failLog('FailService: getUserReactionsForFail called for fail:', failId);
+    const result = await this.supabaseService.getUserReactionsForFail(failId);
+    failLog('FailService: getUserReactionsForFail result:', result);
+    return result;
+  }
+
+  async getFailById(failId: string): Promise<Fail | null> {
+    failLog('FailService: getFailById called for fail:', failId);
+
+    try {
+      const failData = await this.supabaseService.getFailById(failId);
+      if (!failData) {
+        failLog('FailService: No fail data found for ID:', failId);
+        return null;
+      }
+
+      failLog('FailService: Fail data found, formatting with author');
+      const result = await this.formatFailWithAuthor(failData);
+      failLog('FailService: Fail formatted successfully');
+      return result;
+    } catch (error) {
+      console.error('❌ FailService: Erreur lors de la récupération du fail:', error);
+      return null;
+    }
+  }
+
+  // Méthodes de compatibilité pour les pages existantes
   getFails(): Observable<Fail[]> {
     return this.fails$;
   }
 
-  async addFail(fail: Fail): Promise<void> {
-    const currentFails = this.failsSubject.value;
-    const updatedFails = [fail, ...currentFails]; // Nouveau fail en premier
-
-    await this.saveFailsToStorage(updatedFails);
-    this.failsSubject.next(updatedFails);
-  }
-
-  async updateFail(failId: string, updates: Partial<Fail>): Promise<void> {
-    const currentFails = this.failsSubject.value;
-    const updatedFails = currentFails.map(fail =>
-      fail.id === failId ? { ...fail, ...updates } : fail
-    );
-
-    await this.saveFailsToStorage(updatedFails);
-    this.failsSubject.next(updatedFails);
-  }
-
-  async addReaction(failId: string, reactionType: 'courageHearts' | 'laughs' | 'supports'): Promise<void> {
-    const currentFails = this.failsSubject.value;
-    const updatedFails = currentFails.map(fail => {
-      if (fail.id === failId) {
-        return {
-          ...fail,
-          reactions: {
-            ...fail.reactions,
-            [reactionType]: (fail.reactions as any)[reactionType] + 1
-          }
-        };
-      }
-      return fail;
-    });
-
-    await this.saveFailsToStorage(updatedFails);
-    this.failsSubject.next(updatedFails);
-  }
-
-  private async saveFailsToStorage(fails: Fail[]): Promise<void> {
-    await Preferences.set({
-      key: 'fails',
-      value: JSON.stringify(fails)
-    });
-  }
-
-  // Méthode pour générer des fails de démonstration
-  async generateDemoFails(): Promise<void> {
-    const demoFails: Fail[] = [
-      {
-        id: '1',
-        content: 'J\'ai renversé mon café sur mon ordinateur portable pendant une réunion importante... Le silence qui a suivi était assourdissant 😅',
-        category: FailCategory.WORK,
-        author: {
-          id: 'demo1',
-          displayName: 'Sarah M.',
-          avatar: 'assets/images/default-avatar.png'
-        },
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // Il y a 2h
-        reactions: { courageHearts: 12, laughs: 8, supports: 5 },
-        isAnonymous: false
-      },
-      {
-        id: '2',
-        content: 'Ma recette "secrète" de gâteau au chocolat s\'est transformée en brique... Mes invités ont été très polis en prétendant que c\'était "original" 🍰',
-        category: FailCategory.COOKING,
-        author: {
-          id: 'demo2',
-          displayName: 'Anonyme',
-          avatar: 'assets/images/anonymous-avatar.png'
-        },
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // Il y a 5h
-        reactions: { courageHearts: 15, laughs: 22, supports: 8 },
-        isAnonymous: true
-      }
-    ];
-
-    await this.saveFailsToStorage(demoFails);
-    this.failsSubject.next(demoFails);
+  async refreshFails(): Promise<void> {
+    await this.loadFails();
   }
 }
