@@ -83,8 +83,8 @@ INSERT INTO badge_definitions (id, name, description, icon, category, rarity, re
 ('sensitive', 'Sensible', 'Donner 3 réactions empathie', 'hand-left-outline', 'ENTRAIDE', 'common', 'empathy_reactions', 3, NOW()),
 ('compassionate', 'Compassionné', 'Donner 8 réactions empathie', 'people-circle-outline', 'ENTRAIDE', 'rare', 'empathy_reactions', 8, NOW()),
 ('empathetic', 'Empathique', 'Donner 15 réactions empathie', 'heart-dislike-outline', 'ENTRAIDE', 'rare', 'empathy_reactions', 15, NOW()),
-('empathy-master', 'Maître de l\'Empathie', 'Donner 25 réactions empathie', 'people-outline', 'ENTRAIDE', 'epic', 'empathy_reactions', 25, NOW()),
-('empathy-buddha', 'Bouddha de l\'Empathie', 'Donner 50 réactions empathie', 'flower-outline', 'ENTRAIDE', 'legendary', 'empathy_reactions', 50, NOW()),
+('empathy-master', 'Maître de l''Empathie', 'Donner 25 réactions empathie', 'people-outline', 'ENTRAIDE', 'epic', 'empathy_reactions', 25, NOW()),
+('empathy-buddha', 'Bouddha de l''Empathie', 'Donner 50 réactions empathie', 'flower-outline', 'ENTRAIDE', 'legendary', 'empathy_reactions', 50, NOW()),
 
 -- ✅ ÉTAPE 9 : BADGES SPÉCIALISÉS HUMOUR (laugh_reactions)
 ('funny', 'Rigolo', 'Donner 3 réactions rire', 'happy-outline', 'HUMOUR', 'common', 'laugh_reactions', 3, NOW()),

@@ -36,7 +36,7 @@ INSERT INTO badge_definitions (id, name, description, icon, category, rarity, re
 ('reactions-75', 'Ange Gardien', 'Donner 75 réactions', 'heart-circle-outline', 'ENTRAIDE', 'rare', 'reaction_given', 75, NOW()),
 ('reactions-150', 'Saint Patron', 'Donner 150 réactions', 'sparkles-outline', 'ENTRAIDE', 'epic', 'reaction_given', 150, NOW()),
 ('reactions-300', 'Bienfaiteur', 'Donner 300 réactions', 'star-outline', 'ENTRAIDE', 'epic', 'reaction_given', 300, NOW()),
-('reactions-500', 'Divinité de l\'Entraide', 'Donner 500 réactions', 'ribbon-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 500, NOW()),
+('reactions-500', 'Divinité de l''Entraide', 'Donner 500 réactions', 'ribbon-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 500, NOW()),
 ('reactions-1000', 'Messie du Soutien', 'Donner 1000 réactions', 'infinite-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 1000, NOW()),
 ('reactions-2500', 'Force Cosmique', 'Donner 2500 réactions', 'planet-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 2500, NOW()),
 
@@ -75,8 +75,8 @@ INSERT INTO badge_definitions (id, name, description, icon, category, rarity, re
 ('empathy-giver-5', 'Sensible', 'Donner 5 réactions empathie', 'hand-left-outline', 'ENTRAIDE', 'common', 'empathy_reactions', 5, NOW()),
 ('empathy-giver-15', 'Compassionné', 'Donner 15 réactions empathie', 'people-circle-outline', 'ENTRAIDE', 'common', 'empathy_reactions', 15, NOW()),
 ('empathy-giver-30', 'Empathique', 'Donner 30 réactions empathie', 'heart-dislike-outline', 'ENTRAIDE', 'rare', 'empathy_reactions', 30, NOW()),
-('empathy-giver-50', 'Maître de l\'Empathie', 'Donner 50 réactions empathie', 'infinite-outline', 'ENTRAIDE', 'epic', 'empathy_reactions', 50, NOW()),
-('empathy-giver-100', 'Bouddha de l\'Empathie', 'Donner 100 réactions empathie', 'flower-outline', 'ENTRAIDE', 'legendary', 'empathy_reactions', 100, NOW()),
+('empathy-giver-50', 'Maître de l''Empathie', 'Donner 50 réactions empathie', 'infinite-outline', 'ENTRAIDE', 'epic', 'empathy_reactions', 50, NOW()),
+('empathy-giver-100', 'Bouddha de l''Empathie', 'Donner 100 réactions empathie', 'flower-outline', 'ENTRAIDE', 'legendary', 'empathy_reactions', 100, NOW()),
 
 -- 😂 BADGES HUMOUR SPÉCIALISÉS (laugh_reactions)
 ('humor-giver-5', 'Rigolo', 'Donner 5 réactions rire', 'happy-outline', 'HUMOUR', 'common', 'laugh_reactions', 5, NOW()),

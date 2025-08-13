@@ -57,7 +57,7 @@ INSERT INTO badge_definitions (id, name, description, icon, category, rarity, re
 ('reactions-750', 'Ange du Soutien', 'Donner 750 réactions', 'heart-circle', 'ENTRAIDE', 'legendary', 'reaction_given', 750, NOW()),
 ('reactions-1000', 'Saint Patron', 'Donner 1000 réactions', 'sparkles-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 1000, NOW()),
 ('reactions-1500', 'Bienfaiteur Suprême', 'Donner 1500 réactions', 'star-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 1500, NOW()),
-('reactions-2000', 'Divinité de l\'Entraide', 'Donner 2000 réactions', 'planet-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 2000, NOW()),
+('reactions-2000', 'Divinité de l''Entraide', 'Donner 2000 réactions', 'planet-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 2000, NOW()),
 ('reactions-5000', 'Transcendance', 'Donner 5000 réactions', 'infinite-outline', 'ENTRAIDE', 'legendary', 'reaction_given', 5000, NOW()),
 
 -- Badges de popularité (réactions reçues sur un fail) - progression réaliste
@@ -115,7 +115,7 @@ INSERT INTO badge_definitions (id, name, description, icon, category, rarity, re
 
 -- Badges de milestone spéciaux
 ('century-club', 'Club des Cent', 'Avoir 100 fails ET 100 réactions données', 'ribbon-outline', 'SPECIAL', 'epic', 'milestone_100_100', 1, NOW()),
-('golden-ratio', 'Ratio d\'Or', 'Avoir autant de fails postés que de réactions données (min 50)', 'infinite-outline', 'SPECIAL', 'rare', 'golden_ratio', 50, NOW()),
+('golden-ratio', 'Ratio d''Or', 'Avoir autant de fails postés que de réactions données (min 50)', 'infinite-outline', 'SPECIAL', 'rare', 'golden_ratio', 50, NOW()),
 ('supporter-king', 'Roi du Support', 'Donner plus de réactions que poster de fails (ratio 2:1, min 100 réactions)', 'crown-outline', 'ENTRAIDE', 'epic', 'support_ratio', 2, NOW()),
 
 -- Badges de réaction équilibrée (encourager tous types de réactions)
