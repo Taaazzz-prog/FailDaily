@@ -13,7 +13,7 @@ export interface AppEvent {
 export class EventBusService {
   private eventSubject = new Subject<AppEvent>();
 
-  constructor() {}
+  constructor() { }
 
   /**
    * Émet un événement dans le bus
@@ -45,5 +45,6 @@ export const AppEvents = {
   FAIL_POSTED: 'fail_posted',
   REACTION_GIVEN: 'reaction_given',
   BADGE_UNLOCKED: 'badge_unlocked',
-  USER_STATS_UPDATED: 'user_stats_updated'
+  USER_STATS_UPDATED: 'user_stats_updated',
+  USER_PROFILE_UPDATED: 'user_profile_updated'
 } as const;

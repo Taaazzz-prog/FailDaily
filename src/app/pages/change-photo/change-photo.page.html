@@ -1,0 +1,75 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="handwriting">Changer la photo</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+    <div class="change-photo-container">
+
+        <!-- Photo actuelle -->
+        <div class="current-photo-section">
+            <h3 class="section-title handwriting">Ta photo actuelle</h3>
+            <div class="current-avatar">
+                <ion-img [src]="currentAvatar" alt="Photo actuelle"></ion-img>
+            </div>
+        </div>
+
+        <!-- Photos par défaut disponibles -->
+        <div class="avatars-section">
+            <h3 class="section-title handwriting">Avatars disponibles</h3>
+
+            @if (isLoading) {
+            <div class="loading-section">
+                <ion-spinner name="circular"></ion-spinner>
+                <p>Chargement des avatars...</p>
+            </div>
+            } @else {
+            <ion-grid>
+                <ion-row>
+                    @for (avatar of availableAvatars; track avatar.url) {
+                    <ion-col size="4" size-md="3">
+                        <div class="avatar-option" [class.selected]="isSelected(avatar.url)"
+                            (click)="selectDefaultAvatar(avatar.url)">
+                            <ion-img [src]="avatar.url" alt="Avatar disponible"></ion-img>
+                            @if (isSelected(avatar.url)) {
+                            <ion-icon name="checkmark-circle-outline" class="selected-icon"></ion-icon>
+                            }
+                        </div>
+                    </ion-col>
+                    }
+                </ion-row>
+            </ion-grid>
+            }
+        </div>
+
+        <!-- Bouton pour photo personnalisée (caméra/galerie) -->
+        <div class="custom-photo-action">
+            <ion-button expand="block" fill="outline" class="custom-photo-button" (click)="showCustomPhotoOptions()"
+                [disabled]="isLoading">
+                @if (isLoading) {
+                <ion-spinner name="circular"></ion-spinner>
+                <span>&nbsp;&nbsp;Chargement...</span>
+                } @else {
+                <ion-icon name="camera-outline" slot="start"></ion-icon>
+                Prendre/Choisir une photo
+                }
+            </ion-button>
+        </div>
+
+        <!-- Bouton de sauvegarde -->
+        <div class="save-section">
+            <ion-button expand="block" color="primary" [disabled]="!hasChanged || isLoading" (click)="savePhoto()">
+                @if (isLoading) {
+                <ion-spinner name="circular"></ion-spinner>
+                <span>&nbsp;&nbsp;Sauvegarde...</span>
+                } @else {
+                Sauvegarder la photo
+                }
+            </ion-button>
+        </div>
+    </div>
+</ion-content>

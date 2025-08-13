@@ -181,22 +181,6 @@ export class SupabaseService {
     }
 
     async getProfile(userId: string): Promise<any> {
-        // ✅ Protection contre les appels multiples simultanés
-        if (this.profileOperationTimeout && this.lastProfileUserId === userId) {
-            supabaseLog('🔐 🔐 SupabaseService: Même utilisateur pour getProfile, opération ignorée');
-            return null;
-        }
-
-        if (this.profileOperationTimeout) {
-            clearTimeout(this.profileOperationTimeout);
-        }
-
-        this.lastProfileUserId = userId;
-        this.profileOperationTimeout = setTimeout(() => {
-            this.profileOperationTimeout = null;
-            this.lastProfileUserId = null;
-        }, 50); // Réduit à 50ms pour permettre les opérations utilisateur
-
         return safeAuthOperation(async () => {
             try {
                 const { data, error } = await this.supabase
@@ -222,10 +206,14 @@ export class SupabaseService {
             try {
                 supabaseLog('🔐 SupabaseService: Creating profile for user:', user.id);
 
+                // Générer un display_name unique
+                const baseDisplayName = user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur';
+                const uniqueDisplayName = await this.generateUniqueDisplayName(baseDisplayName);
+
                 const profileData = {
                     id: user.id,
                     email: user.email,
-                    display_name: user.user_metadata?.display_name || user.email?.split('@')[0] || 'Utilisateur',
+                    display_name: uniqueDisplayName,
                     avatar_url: 'assets/anonymous-avatar.svg',
                     email_confirmed: true,
                     registration_completed: false,
@@ -266,7 +254,7 @@ export class SupabaseService {
             // Filtrer SEULEMENT les champs qui existent dans la base de données
             const allowedFields = [
                 'id', 'email', 'display_name', 'avatar_url',
-                'bio', 'preferences', 'stats', 'badges', 'email_confirmed',
+                'bio', 'preferences', 'stats', 'email_confirmed',
                 'registration_completed', 'legal_consent', 'age_verification',
                 'created_at', 'updated_at'
             ];
@@ -417,9 +405,7 @@ export class SupabaseService {
 
         if (error) throw error;
         return data;
-    }
-
-    async addReaction(failId: string, reactionType: string): Promise<void> {
+    } async addReaction(failId: string, reactionType: string): Promise<void> {
         const user = this.currentUser.value;
         if (!user) throw new Error('Utilisateur non authentifié');
 
@@ -801,6 +787,52 @@ export class SupabaseService {
             console.error('Erreur dans unlockBadge:', error);
             return false;
         }
+    }
+
+    // ✅ NOUVEAU : Vérifier l'unicité des display_name
+    async checkDisplayNameAvailable(displayName: string, excludeUserId?: string): Promise<boolean> {
+        try {
+            let query = this.supabase
+                .from('profiles')
+                .select('id')
+                .eq('display_name', displayName);
+
+            // Exclure l'utilisateur actuel (pour les modifications)
+            if (excludeUserId) {
+                query = query.neq('id', excludeUserId);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                console.error('Erreur vérification unicité display_name:', error);
+                return false; // En cas d'erreur, considérer comme non disponible
+            }
+
+            return !data || data.length === 0; // Disponible si aucun résultat
+        } catch (error) {
+            console.error('Erreur dans checkDisplayNameAvailable:', error);
+            return false;
+        }
+    }
+
+    // ✅ NOUVEAU : Générer un nom unique basé sur le nom souhaité
+    async generateUniqueDisplayName(baseDisplayName: string): Promise<string> {
+        let displayName = baseDisplayName;
+        let counter = 1;
+
+        while (!(await this.checkDisplayNameAvailable(displayName))) {
+            displayName = `${baseDisplayName}_${counter}`;
+            counter++;
+
+            // Éviter les boucles infinies
+            if (counter > 99) {
+                displayName = `${baseDisplayName}_${Date.now()}`;
+                break;
+            }
+        }
+
+        return displayName;
     }
 }
 

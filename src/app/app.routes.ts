@@ -54,6 +54,11 @@ export const routes: Routes = [
         canActivate: [AuthGuard]
       },
       {
+        path: 'change-photo',
+        loadComponent: () => import('./pages/change-photo/change-photo.page').then(m => m.ChangePhotoPage),
+        canActivate: [AuthGuard]
+      },
+      {
         path: '',
         redirectTo: 'home',
         pathMatch: 'full'

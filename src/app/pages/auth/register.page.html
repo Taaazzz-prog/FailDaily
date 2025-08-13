@@ -21,6 +21,31 @@
         </ion-input>
       </ion-item>
 
+      <!-- ✅ Validation temps réel du pseudo -->
+      @if (displayNameValidation.message) {
+      <div class="display-name-validation">
+        @if (displayNameValidation.isChecking) {
+        <ion-text color="medium">
+          <ion-spinner name="dots"></ion-spinner>
+          {{ displayNameValidation.message }}
+        </ion-text>
+        } @else if (displayNameValidation.isAvailable) {
+        <ion-text color="success">
+          {{ displayNameValidation.message }}
+        </ion-text>
+        } @else {
+        <ion-text color="danger">
+          {{ displayNameValidation.message }}
+        </ion-text>
+        @if (displayNameValidation.suggestedName) {
+        <ion-button fill="clear" size="small" color="primary" (click)="useSuggestedName()">
+          Utiliser "{{ displayNameValidation.suggestedName }}"
+        </ion-button>
+        }
+        }
+      </div>
+      }
+
       <ion-item class="imperfect-element">
         <ion-label position="stacked">Email</ion-label>
         <ion-input type="email" formControlName="email" placeholder="votre@email.com">
@@ -46,7 +71,7 @@
       }
 
       <ion-button type="submit" expand="block" class="register-button imperfect-element"
-        [disabled]="!registerForm.valid || isLoading">
+        [disabled]="!registerForm.valid || isLoading || !displayNameValidation.isAvailable">
         @if (isLoading) {
         <ion-spinner name="crescent"></ion-spinner>
         } @else {

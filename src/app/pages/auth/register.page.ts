@@ -29,6 +29,15 @@ export class RegisterPage implements OnInit {
   isLoading = false;
   consentData: any = null; // Données de consentement du modal
 
+  // ✅ Validation temps réel du display_name
+  displayNameValidation = {
+    isChecking: false,
+    isAvailable: false,
+    message: '',
+    suggestedName: ''
+  };
+  private displayNameCheckTimeout: any;
+
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
@@ -52,6 +61,27 @@ export class RegisterPage implements OnInit {
 
   ngOnInit() {
     console.log('📝 RegisterPage - ngOnInit called');
+
+    // ✅ Écouter les changements du display_name pour validation temps réel
+    this.registerForm.get('displayName')?.valueChanges.subscribe(value => {
+      if (value && value.trim().length >= 3) {
+        this.checkDisplayNameAvailability(value.trim());
+      } else if (value && value.trim().length > 0) {
+        this.displayNameValidation = {
+          isChecking: false,
+          isAvailable: false,
+          message: 'Le pseudo doit contenir au moins 3 caractères',
+          suggestedName: ''
+        };
+      } else {
+        this.displayNameValidation = {
+          isChecking: false,
+          isAvailable: false,
+          message: '',
+          suggestedName: ''
+        };
+      }
+    });
   }
 
   passwordMatchValidator(form: FormGroup) {
@@ -64,10 +94,61 @@ export class RegisterPage implements OnInit {
     return null;
   }
 
+  // ✅ Vérification temps réel de la disponibilité du display_name
+  async checkDisplayNameAvailability(displayName: string) {
+    // Annuler la vérification précédente si elle existe
+    if (this.displayNameCheckTimeout) {
+      clearTimeout(this.displayNameCheckTimeout);
+    }
+
+    // Attendre 500ms avant de vérifier (debounce)
+    this.displayNameCheckTimeout = setTimeout(async () => {
+      this.displayNameValidation.isChecking = true;
+      this.displayNameValidation.message = 'Vérification...';
+
+      try {
+        const result = await this.authService.validateDisplayNameRealTime(displayName);
+        this.displayNameValidation = {
+          isChecking: false,
+          isAvailable: result.isAvailable,
+          message: result.message,
+          suggestedName: result.suggestedName || ''
+        };
+      } catch (error) {
+        this.displayNameValidation = {
+          isChecking: false,
+          isAvailable: false,
+          message: 'Erreur lors de la vérification',
+          suggestedName: ''
+        };
+      }
+    }, 500);
+  }
+
+  // ✅ Utiliser le nom suggéré
+  useSuggestedName() {
+    if (this.displayNameValidation.suggestedName) {
+      this.registerForm.patchValue({
+        displayName: this.displayNameValidation.suggestedName
+      });
+    }
+  }
+
   async onRegister() {
     console.log('📝 RegisterPage - onRegister called');
     console.log('📝 RegisterPage - Form valid:', this.registerForm.valid);
     console.log('📝 RegisterPage - Form values:', this.registerForm.value);
+
+    // ✅ Vérifier que le pseudo est disponible AVANT de continuer
+    if (!this.displayNameValidation.isAvailable) {
+      const toast = await this.toastController.create({
+        message: 'Veuillez choisir un pseudo disponible avant de continuer',
+        duration: 3000,
+        color: 'warning'
+      });
+      await toast.present();
+      return;
+    }
 
     if (this.registerForm.valid) {
       console.log('📝 RegisterPage - Opening legal consent modal');
@@ -132,7 +213,6 @@ export class RegisterPage implements OnInit {
       const registerData = {
         email,
         password,
-        username: displayName.toLowerCase().replace(/\s+/g, '_'),
         displayName
       };
       console.log('📝 RegisterPage - Calling authService.register');

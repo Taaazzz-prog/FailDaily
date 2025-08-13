@@ -5,7 +5,7 @@ import { Router } from '@angular/router';
 import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
     IonIcon, IonButton, IonItem, IonLabel, IonInput, IonTextarea, IonSelect,
-    IonSelectOption, IonToggle, IonSpinner, IonAlert,
+    IonSelectOption, IonToggle, IonSpinner, IonAlert, IonText,
     AlertController, ActionSheetController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -31,7 +31,7 @@ interface EditProfileForm {
         CommonModule, ReactiveFormsModule,
         IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
         IonIcon, IonButton, IonItem, IonLabel, IonInput, IonTextarea, IonSelect,
-        IonSelectOption, IonToggle, IonSpinner, IonAlert
+        IonSelectOption, IonToggle, IonSpinner, IonAlert, IonText
     ]
 })
 export class EditProfilePage implements OnInit {
@@ -51,6 +51,15 @@ export class EditProfilePage implements OnInit {
     saveMessageIcon = '';
     saveMessageColor = '';
     showCancelAlert = false;
+
+    // ✅ Validation temps réel du display_name (comme sur register.page)
+    displayNameValidation = {
+        isChecking: false,
+        isAvailable: false,
+        message: '',
+        suggestedName: ''
+    };
+    private displayNameCheckTimeout: any;
 
     cancelAlertButtons = [
         {
@@ -81,6 +90,37 @@ export class EditProfilePage implements OnInit {
     async ngOnInit() {
         await this.loadCurrentUser();
         this.initializeForm();
+
+        // ✅ Écouter les changements du display_name pour validation temps réel
+        this.editForm.get('displayName')?.valueChanges.subscribe(value => {
+            if (value && value.trim().length >= 3) {
+                this.checkDisplayNameAvailability(value.trim());
+            } else if (value && value.trim().length > 0) {
+                this.displayNameValidation = {
+                    isChecking: false,
+                    isAvailable: false,
+                    message: 'Le pseudo doit contenir au moins 3 caractères',
+                    suggestedName: ''
+                };
+            } else {
+                this.displayNameValidation = {
+                    isChecking: false,
+                    isAvailable: false,
+                    message: '',
+                    suggestedName: ''
+                };
+            }
+        });
+
+        // ✅ Initialiser la validation pour le nom actuel (il est disponible puisqu'il l'utilise déjà)
+        if (this.currentUser?.displayName) {
+            this.displayNameValidation = {
+                isChecking: false,
+                isAvailable: true,
+                message: '✅ Nom actuel',
+                suggestedName: ''
+            };
+        }
     }
 
     private createForm(): FormGroup {
@@ -130,6 +170,91 @@ export class EditProfilePage implements OnInit {
 
         // Marquer le formulaire comme pristine après l'initialisation
         this.editForm.markAsPristine();
+    }
+
+    // ✅ Vérification temps réel de la disponibilité du display_name
+    async checkDisplayNameAvailability(displayName: string) {
+        // Annuler la vérification précédente si elle existe
+        if (this.displayNameCheckTimeout) {
+            clearTimeout(this.displayNameCheckTimeout);
+        }
+
+        // Attendre 500ms avant de vérifier (debounce)
+        this.displayNameCheckTimeout = setTimeout(async () => {
+            this.displayNameValidation.isChecking = true;
+            this.displayNameValidation.message = 'Vérification...';
+
+            try {
+                // ✅ Pour la modification, on exclut l'utilisateur actuel
+                const isAvailable = await this.authService.checkDisplayNameAvailable(
+                    displayName,
+                    this.currentUser?.id
+                );
+
+                if (isAvailable) {
+                    this.displayNameValidation = {
+                        isChecking: false,
+                        isAvailable: true,
+                        message: '✅ Ce pseudo est disponible',
+                        suggestedName: ''
+                    };
+                } else {
+                    const suggestedName = await this.authService.validateDisplayNameRealTime(displayName);
+                    this.displayNameValidation = {
+                        isChecking: false,
+                        isAvailable: false,
+                        message: `❌ Ce pseudo est déjà pris. Suggestion: ${suggestedName.suggestedName}`,
+                        suggestedName: suggestedName.suggestedName || ''
+                    };
+                }
+            } catch (error) {
+                this.displayNameValidation = {
+                    isChecking: false,
+                    isAvailable: false,
+                    message: 'Erreur lors de la vérification',
+                    suggestedName: ''
+                };
+            }
+        }, 500);
+    }
+
+    // ✅ Utiliser le nom suggéré
+    useSuggestedName() {
+        if (this.displayNameValidation.suggestedName) {
+            this.editForm.patchValue({
+                displayName: this.displayNameValidation.suggestedName
+            });
+        }
+    }
+
+    // ✅ Vérifier si le display_name a changé par rapport à l'original
+    get displayNameHasChanged(): boolean {
+        const currentDisplayName = this.editForm.get('displayName')?.value || '';
+        const originalDisplayName = this.currentUser?.displayName || '';
+        return currentDisplayName.trim() !== originalDisplayName.trim();
+    }
+
+    // ✅ Vérifier si la sauvegarde est possible
+    get canSave(): boolean {
+        if (!this.editForm.valid || this.isLoading) {
+            return false;
+        }
+
+        // Vérifier s'il y a des changements
+        const hasChanges = this.editForm.dirty;
+
+        // Si aucun changement, pas besoin de sauvegarder
+        if (!hasChanges) {
+            return false;
+        }
+
+        // Si le display_name n'a pas changé, on peut sauvegarder
+        if (!this.displayNameHasChanged) {
+            return true;
+        }
+
+        // Si le display_name a changé, il faut qu'il soit disponible
+        return this.displayNameValidation.isAvailable;
     }
 
     async saveProfile() {
@@ -203,11 +328,22 @@ export class EditProfilePage implements OnInit {
         }
 
         try {
+            // ✅ Vérifier l'unicité du display_name avant de sauvegarder
+            const displayName = (userData.displayName || '').trim();
+            if (!displayName) {
+                throw new Error('Le nom d\'affichage ne peut pas être vide.');
+            }
+
+            const isAvailable = await this.authService.checkDisplayNameAvailable(displayName, this.currentUser.id);
+
+            if (!isAvailable) {
+                throw new Error(`Le nom "${displayName}" est déjà utilisé. Essayez "${displayName}_1" ou un autre nom.`);
+            }
+
             // Préparer les données pour la base de données Supabase
             const profileData = {
                 id: this.currentUser.id,
-                display_name: userData.displayName,
-                username: userData.displayName, // Synchroniser username avec display_name
+                display_name: displayName,
                 bio: userData.preferences?.bio || null,
                 preferences: userData.preferences || {},
                 updated_at: new Date().toISOString()

@@ -1,0 +1,69 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-title>Changer la photo de profil</ion-title>
+        <ion-buttons slot="end">
+            <ion-button fill="clear" (click)="cancel()">
+                <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+    <div class="avatar-selector-container">
+
+        <!-- Section Avatars par défaut -->
+        <div class="section">
+            <h3 class="section-title handwriting">Avatars par défaut</h3>
+            <ion-grid>
+                <ion-row>
+                    @for (avatar of defaultAvatars; track avatar) {
+                    <ion-col size="4" size-md="3">
+                        <div class="avatar-option" [class.selected]="isSelected(avatar)"
+                            (click)="selectDefaultAvatar(avatar)">
+                            <ion-img [src]="avatar" alt="Avatar par défaut"></ion-img>
+                            @if (isSelected(avatar)) {
+                            <ion-icon name="checkmark-circle-outline" class="selected-icon"></ion-icon>
+                            }
+                        </div>
+                    </ion-col>
+                    }
+                </ion-row>
+            </ion-grid>
+        </div>
+
+        <!-- Section Photo personnalisée -->
+        <div class="section">
+            <h3 class="section-title handwriting">Photo personnalisée</h3>
+            <ion-button expand="block" fill="outline" class="custom-photo-button" (click)="showCameraOptions()"
+                [disabled]="isLoading">
+                @if (isLoading) {
+                <ion-spinner name="circular"></ion-spinner>
+                <span>&nbsp;&nbsp;Chargement...</span>
+                } @else {
+                <ion-icon name="camera-outline" slot="start"></ion-icon>
+                Prendre/Choisir une photo
+                }
+            </ion-button>
+
+            @if (selectedAvatar && !defaultAvatars.includes(selectedAvatar)) {
+            <div class="custom-photo-preview">
+                <ion-img [src]="selectedAvatar" alt="Photo personnalisée sélectionnée"></ion-img>
+                <ion-icon name="checkmark-circle-outline" class="selected-icon"></ion-icon>
+            </div>
+            }
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="action-buttons">
+            <ion-button expand="block" color="primary" [disabled]="!hasChanged || isLoading"
+                (click)="confirmSelection()">
+                Confirmer la sélection
+            </ion-button>
+
+            <ion-button expand="block" fill="clear" color="medium" (click)="cancel()">
+                Annuler
+            </ion-button>
+        </div>
+    </div>
+</ion-content>

@@ -129,19 +129,24 @@ export class FailService {
   private async formatFailWithAuthor(failData: any): Promise<Fail> {
     // Déterminer le nom de l'auteur selon si c'est public ou anonyme
     let authorName = 'Utilisateur anonyme';
+    let authorAvatar = 'assets/profil/anonymous.png'; // Avatar par défaut pour anonyme
 
     if (failData.is_public) {
       try {
-        // Récupérer le profil de l'utilisateur pour avoir son vrai nom
+        // Récupérer le profil de l'utilisateur pour avoir son vrai nom et avatar
         const profile = await this.supabaseService.getProfile(failData.user_id);
-        if (profile && (profile.username || profile.display_name)) {
-          authorName = profile.username || profile.display_name;
+        if (profile && profile.display_name) {
+          authorName = profile.display_name;
+          // Récupérer l'avatar du profil s'il existe
+          authorAvatar = profile.avatar_url || 'assets/profil/base.png'; // Avatar par défaut si pas d'avatar
         } else {
           authorName = 'Utilisateur courageux'; // Fallback si pas de profil
+          authorAvatar = 'assets/profil/base.png'; // Avatar par défaut
         }
       } catch (error) {
         // Ne pas logger l'erreur pour éviter le spam dans la console
         authorName = 'Utilisateur courageux'; // Fallback
+        authorAvatar = 'assets/profil/base.png'; // Avatar par défaut
       }
     }
 
@@ -151,7 +156,7 @@ export class FailService {
       description: failData.description,
       category: failData.category as FailCategory,
       authorName: authorName,
-      authorAvatar: '', // À implémenter plus tard
+      authorAvatar: authorAvatar,
       imageUrl: failData.image_url,
       createdAt: new Date(failData.created_at),
       isPublic: failData.is_public,

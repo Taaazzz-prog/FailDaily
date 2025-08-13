@@ -1,0 +1,178 @@
+.change-photo-container {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.section-title {
+    margin: 1.5rem 0 1rem 0;
+    font-size: 1.3rem;
+    color: var(--ion-color-dark);
+    text-align: center;
+
+    &:first-child {
+        margin-top: 0;
+    }
+}
+
+// Section de chargement
+.loading-section {
+    text-align: center;
+    padding: 2rem;
+
+    ion-spinner {
+        margin-bottom: 1rem;
+    }
+
+    p {
+        color: var(--ion-color-medium);
+        margin: 0;
+    }
+}
+
+// Section photo actuelle
+.current-photo-section {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.current-avatar {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 4px solid var(--ion-color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+    ion-img {
+        width: 100%;
+        height: 100%;
+        // Assurer que l'image couvre tout le cercle sans déformation
+        object-fit: cover;
+        object-position: center;
+        // Support pour tous les formats d'images
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+    }
+}
+
+// Section avatars par défaut
+.avatars-section {
+    margin-bottom: 2rem;
+}
+
+.avatar-option {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+    // Forcer une taille minimum pour assurer la visibilité
+    min-width: 80px;
+    min-height: 80px;
+
+    &:hover {
+        transform: scale(1.05);
+    }
+
+    &.selected {
+        border-color: var(--ion-color-primary);
+        transform: scale(1.05);
+    }
+
+    ion-img {
+        width: 100%;
+        height: 100%;
+        // Assurer que l'image couvre tout le cercle sans déformation
+        object-fit: cover;
+        object-position: center;
+        // Forcer le redimensionnement pour tous les formats
+        max-width: 100%;
+        max-height: 100%;
+        // Support pour les SVG
+        display: block;
+    }
+}
+
+.selected-icon {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    color: var(--ion-color-primary);
+    font-size: 1.5rem;
+    background: white;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+// Action photo personnalisée
+.custom-photo-action {
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.custom-photo-button {
+    --border-radius: 12px;
+    height: 48px;
+}
+
+// Section sauvegarde
+.save-section {
+    margin: 2rem 0;
+
+    ion-button {
+        --border-radius: 12px;
+        height: 48px;
+    }
+}
+
+// Style spécial pour assurer le bon affichage de tous les formats
+ion-img {
+
+    // Force le rendu des SVG et autres formats vectoriels
+    &[src$=".svg"],
+    &[src$=".ai"] {
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+}
+
+// Style pour la grille
+ion-grid {
+    --ion-grid-padding: 0;
+}
+
+ion-row {
+    --ion-grid-row-padding: 0.5rem 0;
+}
+
+ion-col {
+    --ion-grid-column-padding: 0.5rem;
+}
+
+// Animation de chargement
+ion-spinner {
+    width: 20px;
+    height: 20px;
+}
+
+// Style responsive
+@media (max-width: 768px) {
+    .current-avatar {
+        width: 120px;
+        height: 120px;
+    }
+
+    .custom-photo-preview {
+        width: 120px;
+        height: 120px;
+    }
+
+    .section-title {
+        font-size: 1.2rem;
+    }
+}

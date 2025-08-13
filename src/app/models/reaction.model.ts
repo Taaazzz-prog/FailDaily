@@ -1,9 +1,9 @@
-import {ReactionType} from "./enums";
+import { ReactionType } from "./enums";
 
 export interface Reaction {
   id: string;
   userId: string;
-  username: string;
+  displayName: string;
   type: ReactionType;
   timestamp: Date;
   message?: string; // Message d'encouragement optionnel

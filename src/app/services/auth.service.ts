@@ -2,8 +2,10 @@ import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, from, catchError, switchMap } from 'rxjs';
 import { User } from '../models/user.model';
 import { SupabaseService } from './supabase.service';
+import { EventBusService, AppEvents } from './event-bus.service';
 import { DebugService } from './debug.service';
 import { authLog } from '../utils/logger';
+import { DEFAULT_AVATAR } from '../utils/avatar-constants';
 
 export interface LoginCredentials {
   email: string;
@@ -33,6 +35,7 @@ export class AuthService {
 
   constructor(
     private supabase: SupabaseService,
+    private eventBus: EventBusService,
     private debugService: DebugService
   ) {
     authLog('🔐 AuthService: Constructor called - initializing authentication service');
@@ -164,7 +167,7 @@ export class AuthService {
             id: session.user.id,
             email: session.user.email!,
             displayName: profile?.display_name || 'Utilisateur',
-            avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
+            avatar: profile?.avatar_url || DEFAULT_AVATAR,
             joinDate: new Date(profile?.created_at || session.user.created_at),
             totalFails: profile?.stats?.totalFails || 0,
             couragePoints: profile?.stats?.couragePoints || 0,
@@ -184,7 +187,23 @@ export class AuthService {
               parentEmail: profile.age_verification.parentEmail,
               parentConsentDate: profile.age_verification.parentConsentDate ?
                 new Date(profile.age_verification.parentConsentDate) : undefined
-            } : undefined
+            } : undefined,
+            // ✅ Ajout des préférences avec bio
+            preferences: {
+              bio: profile?.bio || '',
+              theme: profile?.preferences?.theme || 'light',
+              darkMode: (profile?.preferences?.theme || 'light') === 'dark',
+              notificationsEnabled: profile?.preferences?.notifications?.enabled ?? true,
+              reminderTime: profile?.preferences?.notifications?.reminderTime || '09:00',
+              anonymousMode: profile?.preferences?.privacy?.anonymousMode ?? false,
+              shareLocation: profile?.preferences?.privacy?.shareLocation ?? false,
+              soundEnabled: profile?.preferences?.accessibility?.soundEnabled ?? true,
+              hapticsEnabled: profile?.preferences?.accessibility?.hapticsEnabled ?? true,
+              notifications: profile?.preferences?.notifications || {
+                encouragement: true,
+                reminderFrequency: 'weekly'
+              }
+            }
           };
 
           authLog('🔐 AuthService: Utilisateur défini avec session Supabase');
@@ -196,7 +215,7 @@ export class AuthService {
             id: session.user.id,
             email: session.user.email!,
             displayName: session.user.user_metadata?.['display_name'] || 'Utilisateur',
-            avatar: 'assets/anonymous-avatar.svg',
+            avatar: DEFAULT_AVATAR,
             joinDate: new Date(session.user.created_at),
             totalFails: 0,
             couragePoints: 0,
@@ -265,7 +284,23 @@ export class AuthService {
                 parentEmail: profile.age_verification.parentEmail,
                 parentConsentDate: profile.age_verification.parentConsentDate ?
                   new Date(profile.age_verification.parentConsentDate) : undefined
-              } : undefined
+              } : undefined,
+              // ✅ Ajout des préférences avec bio
+              preferences: {
+                bio: profile?.bio || '',
+                theme: profile?.preferences?.theme || 'light',
+                darkMode: (profile?.preferences?.theme || 'light') === 'dark',
+                notificationsEnabled: profile?.preferences?.notifications?.enabled ?? true,
+                reminderTime: profile?.preferences?.notifications?.reminderTime || '09:00',
+                anonymousMode: profile?.preferences?.privacy?.anonymousMode ?? false,
+                shareLocation: profile?.preferences?.privacy?.shareLocation ?? false,
+                soundEnabled: profile?.preferences?.accessibility?.soundEnabled ?? true,
+                hapticsEnabled: profile?.preferences?.accessibility?.hapticsEnabled ?? true,
+                notifications: profile?.preferences?.notifications || {
+                  encouragement: true,
+                  reminderFrequency: 'weekly'
+                }
+              }
             };
 
             this.setCurrentUser(user);
@@ -331,7 +366,23 @@ export class AuthService {
             parentEmail: profile.age_verification.parentEmail,
             parentConsentDate: profile.age_verification.parentConsentDate ?
               new Date(profile.age_verification.parentConsentDate) : undefined
-          } : undefined
+          } : undefined,
+          // ✅ Ajout des préférences avec bio
+          preferences: {
+            bio: profile?.bio || '',
+            theme: profile?.preferences?.theme || 'light',
+            darkMode: (profile?.preferences?.theme || 'light') === 'dark',
+            notificationsEnabled: profile?.preferences?.notifications?.enabled ?? true,
+            reminderTime: profile?.preferences?.notifications?.reminderTime || '09:00',
+            anonymousMode: profile?.preferences?.privacy?.anonymousMode ?? false,
+            shareLocation: profile?.preferences?.privacy?.shareLocation ?? false,
+            soundEnabled: profile?.preferences?.accessibility?.soundEnabled ?? true,
+            hapticsEnabled: profile?.preferences?.accessibility?.hapticsEnabled ?? true,
+            notifications: profile?.preferences?.notifications || {
+              encouragement: true,
+              reminderFrequency: 'weekly'
+            }
+          }
         };
 
         // Mettre à jour immédiatement le BehaviorSubject AVEC cache
@@ -363,49 +414,111 @@ export class AuthService {
     }
   }
 
+  // ✅ Validation temps réel du display_name
+  async validateDisplayNameRealTime(displayName: string): Promise<{
+    isAvailable: boolean;
+    suggestedName?: string;
+    message: string
+  }> {
+    try {
+      console.log('🔍 Validating display_name in real-time:', displayName);
+
+      if (!displayName || displayName.trim().length < 3) {
+        return {
+          isAvailable: false,
+          message: 'Le pseudo doit contenir au moins 3 caractères'
+        };
+      }
+
+      if (displayName.length > 30) {
+        return {
+          isAvailable: false,
+          message: 'Le pseudo ne peut pas dépasser 30 caractères'
+        };
+      }
+
+      const isAvailable = await this.supabase.checkDisplayNameAvailable(displayName.trim());
+
+      if (isAvailable) {
+        return {
+          isAvailable: true,
+          message: '✅ Ce pseudo est disponible'
+        };
+      } else {
+        const suggestedName = await this.supabase.generateUniqueDisplayName(displayName.trim());
+        return {
+          isAvailable: false,
+          suggestedName,
+          message: `❌ Ce pseudo est déjà pris. Suggestion: ${suggestedName}`
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error validating display_name:', error);
+      return {
+        isAvailable: false,
+        message: 'Erreur lors de la vérification du pseudo'
+      };
+    }
+  }
+
   register(data: RegisterData): Observable<User | null> {
     console.log('🔐 AuthService: Registration attempt for:', data.email);
 
-    return from(this.supabase.signUp(data.email, data.password, data.displayName))
+    // ✅ ÉTAPE 1: Vérifier et générer un display_name unique AVANT de créer le compte
+    return from(this.supabase.generateUniqueDisplayName(data.displayName))
       .pipe(
-        switchMap(async (result) => {
+        switchMap(async (uniqueDisplayName) => {
+          console.log('✅ AuthService: Unique display_name generated:', uniqueDisplayName);
+
+          // ✅ ÉTAPE 2: Créer le compte avec le nom unique
+          const result = await this.supabase.signUp(data.email, data.password, uniqueDisplayName);
+
           if (result?.user) {
-            console.log('✅ AuthService: User registered successfully');
-            // Créer immédiatement un profil simple
-            const profileData = {
-              id: result.user.id,
-              email: data.email,
-              display_name: data.displayName,
-              registration_completed: false,
-              stats: { totalFails: 0, couragePoints: 0, badges: [] },
-              preferences: {}
-            };
+            console.log('✅ AuthService: User registered successfully with unique name');
 
+            // ✅ ÉTAPE 3: Créer le profil (qui utilisera automatiquement le nom unique des metadata)
             try {
-              await this.supabase.updateProfile(result.user.id, profileData);
-              console.log('✅ AuthService: Profile updated successfully');
+              const profile = await this.supabase.createProfile(result.user);
+              console.log('✅ AuthService: Profile created with display_name:', profile?.display_name);
+
+              // Retourner l'utilisateur avec le display_name unique confirmé
+              const user: User = {
+                id: result.user.id,
+                email: data.email,
+                displayName: uniqueDisplayName, // ✅ Utiliser le nom unique généré
+                avatar: 'assets/anonymous-avatar.svg',
+                joinDate: new Date(),
+                totalFails: 0,
+                couragePoints: 0,
+                badges: [],
+                emailConfirmed: true,
+                registrationCompleted: false,
+                legalConsent: undefined,
+                ageVerification: undefined,
+                // ✅ Ajout des préférences avec bio vide pour nouveau user
+                preferences: {
+                  bio: '',
+                  theme: 'light',
+                  darkMode: false,
+                  notificationsEnabled: true,
+                  reminderTime: '09:00',
+                  anonymousMode: false,
+                  shareLocation: false,
+                  soundEnabled: true,
+                  hapticsEnabled: true,
+                  notifications: {
+                    encouragement: true,
+                    reminderFrequency: 'weekly'
+                  }
+                }
+              };
+
+              this.currentUserSubject.next(user);
+              return user;
             } catch (error) {
-              console.log('ℹ️ AuthService: Profile will be created later:', error);
+              console.error('❌ AuthService: Error creating profile:', error);
+              throw error;
             }
-
-            // Retourner l'utilisateur simple
-            const user: User = {
-              id: result.user.id,
-              email: data.email,
-              displayName: data.displayName,
-              avatar: 'assets/anonymous-avatar.svg',
-              joinDate: new Date(),
-              totalFails: 0,
-              couragePoints: 0,
-              badges: [],
-              emailConfirmed: true,
-              registrationCompleted: false,
-              legalConsent: undefined,
-              ageVerification: undefined
-            };
-
-            this.currentUserSubject.next(user);
-            return user;
           }
           console.log('❌ AuthService: No user returned from signUp');
           return null;
@@ -501,11 +614,13 @@ export class AuthService {
       // Récupérer le profil mis à jour
       const updatedProfile = await this.supabase.getProfile(currentUser.id);
 
+      let updatedUser: User = currentUser;
       if (updatedProfile) {
         // Mettre à jour l'utilisateur local avec les nouvelles données
-        const updatedUser: User = {
+        updatedUser = {
           ...currentUser,
           displayName: updatedProfile.display_name || currentUser.displayName,
+          avatar: updatedProfile.avatar_url || currentUser.avatar,
           preferences: {
             ...currentUser.preferences,
             ...updatedProfile.preferences,
@@ -515,6 +630,10 @@ export class AuthService {
 
         this.setCurrentUser(updatedUser);
       }
+
+      // Émettre un événement pour notifier que le profil a été mis à jour
+      authLog('🔐 AuthService: Émission de l\'événement USER_PROFILE_UPDATED avec:', updatedUser);
+      this.eventBus.emit(AppEvents.USER_PROFILE_UPDATED, updatedUser);
 
       authLog('🔐 AuthService: Profil utilisateur mis à jour avec succès');
     } catch (error) {
@@ -534,6 +653,11 @@ export class AuthService {
       console.error('Reset password error:', error);
       throw error;
     }
+  }
+
+  // ✅ NOUVEAU : Méthode publique pour vérifier l'unicité des noms
+  async checkDisplayNameAvailable(displayName: string, excludeUserId?: string): Promise<boolean> {
+    return this.supabase.checkDisplayNameAvailable(displayName, excludeUserId);
   }
 }
 

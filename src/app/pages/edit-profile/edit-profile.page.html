@@ -42,6 +42,31 @@
                     }
                 </div>
                 }
+
+                <!-- ✅ Validation temps réel du display_name -->
+                @if (displayNameValidation.message) {
+                <div class="display-name-validation">
+                    @if (displayNameValidation.isChecking) {
+                    <ion-text color="medium">
+                        <ion-spinner name="dots"></ion-spinner>
+                        {{ displayNameValidation.message }}
+                    </ion-text>
+                    } @else if (displayNameValidation.isAvailable) {
+                    <ion-text color="success">
+                        {{ displayNameValidation.message }}
+                    </ion-text>
+                    } @else {
+                    <ion-text color="danger">
+                        {{ displayNameValidation.message }}
+                    </ion-text>
+                    @if (displayNameValidation.suggestedName) {
+                    <ion-button fill="clear" size="small" color="primary" (click)="useSuggestedName()">
+                        Utiliser "{{ displayNameValidation.suggestedName }}"
+                    </ion-button>
+                    }
+                    }
+                </div>
+                }
             </div>
 
             <!-- Informations de contact -->
@@ -126,7 +151,7 @@
             <!-- Boutons d'action -->
             <div class="action-buttons">
                 <ion-button expand="block" type="submit" color="primary" class="imperfect-element"
-                    [disabled]="!editForm.valid || isLoading">
+                    [disabled]="!canSave">
                     <ion-icon name="save-outline" slot="start"></ion-icon>
                     @if (isLoading) {
                     <ion-spinner name="crescent"></ion-spinner>

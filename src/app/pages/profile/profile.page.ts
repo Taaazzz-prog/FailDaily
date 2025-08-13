@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import {
@@ -17,11 +17,12 @@ import {
 import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
+import { EventBusService, AppEvents } from '../../services/event-bus.service';
 import { User } from '../../models/user.model';
 import { Fail } from '../../models/fail.model';
 import { Badge } from '../../models/badge.model';
 import { Router } from '@angular/router';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, combineLatest, map, Subscription } from 'rxjs';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 
 interface ProfileStats {
@@ -45,12 +46,14 @@ interface ProfileStats {
         TimeAgoPipe
     ]
 })
-export class ProfilePage implements OnInit {
+export class ProfilePage implements OnInit, OnDestroy {
     currentUser$ = this.authService.currentUser$;
     userFails$: Observable<Fail[]>;
     userBadges$: Observable<Badge[]>;
     profileStats$: Observable<ProfileStats>;
     recentFails$: Observable<Fail[]>;
+
+    private subscriptions: Subscription = new Subscription();
 
     // UI State
     isActionSheetOpen = false;
@@ -79,8 +82,8 @@ export class ProfilePage implements OnInit {
             handler: () => {
                 this.closeActionSheet();
                 setTimeout(() => {
-                    console.log('Navigation vers edit-profile...');
-                    this.router.navigate(['/tabs/edit-profile']).then(success => {
+                    console.log('Navigation vers change-photo...');
+                    this.router.navigate(['/tabs/change-photo']).then(success => {
                         console.log('Navigation réussie:', success);
                     }).catch(error => {
                         console.error('Erreur de navigation:', error);
@@ -138,6 +141,7 @@ export class ProfilePage implements OnInit {
         private authService: AuthService,
         private failService: FailService,
         private badgeService: BadgeService,
+        private eventBus: EventBusService,
         private router: Router
     ) {
         // Configuration des icônes
@@ -178,6 +182,28 @@ export class ProfilePage implements OnInit {
         console.log('👤 ProfilePage - ngOnInit called');
         // Initialiser le message d'encouragement une seule fois
         this.currentEncouragementMessage = this.getRandomEncouragement();
+
+        // Écouter les mises à jour du profil pour rafraîchir automatiquement
+        console.log('👤 ProfilePage - Setting up profile update listener...');
+        this.subscriptions.add(
+            this.eventBus.on(AppEvents.USER_PROFILE_UPDATED).subscribe((updatedUser) => {
+                console.log('👤 ProfilePage - Profile updated event received:', updatedUser);
+                console.log('👤 ProfilePage - Refreshing data...');
+                // Forcer un rafraîchissement des données
+                this.failService.refreshFails();
+            })
+        );
+
+        // Écouter directement les changements de l'utilisateur courant
+        this.subscriptions.add(
+            this.currentUser$.subscribe((user) => {
+                console.log('👤 ProfilePage - Current user changed:', user?.avatar);
+            })
+        );
+    }
+
+    ngOnDestroy() {
+        this.subscriptions.unsubscribe();
     }
 
     async handleRefresh(event: RefresherCustomEvent) {

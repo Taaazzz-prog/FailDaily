@@ -31,6 +31,31 @@
   }
 }
 
+// ✅ Style pour la validation du display_name
+.display-name-validation {
+  padding: var(--fail-spacing-sm);
+  border-radius: var(--fail-radius-small);
+  margin-top: var(--fail-spacing-xs);
+  font-size: 0.9rem;
+
+  ion-text {
+    display: flex;
+    align-items: center;
+    gap: var(--fail-spacing-xs);
+  }
+
+  ion-spinner {
+    width: 16px;
+    height: 16px;
+  }
+
+  ion-button {
+    margin-left: var(--fail-spacing-sm);
+    --padding-start: var(--fail-spacing-xs);
+    --padding-end: var(--fail-spacing-xs);
+  }
+}
+
 .error-message {
   margin: var(--fail-spacing-sm) 0;
   text-align: center;
