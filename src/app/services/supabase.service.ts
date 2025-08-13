@@ -95,7 +95,8 @@ export class SupabaseService {
             password,
             options: {
                 data: {
-                    display_name: displayName
+                    display_name: displayName,
+                    role: 'user' // ✅ Définir le rôle par défaut dans user_metadata
                 }
             }
         });
@@ -215,6 +216,7 @@ export class SupabaseService {
                     email: user.email,
                     display_name: uniqueDisplayName,
                     avatar_url: 'assets/anonymous-avatar.svg',
+                    role: 'user', // ✅ Rôle par défaut pour tous les nouveaux comptes
                     email_confirmed: true,
                     registration_completed: false,
                     legal_consent: null,
@@ -833,6 +835,113 @@ export class SupabaseService {
         }
 
         return displayName;
+    }
+
+    // ===== GESTION DES RÔLES UTILISATEUR =====
+
+    /**
+     * Récupérer tous les utilisateurs (pour les admins)
+     */
+    async getAllUsers(): Promise<any[]> {
+        const { data, error } = await this.supabase
+            .from('profiles')
+            .select('id, email, display_name, role, created_at, avatar_url')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Erreur lors de la récupération des utilisateurs:', error);
+            throw error;
+        }
+
+        return data || [];
+    }
+
+    /**
+     * Changer le rôle d'un utilisateur (admin uniquement)
+     */
+    async updateUserRole(userId: string, newRole: string): Promise<boolean> {
+        try {
+            const { error } = await this.supabase
+                .from('profiles')
+                .update({
+                    role: newRole,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', userId);
+
+            if (error) {
+                console.error('Erreur lors de la mise à jour du rôle:', error);
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour du rôle:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Bannir un utilisateur (admin uniquement)
+     */
+    async banUser(userId: string): Promise<boolean> {
+        try {
+            // Vous pouvez ajouter un champ 'banned' ou utiliser un rôle spécial
+            const { error } = await this.supabase
+                .from('profiles')
+                .update({
+                    role: 'banned',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', userId);
+
+            if (error) {
+                console.error('Erreur lors du bannissement:', error);
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Erreur lors du bannissement:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Récupérer tous les utilisateurs avec leurs rôles (admin seulement)
+     */
+    async getAllUsersWithRoles(): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .select('id, email, display_name, role, created_at, updated_at')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération utilisateurs:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Récupérer les utilisateurs par rôle
+     */
+    async getUsersByRole(role: string): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .select('id, email, display_name, role, created_at')
+                .eq('role', role)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération utilisateurs par rôle:', error);
+            return [];
+        }
     }
 }
 

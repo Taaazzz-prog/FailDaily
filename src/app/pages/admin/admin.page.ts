@@ -5,14 +5,16 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
     IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
-    IonButtons, IonBackButton, IonInput
+    IonButtons, IonBackButton, IonInput, IonAlert, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync, trashBin, warning, shield } from 'ionicons/icons';
+import { bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync, trashBin, warning, shield, people, personAdd, ban } from 'ionicons/icons';
 import { SupabaseService } from '../../services/supabase.service';
 import { AuthService } from '../../services/auth.service';
 import { BadgeService } from '../../services/badge.service';
+import { RoleService } from '../../services/role.service';
 import { Badge } from '../../models/badge.model';
+import { UserRole } from '../../models/user-role.model';
 import { BadgeMigration } from '../../utils/badge-migration';
 import { filter, take } from 'rxjs';
 
@@ -20,6 +22,7 @@ interface AdminUser {
     id: string;
     email: string;
     display_name: string;
+    role: string; // ✅ Ajout du rôle
     created_at: string;
     total_fails: number;
     total_reactions: number;
@@ -65,17 +68,24 @@ interface UserActivity {
         IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle,
         IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
-        IonButtons, IonBackButton, IonInput
+        IonButtons, IonBackButton, IonInput, IonAlert
     ]
 })
 export class AdminPage implements OnInit {
     users: AdminUser[] = [];
+    allUsers: AdminUser[] = []; // ✅ Liste complète des utilisateurs
     selectedUser: AdminUser | null = null;
     userFails: AdminFail[] = [];
     userReactions: UserReaction[] = [];
     userActivity: UserActivity[] = [];
     userBadges: Badge[] = [];
     nextBadge: Badge | null = null;
+
+    // ✅ NOUVEAU : État pour la gestion des rôles
+    isAlertOpen = false;
+    alertUser: AdminUser | null = null;
+    alertButtons: any[] = [];
+    selectedRole: UserRole = UserRole.USER;
     isLoading = false;
     isLoadingFails = false;
     isLoadingDetails = false;
@@ -95,11 +105,14 @@ export class AdminPage implements OnInit {
     constructor(
         private supabaseService: SupabaseService,
         private authService: AuthService,
-        private badgeService: BadgeService
+        private badgeService: BadgeService,
+        private roleService: RoleService,
+        private toastController: ToastController
     ) {
         // Configuration des icônes
         addIcons({
-            bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync, trashBin, warning, shield
+            bugOutline, checkmarkCircle, documentText, flask, heart, hourglass,
+            refresh, sync, trashBin, warning, shield, people, personAdd, ban
         });
 
         this.badgeMigration = new BadgeMigration(this.supabaseService);
@@ -205,24 +218,8 @@ export class AdminPage implements OnInit {
         }
 
         try {
-            const { data: profiles, error } = await this.supabaseService.client
-                .from('profiles')
-                .select('id, email, display_name, created_at')
-                .order('created_at', { ascending: false });
-
-            console.log('👑 Admin: Profiles query result:', { profiles, error });
-            console.log('👑 Admin: Raw profiles data:', profiles);
-            console.log('👑 Admin: Error details:', error);
-
-            if (error) {
-                console.error('👑 Admin: Query error details:', {
-                    message: error.message,
-                    code: error.code,
-                    details: error.details,
-                    hint: error.hint
-                });
-                throw error;
-            }
+            // ✅ Utiliser la nouvelle méthode qui récupère les utilisateurs avec leurs rôles
+            const profiles = await this.authService.getAllUsers();
 
             if (!profiles || profiles.length === 0) {
                 console.log('👑 Admin: No profiles found in database');
@@ -236,11 +233,17 @@ export class AdminPage implements OnInit {
                 console.log('👑 Admin: Processing profile:', profile);
                 const stats = await this.getUserStats(profile.id);
                 this.users.push({
-                    ...profile,
+                    id: profile.id,
+                    email: profile.email,
+                    display_name: profile.display_name,
+                    role: profile.role || 'user', // ✅ Inclure le rôle depuis la DB
+                    created_at: profile.created_at,
                     total_fails: stats.total_fails,
                     total_reactions: stats.total_reactions
                 });
             }
+
+            this.allUsers = [...this.users]; // ✅ Sauvegarder la liste complète
 
             console.log('👑 Admin: Loaded', this.users.length, 'users with stats:', this.users);
         } catch (error) {

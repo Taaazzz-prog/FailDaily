@@ -1,5 +1,6 @@
 import { Badge } from './badge.model';
 import { UserPreferences } from './user-preferences.model';
+import { UserRole } from './user-role.model';
 
 export interface LegalConsent {
   documentsAccepted: string[];
@@ -25,6 +26,7 @@ export interface User {
   totalFails: number;
   couragePoints: number;
   badges: Badge[];
+  role: UserRole; // ✅ Ajout du rôle utilisateur
   preferences?: UserPreferences;
   legalConsent?: LegalConsent;
   ageVerification?: AgeVerification;

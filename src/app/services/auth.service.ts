@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, from, catchError, switchMap } from 'rxjs';
 import { User } from '../models/user.model';
+import { UserRole } from '../models/user-role.model';
 import { SupabaseService } from './supabase.service';
 import { EventBusService, AppEvents } from './event-bus.service';
 import { DebugService } from './debug.service';
@@ -172,6 +173,7 @@ export class AuthService {
             totalFails: profile?.stats?.totalFails || 0,
             couragePoints: profile?.stats?.couragePoints || 0,
             badges: profile?.stats?.badges || [],
+            role: (session.user['role'] as UserRole) || (session.user.user_metadata?.['role'] as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users ou user_metadata
             emailConfirmed: profile?.email_confirmed || false,
             registrationCompleted: profile?.registration_completed || false,
             legalConsent: profile?.legal_consent ? {
@@ -220,6 +222,7 @@ export class AuthService {
             totalFails: 0,
             couragePoints: 0,
             badges: [],
+            role: UserRole.USER, // ✅ Rôle par défaut
             emailConfirmed: true,
             registrationCompleted: false,
             legalConsent: undefined,
@@ -269,6 +272,7 @@ export class AuthService {
               totalFails: profile?.stats?.totalFails || 0,
               couragePoints: profile?.stats?.couragePoints || 0,
               badges: profile?.stats?.badges || [],
+              role: (supabaseUser.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
               emailConfirmed: profile?.email_confirmed || false,
               registrationCompleted: profile?.registration_completed || false,
               legalConsent: profile?.legal_consent ? {
@@ -351,6 +355,7 @@ export class AuthService {
           totalFails: profile?.stats?.totalFails || 0,
           couragePoints: profile?.stats?.couragePoints || 0,
           badges: profile?.stats?.badges || [],
+          role: (result.user.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
           emailConfirmed: profile?.email_confirmed || false,
           registrationCompleted: profile?.registration_completed || false,
           legalConsent: profile?.legal_consent ? {
@@ -491,6 +496,7 @@ export class AuthService {
                 totalFails: 0,
                 couragePoints: 0,
                 badges: [],
+                role: UserRole.USER, // ✅ Rôle par défaut pour nouveaux utilisateurs
                 emailConfirmed: true,
                 registrationCompleted: false,
                 legalConsent: undefined,
@@ -658,6 +664,54 @@ export class AuthService {
   // ✅ NOUVEAU : Méthode publique pour vérifier l'unicité des noms
   async checkDisplayNameAvailable(displayName: string, excludeUserId?: string): Promise<boolean> {
     return this.supabase.checkDisplayNameAvailable(displayName, excludeUserId);
+  }
+
+  // ===== GESTION DES RÔLES =====
+
+  /**
+   * Récupérer tous les utilisateurs (admin uniquement)
+   */
+  async getAllUsers(): Promise<any[]> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
+      throw new Error('Accès non autorisé - Admin requis');
+    }
+
+    return this.supabase.getAllUsers();
+  }
+
+  /**
+   * Changer le rôle d'un utilisateur (admin uniquement)
+   */
+  async updateUserRole(userId: string, newRole: UserRole): Promise<boolean> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
+      throw new Error('Accès non autorisé - Admin requis');
+    }
+
+    // Empêcher un admin de se retirer ses propres privilèges
+    if (userId === currentUser.id && newRole !== UserRole.ADMIN) {
+      throw new Error('Un administrateur ne peut pas modifier son propre rôle');
+    }
+
+    return this.supabase.updateUserRole(userId, newRole);
+  }
+
+  /**
+   * Bannir un utilisateur (admin uniquement)
+   */
+  async banUser(userId: string): Promise<boolean> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
+      throw new Error('Accès non autorisé - Admin requis');
+    }
+
+    // Empêcher un admin de se bannir lui-même
+    if (userId === currentUser.id) {
+      throw new Error('Un administrateur ne peut pas se bannir lui-même');
+    }
+
+    return this.supabase.banUser(userId);
   }
 }
 
