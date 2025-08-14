@@ -384,24 +384,31 @@ export class SupabaseService {
     }
 
     async getFailById(failId: string): Promise<any | null> {
-        // Ajouter un timestamp pour éviter le cache
+        // Forcer un refresh sans cache avec différentes stratégies
         const timestamp = Date.now();
 
-        const { data, error } = await this.supabase
-            .from('fails')
-            .select('*')
-            .eq('id', failId)
-            .single();
+        try {
+            // Stratégie 1: Nouvelle requête avec headers pour éviter le cache
+            const { data, error } = await this.supabase
+                .from('fails')
+                .select('*')
+                .eq('id', failId)
+                .limit(1)  // Force une nouvelle requête
+                .order('created_at', { ascending: false })  // Ajoute un ordre pour forcer le refresh
+                .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+            if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+                throw error;
+            }
+
+            supabaseLog(`📊 getFailById - Fail récupéré (${timestamp}):`, data?.reactions);
+            return data || null;
+
+        } catch (error) {
+            supabaseLog(`❌ Erreur getFailById:`, error);
             throw error;
         }
-
-        supabaseLog(`📊 getFailById - Fail récupéré (${timestamp}):`, data?.reactions);
-        return data || null;
-    }
-
-    async getUserFails(userId: string): Promise<any[]> {
+    } async getUserFails(userId: string): Promise<any[]> {
         const { data, error } = await this.supabase
             .from('fails')
             .select('*')

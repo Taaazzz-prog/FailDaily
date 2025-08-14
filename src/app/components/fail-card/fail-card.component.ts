@@ -64,14 +64,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
+      // 1. Envoyer à la base
       await this.failService.addReaction(this.fail.id, 'courage');
 
-      // Mise à jour optimiste immédiate
-      this.fail.reactions.courage = (this.fail.reactions.courage || 0) + 1;
-      this.cdr.detectChanges();
+      // 2. Récupérer la VRAIE valeur de la base
+      const updatedFail = await this.failService.getFailById(this.fail.id);
+      if (updatedFail) {
+        this.fail.reactions = updatedFail.reactions;
+      }
 
-      // Recharger les données du fail depuis la DB
-      await this.refreshFailData();
+      // 3. Recharger les réactions utilisateur
+      await this.loadUserReaction();
+      this.cdr.detectChanges();
     } catch (error) {
       failLog('Erreur lors de la réaction courage:', error);
     }
@@ -89,14 +93,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
+      // 1. Envoyer à la base
       await this.failService.addReaction(this.fail.id, 'laugh');
 
-      // Mise à jour optimiste immédiate
-      this.fail.reactions.laugh = (this.fail.reactions.laugh || 0) + 1;
-      this.cdr.detectChanges();
+      // 2. Récupérer la VRAIE valeur de la base
+      const updatedFail = await this.failService.getFailById(this.fail.id);
+      if (updatedFail) {
+        this.fail.reactions = updatedFail.reactions;
+      }
 
-      // Recharger les données du fail depuis la DB
-      await this.refreshFailData();
+      // 3. Recharger les réactions utilisateur
+      await this.loadUserReaction();
+      this.cdr.detectChanges();
     } catch (error) {
       failLog('Erreur lors de la réaction laugh:', error);
     }
@@ -114,14 +122,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
+      // 1. Envoyer à la base
       await this.failService.addReaction(this.fail.id, 'empathy');
 
-      // Mise à jour optimiste immédiate
-      this.fail.reactions.empathy = (this.fail.reactions.empathy || 0) + 1;
-      this.cdr.detectChanges();
+      // 2. Récupérer la VRAIE valeur de la base
+      const updatedFail = await this.failService.getFailById(this.fail.id);
+      if (updatedFail) {
+        this.fail.reactions = updatedFail.reactions;
+      }
 
-      // Recharger les données du fail depuis la DB
-      await this.refreshFailData();
+      // 3. Recharger les réactions utilisateur
+      await this.loadUserReaction();
+      this.cdr.detectChanges();
     } catch (error) {
       failLog('Erreur lors de la réaction empathy:', error);
     }
@@ -139,14 +151,18 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
+      // 1. Envoyer à la base
       await this.failService.addReaction(this.fail.id, 'support');
 
-      // Mise à jour optimiste immédiate
-      this.fail.reactions.support = (this.fail.reactions.support || 0) + 1;
-      this.cdr.detectChanges();
+      // 2. Récupérer la VRAIE valeur de la base
+      const updatedFail = await this.failService.getFailById(this.fail.id);
+      if (updatedFail) {
+        this.fail.reactions = updatedFail.reactions;
+      }
 
-      // Recharger les données du fail depuis la DB
-      await this.refreshFailData();
+      // 3. Recharger les réactions utilisateur
+      await this.loadUserReaction();
+      this.cdr.detectChanges();
     } catch (error) {
       failLog('Erreur lors de la réaction support:', error);
     }
