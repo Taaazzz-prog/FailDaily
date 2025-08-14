@@ -1231,6 +1231,483 @@ export class SupabaseService {
             return [];
         }
     }
+
+    // MÉTHODES POUR L'ADMIN SERVICE
+    async getTableCount(tableName: string): Promise<number> {
+        try {
+            const { count, error } = await this.supabase
+                .from(tableName)
+                .select('*', { count: 'exact', head: true });
+
+            if (error) throw error;
+            return count || 0;
+        } catch (error) {
+            console.error(`Erreur comptage table ${tableName}:`, error);
+            return 0;
+        }
+    }
+
+    async executeQuery(query: string): Promise<any> {
+        try {
+            const { data, error } = await this.supabase.rpc('execute_query', { query });
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Erreur exécution requête:', error);
+            throw error;
+        }
+    }
+
+    async insertSystemLog(level: string, message: string, details?: any, userId?: string, action?: string): Promise<void> {
+        try {
+            const { error } = await this.supabase
+                .from('system_logs')
+                .insert({
+                    timestamp: new Date().toISOString(),
+                    level,
+                    message,
+                    details: details ? JSON.stringify(details) : null,
+                    user_id: userId,
+                    action
+                });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erreur insertion log système:', error);
+        }
+    }
+
+    async getSystemLogsTable(limit: number = 100): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('system_logs')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération logs système:', error);
+            return [];
+        }
+    }
+
+    async getReactionLogsTable(limit: number = 100): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('reaction_logs')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération logs réactions:', error);
+            return [];
+        }
+    }
+
+    // ===== MÉTHODES ADMIN =====
+
+    // Récupérer tous les profils utilisateurs avec statistiques
+    async getAllProfiles(): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('profiles')
+                .select(`
+                    *,
+                    fails:fails(count),
+                    reactions_given:reactions!reactions_user_id_fkey(count)
+                `);
+
+            if (error) throw error;
+
+            return data?.map(profile => ({
+                ...profile,
+                total_fails: profile.fails?.[0]?.count || 0,
+                total_reactions: profile.reactions_given?.[0]?.count || 0
+            })) || [];
+        } catch (error) {
+            console.error('Erreur récupération des profils:', error);
+            return [];
+        }
+    }
+
+    // Récupérer les statistiques globales
+    async getDashboardStats(): Promise<any> {
+        try {
+            const { data: stats, error } = await this.supabase
+                .rpc('get_database_stats');
+
+            if (error) throw error;
+            return stats[0] || {
+                total_users: 0,
+                total_fails: 0,
+                total_reactions: 0,
+                total_system_logs: 0,
+                total_reaction_logs: 0,
+                average_reactions_per_fail: 0
+            };
+        } catch (error) {
+            console.error('Erreur récupération statistiques:', error);
+            return {
+                total_users: 0,
+                total_fails: 0,
+                total_reactions: 0,
+                total_system_logs: 0,
+                total_reaction_logs: 0,
+                average_reactions_per_fail: 0
+            };
+        }
+    }
+
+    // Analyser l'intégrité de la base de données
+    async analyzeDatabaseIntegrity(): Promise<any> {
+        try {
+            const [orphanedReactions, invalidCounts] = await Promise.all([
+                this.supabase.rpc('find_orphaned_reactions'),
+                this.supabase.rpc('find_invalid_reaction_counts')
+            ]);
+
+            return {
+                orphanedReactions: orphanedReactions.data || [],
+                invalidCounts: invalidCounts.data || []
+            };
+        } catch (error) {
+            console.error('Erreur analyse intégrité:', error);
+            return {
+                orphanedReactions: [],
+                invalidCounts: []
+            };
+        }
+    }
+
+    // Corriger les compteurs de réactions invalides
+    async fixInvalidReactionCounts(failId: string): Promise<void> {
+        try {
+            const { error } = await this.supabase.rpc('fix_reaction_counts', { fail_id: failId });
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erreur correction compteurs réactions:', error);
+            throw error;
+        }
+    }
+
+    // Supprimer une réaction orpheline
+    async deleteOrphanedReaction(reactionId: string): Promise<void> {
+        try {
+            const { error } = await this.supabase
+                .from('reactions')
+                .delete()
+                .eq('id', reactionId);
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erreur suppression réaction orpheline:', error);
+            throw error;
+        }
+    }
+
+    // Récupérer les logs système
+    async getSystemLogs(limit: number = 50): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('system_logs')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération logs système:', error);
+            return [];
+        }
+    }
+
+    // Récupérer les activités utilisateurs
+    async getUserActivities(userId?: string, limit: number = 50): Promise<any[]> {
+        try {
+            let query = this.supabase
+                .from('user_activities')
+                .select('*')
+                .order('timestamp', { ascending: false })
+                .limit(limit);
+
+            if (userId) {
+                query = query.eq('user_id', userId);
+            }
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération activités:', error);
+            return [];
+        }
+    }
+
+    // Récupérer la configuration des points
+    async getPointsConfiguration(): Promise<any> {
+        try {
+            const { data, error } = await this.supabase
+                .from('app_config')
+                .select('value')
+                .eq('key', 'points_config')
+                .single();
+
+            if (error) throw error;
+            return data?.value || {
+                createFailPoints: 10,
+                courageReactionPoints: 2,
+                laughReactionPoints: 1,
+                empathyReactionPoints: 2,
+                supportReactionPoints: 2,
+                dailyBonusPoints: 5
+            };
+        } catch (error) {
+            console.error('Erreur récupération config points:', error);
+            return {
+                createFailPoints: 10,
+                courageReactionPoints: 2,
+                laughReactionPoints: 1,
+                empathyReactionPoints: 2,
+                supportReactionPoints: 2,
+                dailyBonusPoints: 5
+            };
+        }
+    }
+
+    // Sauvegarder la configuration des points
+    async updatePointsConfiguration(config: any): Promise<void> {
+        try {
+            const { error } = await this.supabase
+                .from('app_config')
+                .upsert({
+                    key: 'points_config',
+                    value: config,
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erreur sauvegarde config points:', error);
+            throw error;
+        }
+    }
+
+    // ===== SYSTÈME DE LOGS AVANCÉ =====
+
+    // Récupérer les logs par type avec les vraies données
+    async getActivityLogsByType(logType: string, periodHours: number | null, limit: number): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase.rpc('get_activity_logs_by_type', {
+                log_type: logType,
+                period_hours: periodHours,
+                max_limit: limit
+            });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération logs par type:', error);
+            return [];
+        }
+    }
+
+    // Enregistrer une connexion utilisateur
+    async logUserLogin(userId: string, ip?: string, userAgent?: string): Promise<void> {
+        try {
+            const { error } = await this.supabase.rpc('log_user_login', {
+                p_user_id: userId,
+                p_ip: ip,
+                p_user_agent: userAgent
+            });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erreur enregistrement connexion:', error);
+        }
+    }
+
+    // Récupérer les logs de gestion utilisateur
+    async getUserManagementLogs(adminId?: string, targetUserId?: string, limit: number = 50): Promise<any[]> {
+        try {
+            let query = this.supabase
+                .from('user_management_logs')
+                .select(`
+                    *,
+                    admin:admin_id(display_name, username, email),
+                    target:target_user_id(display_name, username, email)
+                `)
+                .order('created_at', { ascending: false })
+                .limit(limit);
+
+            if (adminId) {
+                query = query.eq('admin_id', adminId);
+            }
+            if (targetUserId) {
+                query = query.eq('target_user_id', targetUserId);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Erreur récupération logs gestion utilisateur:', error);
+            return [];
+        }
+    }
+
+    // Enregistrer une action de gestion utilisateur
+    async logUserManagementAction(
+        adminId: string,
+        targetUserId: string,
+        actionType: string,
+        targetObjectId?: string,
+        oldValues?: any,
+        newValues?: any,
+        reason?: string
+    ): Promise<void> {
+        try {
+            const { error } = await this.supabase.rpc('log_user_management_action', {
+                p_admin_id: adminId,
+                p_target_user_id: targetUserId,
+                p_action_type: actionType,
+                p_target_object_id: targetObjectId,
+                p_old_values: oldValues,
+                p_new_values: newValues,
+                p_reason: reason
+            });
+
+            if (error) throw error;
+        } catch (error) {
+            console.error('Erreur enregistrement action gestion utilisateur:', error);
+            throw error;
+        }
+    }
+
+    // ===== ACTIONS DE GESTION UTILISATEUR =====
+
+    // Supprimer une réaction d'un utilisateur
+    async deleteUserReaction(adminId: string, reactionId: string, reason?: string): Promise<void> {
+        try {
+            // Récupérer les infos de la réaction avant suppression
+            const { data: reaction } = await this.supabase
+                .from('reactions')
+                .select('*, user_id, fail_id')
+                .eq('id', reactionId)
+                .single();
+
+            if (reaction) {
+                // Supprimer la réaction
+                const { error } = await this.supabase
+                    .from('reactions')
+                    .delete()
+                    .eq('id', reactionId);
+
+                if (error) throw error;
+
+                // Logger l'action
+                await this.logUserManagementAction(
+                    adminId,
+                    reaction.user_id,
+                    'delete_reaction',
+                    reactionId,
+                    reaction,
+                    null,
+                    reason
+                );
+            }
+        } catch (error) {
+            console.error('Erreur suppression réaction:', error);
+            throw error;
+        }
+    }
+
+    // Supprimer un fail d'un utilisateur
+    async deleteUserFail(adminId: string, failId: string, reason?: string): Promise<void> {
+        try {
+            // Récupérer les infos du fail avant suppression
+            const { data: fail } = await this.supabase
+                .from('fails')
+                .select('*, user_id')
+                .eq('id', failId)
+                .single();
+
+            if (fail) {
+                // Supprimer d'abord les réactions liées
+                await this.supabase
+                    .from('reactions')
+                    .delete()
+                    .eq('fail_id', failId);
+
+                // Supprimer le fail
+                const { error } = await this.supabase
+                    .from('fails')
+                    .delete()
+                    .eq('id', failId);
+
+                if (error) throw error;
+
+                // Logger l'action
+                await this.logUserManagementAction(
+                    adminId,
+                    fail.user_id,
+                    'delete_fail',
+                    failId,
+                    fail,
+                    null,
+                    reason
+                );
+            }
+        } catch (error) {
+            console.error('Erreur suppression fail:', error);
+            throw error;
+        }
+    }
+
+    // Modifier le compte d'un utilisateur
+    async updateUserAccount(
+        adminId: string,
+        userId: string,
+        updates: any,
+        reason?: string
+    ): Promise<void> {
+        try {
+            // Récupérer les anciennes valeurs
+            const { data: oldProfile } = await this.supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+            // Appliquer les modifications
+            const { error } = await this.supabase
+                .from('profiles')
+                .update(updates)
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            // Logger l'action
+            await this.logUserManagementAction(
+                adminId,
+                userId,
+                'modify_account',
+                userId,
+                oldProfile,
+                updates,
+                reason
+            );
+        } catch (error) {
+            console.error('Erreur modification compte utilisateur:', error);
+            throw error;
+        }
+    }
 }
 
 

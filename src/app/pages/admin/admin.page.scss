@@ -1,528 +1,237 @@
-.loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem;
-
-    ion-spinner {
-        margin-bottom: 1rem;
-    }
-
-    p {
-        color: var(--ion-color-medium);
-        margin: 0;
-    }
+ion-segment {
+    margin: 8px;
 }
 
-.user-stats {
-    font-size: 0.8em;
-    color: var(--ion-color-medium);
-    margin-left: 0.5rem;
-}
-
-.user-info {
-    p {
-        margin: 0.5rem 0;
-
-        code {
-            background: var(--ion-color-light);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-size: 0.85em;
-        }
-    }
-}
-
-.stats-chips {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-}
-
-// Navigation par onglets
-.tab-navigation {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    ion-button {
-        margin: 0.2rem;
-        --padding-start: 0.8rem;
-        --padding-end: 0.8rem;
-    }
-}
-
-// Vue résumé
-.summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.summary-item {
+.stat-card {
     text-align: center;
-    padding: 1rem;
+    padding: 16px;
     background: var(--ion-color-light);
-    border-radius: 0.5rem;
+    border-radius: 8px;
+    margin: 8px 0;
 
     h3 {
-        margin: 0 0 0.5rem 0;
-        color: var(--ion-color-primary);
-        font-size: 1rem;
-    }
-
-    .number {
-        font-size: 2rem;
+        font-size: 2em;
         font-weight: bold;
-        margin: 0.5rem 0;
-        color: var(--ion-color-primary);
-    }
-
-    .detail {
-        font-size: 0.85rem;
-        color: var(--ion-color-medium);
         margin: 0;
-    }
-
-    .activity-type {
-        font-size: 0.8rem;
-        color: var(--ion-color-dark);
-        margin: 0.25rem 0 0 0;
-        font-weight: 500;
-    }
-}
-
-// Fails
-.fail-container {
-    margin-bottom: 1rem;
-}
-
-.fail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 1rem;
-
-    ion-card-title {
-        flex: 1;
-        font-size: 1.1rem;
-        line-height: 1.3;
-    }
-
-    ion-chip {
-        flex-shrink: 0;
-        color: white;
-        font-weight: bold;
-    }
-}
-
-.fail-info {
-    p {
-        margin: 0.5rem 0;
-
-        code {
-            background: var(--ion-color-light);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-size: 0.85em;
-        }
-    }
-
-    h4 {
-        margin: 1.5rem 0 0.5rem 0;
         color: var(--ion-color-primary);
-        font-size: 1rem;
-    }
-}
-
-.reaction-totals,
-.user-reactions {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--ion-color-light);
-}
-
-.reaction-chips {
-    display: flex;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    margin-top: 0.5rem;
-}
-
-.reaction-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-}
-
-.reaction-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.5rem;
-    background: var(--ion-color-light);
-    border-radius: 0.5rem;
-
-    ion-badge {
-        min-width: 4rem;
-        text-align: center;
     }
 
-    .reaction-user {
-        flex: 1;
-        font-weight: 500;
-    }
-
-    .reaction-date {
-        font-size: 0.8em;
-        color: var(--ion-color-medium);
-    }
-}
-
-// Réactions utilisateur
-.reaction-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-
-    ion-card-title {
-        flex: 1;
-    }
-
-    ion-badge {
-        flex-shrink: 0;
-    }
-}
-
-.reaction-info {
     p {
-        margin: 0.5rem 0;
-
-        code {
-            background: var(--ion-color-light);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-size: 0.85em;
-        }
-    }
-}
-
-// Timeline d'activité  
-.activity-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-
-    ion-card-title {
-        flex: 1;
-        font-size: 1.1rem;
-    }
-
-    .activity-date {
-        font-size: 0.8rem;
+        margin: 4px 0 0 0;
         color: var(--ion-color-medium);
-        flex-shrink: 0;
+        font-size: 0.9em;
     }
 }
 
-.activity-info {
-    p {
-        margin: 0.5rem 0;
-
-        code {
-            background: var(--ion-color-light);
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.25rem;
-            font-size: 0.85em;
-        }
-    }
-
-    ion-chip,
-    ion-badge {
-        margin-left: 0.5rem;
-    }
-}
-
-// États vides
-.no-reactions,
-.no-fails,
-.no-activity {
+.system-status {
     text-align: center;
-    padding: 2rem 1rem;
+    margin: 16px 0;
+}
+
+.button-group {
+    margin-top: 16px;
+
+    ion-button {
+        margin: 4px 0;
+    }
+}
+
+.no-data {
+    text-align: center;
+    padding: 32px;
     color: var(--ion-color-medium);
 }
 
-// Debug info
-.debug-info {
+// Styles pour la gestion des utilisateurs
+.user-management-section {
+    margin-top: 16px;
+    animation: slideIn 0.3s ease-in-out;
+}
+
+.dangerous-actions {
+    margin: 16px 0;
+    padding: 12px;
+    border: 1px solid var(--ion-color-warning);
+    border-radius: 8px;
+    background: var(--ion-color-warning-tint);
+}
+
+.modal-content {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+
+    ion-card {
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}
+
+// Styles pour le temps réel
+.realtime-stat {
     text-align: center;
-    padding: 1rem;
+    padding: 12px;
+    background: var(--ion-color-tertiary-tint);
+    border-radius: 8px;
+    margin: 4px;
+
+    h3 {
+        font-size: 1.5em;
+        font-weight: bold;
+        margin: 0;
+        color: var(--ion-color-tertiary);
+    }
 
     p {
-        margin: 0.5rem 0;
+        margin: 4px 0 0 0;
+        color: var(--ion-color-medium);
+        font-size: 0.8em;
+    }
+}
+
+.realtime-events {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--ion-color-light);
+    border-radius: 8px;
+    margin: 8px 0;
+}
+
+// Animations
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
     }
 
-    ion-button {
-        margin-top: 1rem;
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
+}
+
+ion-list {
+    ion-item {
+        --padding-start: 16px;
+
+        ion-icon[slot="start"] {
+            margin-right: 12px;
+        }
+    }
+}
+
+ion-badge {
+    font-size: 0.7em;
+}
+
+ion-card-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+// Styles pour différents types de logs
+.log-error {
+    border-left: 4px solid var(--ion-color-danger);
+}
+
+.log-warning {
+    border-left: 4px solid var(--ion-color-warning);
+}
+
+.log-info {
+    border-left: 4px solid var(--ion-color-primary);
+}
+
+.log-debug {
+    border-left: 4px solid var(--ion-color-medium);
 }
 
 // Responsive design
 @media (max-width: 768px) {
-    .fail-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
+    .stat-card h3 {
+        font-size: 1.5em;
     }
 
-    .reaction-header,
-    .activity-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-
-    .reaction-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-    }
-
-    .stats-chips {
-        justify-content: center;
-    }
-
-    .tab-navigation {
-        flex-direction: column;
-    }
-
-    .summary-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-// Styles pour les badges
-.badges-grid {
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-}
-
-.badge-item {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start;
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--ion-color-light);
-    transition: all 0.3s ease;
-
-    &.unlocked {
-        background: var(--ion-color-light-tint);
-        border-color: var(--ion-color-success);
-    }
-
-    &.next-badge {
-        background: var(--ion-color-warning-tint);
-        border-color: var(--ion-color-warning);
-        opacity: 0.8;
-    }
-
-    .badge-icon {
-        font-size: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 3rem;
-
-        ion-icon {
-            font-size: 2rem;
-        }
-    }
-
-    .badge-info {
-        flex: 1;
-
-        h4 {
-            margin: 0 0 0.5rem 0;
-            color: var(--ion-color-primary);
-        }
-
-        .badge-description {
-            margin: 0 0 0.75rem 0;
-            color: var(--ion-color-medium-shade);
-            font-size: 0.9em;
-        }
-
-        .badge-details {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .badge-date,
-        .badge-requirements {
-            margin: 0.25rem 0 0 0;
-            color: var(--ion-color-medium);
+    ion-segment {
+        ion-segment-button {
+            font-size: 0.8em;
         }
     }
 }
 
-.no-badges {
-    text-align: center;
-    padding: 2rem;
-    color: var(--ion-color-medium);
-}
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+    .stat-card {
+        background: var(--ion-color-dark);
 
-.all-badges-complete {
-    text-align: center;
-    padding: 2rem;
-
-    h3 {
-        color: var(--ion-color-success);
-        margin-bottom: 1rem;
-    }
-
-    p {
-        color: var(--ion-color-medium);
-        margin: 0;
-    }
-}
-
-@media (max-width: 768px) {
-    .badges-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .badge-item {
-        .badge-details {
-            flex-direction: column;
-            gap: 0.25rem;
+        h3 {
+            color: var(--ion-color-primary-tint);
         }
     }
 }
 
-// === STYLES POUR LA MIGRATION DES BADGES ===
-.migration-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    margin: 1rem 0;
+// Animation pour les données en temps réel
+.realtime-item {
+    animation: fadeIn 0.3s ease-in-out;
 }
 
-.migration-results {
-    background: var(--ion-color-light);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-top: 1rem;
-    border-left: 4px solid var(--ion-color-primary);
-
-    h4 {
-        margin: 0 0 0.5rem 0;
-        color: var(--ion-color-primary);
-        font-size: 1rem;
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
     }
 
-    p {
-        margin: 0.25rem 0;
-        font-size: 0.9rem;
-
-        &:last-child {
-            margin-bottom: 0;
-        }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-// === STYLES POUR LA RÉINITIALISATION DE LA BASE DE DONNÉES ===
-.confirmation-step,
-.final-confirmation {
+// Style pour les alertes
+.alert-panel {
     background: var(--ion-color-warning-tint);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin: 1rem 0;
-    border-left: 4px solid var(--ion-color-warning);
-
-    p {
-        margin: 0.5rem 0;
-        font-weight: 500;
-    }
+    border: 1px solid var(--ion-color-warning);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
 }
 
-.final-confirmation {
-    background: var(--ion-color-danger-tint);
-    border-left-color: var(--ion-color-danger);
-
-    ion-item {
-        margin: 1rem 0;
-        --background: rgba(255, 255, 255, 0.1);
-        --border-radius: 0.5rem;
-    }
+// Style pour les métriques importantes
+.metric-highlight {
+    font-weight: bold;
+    color: var(--ion-color-primary);
 }
 
-.button-group {
+// Layout pour les filtres
+.filters-row {
     display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-    margin-top: 1rem;
+    gap: 8px;
+    margin: 16px 0;
 
-    ion-button {
+    ion-select {
         flex: 1;
-        max-width: 150px;
     }
 }
 
-.reset-progress {
-    text-align: center;
-    padding: 2rem 1rem;
-    background: var(--ion-color-danger-tint);
-    border-radius: 0.5rem;
-    margin: 1rem 0;
-
-    ion-spinner {
-        margin-bottom: 1rem;
-    }
-
-    p {
-        margin: 0.5rem 0;
-
-        &:first-of-type {
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-
-        &:last-of-type {
-            font-style: italic;
-            color: var(--ion-color-medium);
-        }
-    }
+// Style pour les cartes de statut
+.status-healthy {
+    border-left: 4px solid var(--ion-color-success);
 }
 
-.reset-results {
-    background: var(--ion-color-light);
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-top: 1rem;
+.status-warning {
+    border-left: 4px solid var(--ion-color-warning);
+}
+
+.status-error {
     border-left: 4px solid var(--ion-color-danger);
-
-    h4 {
-        margin: 0 0 0.5rem 0;
-        color: var(--ion-color-danger);
-        font-size: 1rem;
-    }
-
-    div {
-        margin: 0.25rem 0;
-        font-size: 0.9rem;
-        line-height: 1.4;
-
-        &:last-child {
-            margin-bottom: 0;
-        }
-    }
 }
