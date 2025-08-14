@@ -52,11 +52,21 @@ export class SupabaseService {
                 return;
             }
 
-            this.authChangeTimeout = setTimeout(() => {
+            this.authChangeTimeout = setTimeout(async () => {
                 this.lastAuthUserId = currentUserId;
 
                 if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                     this.currentUser.next(session?.user || null);
+
+                    // Enregistrer la connexion pour le monitoring temps réel
+                    if (session?.user && event === 'SIGNED_IN') {
+                        try {
+                            await this.logUserLogin(session.user.id);
+                            supabaseLog('🔐 User login logged for real-time monitoring');
+                        } catch (error) {
+                            console.warn('Could not log user login:', error);
+                        }
+                    }
                 } else if (event === 'SIGNED_OUT') {
                     this.lastAuthUserId = null;
                     this.currentUser.next(null);
@@ -1338,27 +1348,37 @@ export class SupabaseService {
     // Récupérer les statistiques globales
     async getDashboardStats(): Promise<any> {
         try {
-            const { data: stats, error } = await this.supabase
-                .rpc('get_database_stats');
+            // Récupérer les statistiques directement depuis les tables
+            const [usersCount, failsCount, reactionsCount] = await Promise.all([
+                this.getTableCount('profiles'),
+                this.getTableCount('fails'),
+                this.getTableCount('reactions')
+            ]);
 
-            if (error) throw error;
-            return stats[0] || {
-                total_users: 0,
-                total_fails: 0,
-                total_reactions: 0,
-                total_system_logs: 0,
-                total_reaction_logs: 0,
-                average_reactions_per_fail: 0
+            // Calculer l'activité d'aujourd'hui (fails créés aujourd'hui)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const { count: todayActivity } = await this.supabase
+                .from('fails')
+                .select('*', { count: 'exact', head: true })
+                .gte('created_at', today.toISOString());
+
+            // Retourner les stats avec les noms de propriétés attendus par le template
+            return {
+                totalUsers: usersCount,
+                totalFails: failsCount,
+                totalReactions: reactionsCount,
+                todayActivity: todayActivity || 0,
+                systemStatus: 'healthy'
             };
         } catch (error) {
             console.error('Erreur récupération statistiques:', error);
             return {
-                total_users: 0,
-                total_fails: 0,
-                total_reactions: 0,
-                total_system_logs: 0,
-                total_reaction_logs: 0,
-                average_reactions_per_fail: 0
+                totalUsers: 0,
+                totalFails: 0,
+                totalReactions: 0,
+                todayActivity: 0,
+                systemStatus: 'error'
             };
         }
     }
@@ -1366,20 +1386,151 @@ export class SupabaseService {
     // Analyser l'intégrité de la base de données
     async analyzeDatabaseIntegrity(): Promise<any> {
         try {
-            const [orphanedReactions, invalidCounts] = await Promise.all([
-                this.supabase.rpc('find_orphaned_reactions'),
-                this.supabase.rpc('find_invalid_reaction_counts')
+            console.log('🔍 Début de l\'analyse d\'intégrité de la base de données...');
+
+            // 1. Statistiques générales
+            const [profilesCount, failsCount, reactionsCount, systemLogsCount] = await Promise.all([
+                this.getTableCount('profiles'),
+                this.getTableCount('fails'),
+                this.getTableCount('reactions'),
+                this.getTableCount('system_logs')
             ]);
 
-            return {
-                orphanedReactions: orphanedReactions.data || [],
-                invalidCounts: invalidCounts.data || []
+            // 2. Analyser les réactions orphelines (réactions sans fail correspondant)
+            const { data: orphanedReactions, error: orphanError } = await this.supabase
+                .from('reactions')
+                .select('id, fail_id, user_id, reaction_type')
+                .not('fail_id', 'in', `(SELECT id FROM fails)`);
+
+            // 3. Analyser les profils sans email
+            const { data: profilesWithoutEmail, error: emailError } = await this.supabase
+                .from('profiles')
+                .select('id, display_name, email')
+                .is('email', null);
+
+            // 4. Fails avec des compteurs de réactions incohérents
+            const { data: failsData, error: failsError } = await this.supabase
+                .from('fails')
+                .select('id, title, reactions');
+
+            let inconsistentReactionCounts = 0;
+            const problematicFails: any[] = [];
+
+            if (failsData && !failsError) {
+                for (const fail of failsData) {
+                    const { count: actualReactionsCount } = await this.supabase
+                        .from('reactions')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('fail_id', fail.id);
+
+                    const reactions = fail.reactions || {};
+                    const storedTotal = (reactions.courage || 0) + (reactions.laugh || 0) +
+                        (reactions.empathy || 0) + (reactions.support || 0);
+
+                    if (storedTotal !== (actualReactionsCount || 0)) {
+                        inconsistentReactionCounts++;
+                        problematicFails.push({
+                            id: fail.id,
+                            title: fail.title.substring(0, 50) + '...',
+                            storedCount: storedTotal,
+                            actualCount: actualReactionsCount || 0,
+                            difference: storedTotal - (actualReactionsCount || 0)
+                        });
+                    }
+                }
+            }
+
+            // 5. Utilisateurs avec des statistiques manquantes
+            const { data: usersWithoutStats, error: statsError } = await this.supabase
+                .from('profiles')
+                .select('id, display_name, stats')
+                .is('stats', null);
+
+            // 6. Activité récente (dernières 24h)
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const [recentFails, recentReactions, recentUsers] = await Promise.all([
+                this.supabase
+                    .from('fails')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', yesterday.toISOString()),
+                this.supabase
+                    .from('reactions')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', yesterday.toISOString()),
+                this.supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', yesterday.toISOString())
+            ]);
+
+            const analysisResult = {
+                timestamp: new Date().toISOString(),
+                totalTables: 4,
+                globalStats: {
+                    totalProfiles: profilesCount,
+                    totalFails: failsCount,
+                    totalReactions: reactionsCount,
+                    totalSystemLogs: systemLogsCount
+                },
+                integrityIssues: {
+                    orphanedReactions: orphanedReactions?.length || 0,
+                    orphanedReactionsList: orphanedReactions || [],
+                    profilesWithoutEmail: profilesWithoutEmail?.length || 0,
+                    inconsistentReactionCounts,
+                    problematicFails: problematicFails.slice(0, 10), // Limiter à 10 pour l'affichage
+                    usersWithoutStats: usersWithoutStats?.length || 0
+                },
+                recentActivity: {
+                    newFailsLast24h: recentFails.count || 0,
+                    newReactionsLast24h: recentReactions.count || 0,
+                    newUsersLast24h: recentUsers.count || 0
+                },
+                recommendations: [] as string[],
+                totalIssues: (orphanedReactions?.length || 0) +
+                    (profilesWithoutEmail?.length || 0) +
+                    inconsistentReactionCounts +
+                    (usersWithoutStats?.length || 0)
             };
-        } catch (error) {
-            console.error('Erreur analyse intégrité:', error);
+
+            // Générer des recommandations
+            if (analysisResult.integrityIssues.orphanedReactions > 0) {
+                analysisResult.recommendations.push(`Supprimer ${analysisResult.integrityIssues.orphanedReactions} réactions orphelines`);
+            }
+            if (analysisResult.integrityIssues.profilesWithoutEmail > 0) {
+                analysisResult.recommendations.push(`Corriger ${analysisResult.integrityIssues.profilesWithoutEmail} profils sans email`);
+            }
+            if (inconsistentReactionCounts > 0) {
+                analysisResult.recommendations.push(`Recalculer les compteurs de ${inconsistentReactionCounts} fails`);
+            }
+            if (analysisResult.integrityIssues.usersWithoutStats > 0) {
+                analysisResult.recommendations.push(`Initialiser les statistiques pour ${analysisResult.integrityIssues.usersWithoutStats} utilisateurs`);
+            }
+
+            console.log('✅ Analyse d\'intégrité terminée:', analysisResult);
+            return analysisResult;
+
+        } catch (error: any) {
+            console.error('❌ Erreur lors de l\'analyse d\'intégrité:', error);
             return {
-                orphanedReactions: [],
-                invalidCounts: []
+                timestamp: new Date().toISOString(),
+                error: true,
+                errorMessage: error?.message || 'Erreur inconnue',
+                totalIssues: 0,
+                globalStats: {
+                    totalProfiles: 0,
+                    totalFails: 0,
+                    totalReactions: 0,
+                    totalSystemLogs: 0
+                },
+                integrityIssues: {
+                    orphanedReactions: 0,
+                    profilesWithoutEmail: 0,
+                    inconsistentReactionCounts: 0,
+                    usersWithoutStats: 0
+                },
+                recommendations: ['Erreur lors de l\'analyse - Vérifier la connexion à la base de données']
             };
         }
     }
@@ -1391,6 +1542,212 @@ export class SupabaseService {
             if (error) throw error;
         } catch (error) {
             console.error('Erreur correction compteurs réactions:', error);
+            // Fallback vers la méthode manuelle
+            await this.fixFailReactionCounts(failId);
+        }
+    }
+
+    // ===== NOUVELLES MÉTHODES POUR L'ANALYSE DÉTAILLÉE =====
+
+    // Analyser un fail spécifique avec tous ses détails
+    async analyzeSpecificFail(failId: string): Promise<any> {
+        try {
+            console.log(`🔍 Analyse détaillée du fail: ${failId}`);
+
+            // 1. Récupérer les informations du fail SANS jointure
+            const { data: failData, error: failError } = await this.supabase
+                .from('fails')
+                .select(`
+                    id, 
+                    title, 
+                    description, 
+                    reactions, 
+                    created_at,
+                    user_id
+                `)
+                .eq('id', failId)
+                .single();
+
+            if (failError) {
+                console.error('Erreur récupération fail:', failError);
+                throw failError;
+            }
+
+            // 2. Récupérer les informations de l'auteur séparément
+            let authorInfo = null;
+            if (failData.user_id) {
+                try {
+                    const { data: profileData, error: profileError } = await this.supabase
+                        .from('profiles')
+                        .select('id, display_name, email')
+                        .eq('id', failData.user_id)
+                        .single();
+
+                    if (!profileError) {
+                        authorInfo = profileData;
+                    }
+                } catch (profileErr) {
+                    console.warn('Impossible de récupérer les infos de l\'auteur:', profileErr);
+                }
+            }
+
+            // 3. Récupérer toutes les réactions avec détails des utilisateurs qui ont réagi
+            const { data: realReactions, error: reactionsError } = await this.supabase
+                .from('reactions')
+                .select('reaction_type, user_id, created_at')
+                .eq('fail_id', failId);
+
+            if (reactionsError) {
+                console.error('Erreur récupération réactions:', reactionsError);
+                throw reactionsError;
+            }
+
+            // 4. Récupérer les profils de tous les utilisateurs qui ont réagi
+            const userIds = [...new Set(realReactions?.map(r => r.user_id) || [])];
+            let reactionUsers: any[] = [];
+            if (userIds.length > 0) {
+                try {
+                    const { data: usersData, error: usersError } = await this.supabase
+                        .from('profiles')
+                        .select('id, display_name')
+                        .in('id', userIds);
+
+                    if (!usersError) {
+                        reactionUsers = usersData || [];
+                    }
+                } catch (usersErr) {
+                    console.warn('Impossible de récupérer les infos des utilisateurs qui ont réagi:', usersErr);
+                }
+            }
+
+            // 5. Calculer les statistiques détaillées
+            const storedReactions = failData.reactions || {};
+            const storedTotal = (storedReactions.courage || 0) +
+                (storedReactions.support || 0) +
+                (storedReactions.empathy || 0) +
+                (storedReactions.laugh || 0);
+
+            const reactionBreakdown = {
+                courage: realReactions?.filter(r => r.reaction_type === 'courage').length || 0,
+                support: realReactions?.filter(r => r.reaction_type === 'support').length || 0,
+                empathy: realReactions?.filter(r => r.reaction_type === 'empathy').length || 0,
+                laugh: realReactions?.filter(r => r.reaction_type === 'laugh').length || 0
+            };
+
+            const actualTotal = reactionBreakdown.courage + reactionBreakdown.support +
+                reactionBreakdown.empathy + reactionBreakdown.laugh;
+
+            // 6. Détails des réactions avec utilisateurs
+            const reactionDetails = {
+                courage: realReactions?.filter(r => r.reaction_type === 'courage').map(r => ({
+                    user: reactionUsers.find(u => u.id === r.user_id)?.display_name || 'Utilisateur inconnu',
+                    date: r.created_at
+                })) || [],
+                support: realReactions?.filter(r => r.reaction_type === 'support').map(r => ({
+                    user: reactionUsers.find(u => u.id === r.user_id)?.display_name || 'Utilisateur inconnu',
+                    date: r.created_at
+                })) || [],
+                empathy: realReactions?.filter(r => r.reaction_type === 'empathy').map(r => ({
+                    user: reactionUsers.find(u => u.id === r.user_id)?.display_name || 'Utilisateur inconnu',
+                    date: r.created_at
+                })) || [],
+                laugh: realReactions?.filter(r => r.reaction_type === 'laugh').map(r => ({
+                    user: reactionUsers.find(u => u.id === r.user_id)?.display_name || 'Utilisateur inconnu',
+                    date: r.created_at
+                })) || []
+            };
+
+            // 7. Calculer les différences par type
+            const differencesByType = {
+                courage: (storedReactions.courage || 0) - reactionBreakdown.courage,
+                support: (storedReactions.support || 0) - reactionBreakdown.support,
+                empathy: (storedReactions.empathy || 0) - reactionBreakdown.empathy,
+                laugh: (storedReactions.laugh || 0) - reactionBreakdown.laugh
+            };
+
+            const analysis = {
+                id: failData.id,
+                title: failData.title,
+                description: failData.description,
+                created_at: failData.created_at,
+                author: authorInfo,
+                storedReactions: storedTotal,
+                actualReactions: actualTotal,
+                difference: storedTotal - actualTotal,
+                storedBreakdown: {
+                    courage: storedReactions.courage || 0,
+                    support: storedReactions.support || 0,
+                    empathy: storedReactions.empathy || 0,
+                    laugh: storedReactions.laugh || 0
+                },
+                reactionBreakdown,
+                differencesByType,
+                reactionDetails,
+                isProblematic: storedTotal !== actualTotal,
+                correction: {
+                    shouldReset: actualTotal === 0 && storedTotal > 0,
+                    shouldUpdate: actualTotal > 0 && storedTotal !== actualTotal
+                }
+            };
+
+            console.log('✅ Analyse du fail terminée:', analysis);
+            return analysis;
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'analyse du fail:', error);
+            throw error;
+        }
+    }
+
+    // Corriger les compteurs d'un fail spécifique
+    async fixFailReactionCounts(failId: string): Promise<any> {
+        try {
+            console.log(`🔧 Correction des compteurs pour le fail: ${failId}`);
+
+            // 1. Récupérer les réactions réelles
+            const { data: realReactions, error: reactionsError } = await this.supabase
+                .from('reactions')
+                .select('reaction_type')
+                .eq('fail_id', failId);
+
+            if (reactionsError) {
+                console.error('Erreur récupération réactions pour correction:', reactionsError);
+                throw reactionsError;
+            }
+
+            // 2. Calculer les compteurs corrects
+            const correctCounts = {
+                courage: realReactions?.filter(r => r.reaction_type === 'courage').length || 0,
+                support: realReactions?.filter(r => r.reaction_type === 'support').length || 0,
+                empathy: realReactions?.filter(r => r.reaction_type === 'empathy').length || 0,
+                laugh: realReactions?.filter(r => r.reaction_type === 'laugh').length || 0
+            };
+
+            // 3. Mettre à jour le fail avec les compteurs corrects
+            const { data: updatedFail, error: updateError } = await this.supabase
+                .from('fails')
+                .update({ reactions: correctCounts })
+                .eq('id', failId)
+                .select()
+                .single();
+
+            if (updateError) {
+                console.error('Erreur mise à jour compteurs:', updateError);
+                throw updateError;
+            }
+
+            const result = {
+                failId,
+                oldCounts: updatedFail.reactions,
+                newCounts: correctCounts,
+                totalFixed: correctCounts.courage + correctCounts.support +
+                    correctCounts.empathy + correctCounts.laugh
+            };
+
+            console.log('✅ Compteurs corrigés:', result);
+            return result;
+
+        } catch (error) {
+            console.error('❌ Erreur lors de la correction des compteurs:', error);
             throw error;
         }
     }
@@ -1495,6 +1852,91 @@ export class SupabaseService {
             if (error) throw error;
         } catch (error) {
             console.error('Erreur sauvegarde config points:', error);
+            throw error;
+        }
+    }
+
+    // Restaurer les configurations essentielles après un reset
+    async restoreEssentialConfigurations(): Promise<void> {
+        try {
+            const configurations = [
+                // Configuration des points (valeurs par défaut)
+                {
+                    key: 'points_config',
+                    value: {
+                        createFailPoints: 10,
+                        courageReactionPoints: 2,
+                        laughReactionPoints: 1,
+                        empathyReactionPoints: 2,
+                        supportReactionPoints: 2,
+                        dailyBonusPoints: 5
+                    },
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                },
+                // Remise à zéro de tous les compteurs et stats après un reset complet
+                {
+                    key: 'stats_global',
+                    value: {
+                        totalFails: 0,
+                        totalUsers: 0,
+                        totalReactions: 0,
+                        totalComments: 0,
+                        totalBadgesAwarded: 0,
+                        lastResetDate: new Date().toISOString()
+                    },
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                },
+                // Configuration de l'application (réglages généraux remis par défaut)
+                {
+                    key: 'app_settings',
+                    value: {
+                        maintenanceMode: false,
+                        allowRegistrations: true,
+                        maxFailsPerDay: 10,
+                        minDescriptionLength: 10,
+                        maxDescriptionLength: 500,
+                        lastMaintenanceDate: new Date().toISOString()
+                    },
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                }
+            ];
+
+            for (const config of configurations) {
+                // D'abord essayer un UPDATE, sinon faire un INSERT
+                let { error } = await this.supabase
+                    .from('app_config')
+                    .update({
+                        value: config.value,
+                        updated_at: config.updated_at
+                    })
+                    .eq('key', config.key);
+
+                // Si l'UPDATE n'a affecté aucune ligne (la clé n'existait pas), faire un INSERT
+                if (!error) {
+                    const { count } = await this.supabase
+                        .from('app_config')
+                        .select('*', { count: 'exact' })
+                        .eq('key', config.key);
+
+                    if (count === 0) {
+                        ({ error } = await this.supabase
+                            .from('app_config')
+                            .insert(config));
+                    }
+                }
+
+                if (error) {
+                    console.error(`Erreur restauration config ${config.key}:`, error);
+                    throw error;
+                }
+            }
+
+            console.log('✅ Configurations essentielles restaurées avec remise à zéro des stats');
+        } catch (error) {
+            console.error('Erreur lors de la restauration des configurations:', error);
             throw error;
         }
     }
@@ -1705,6 +2147,355 @@ export class SupabaseService {
             );
         } catch (error) {
             console.error('Erreur modification compte utilisateur:', error);
+            throw error;
+        }
+    }
+
+    // ====== DATABASE TRUNCATE METHODS ======
+
+    async truncateTable(tableName: string, isAuthTable: boolean = false): Promise<{ success: boolean, message: string }> {
+        try {
+            if (isAuthTable) {
+                // Pour les tables auth, nous devons utiliser une approche différente
+                // car nous n'avons pas accès direct aux tables auth en tant que client
+                return {
+                    success: false,
+                    message: `Les tables auth ne peuvent pas être vidées directement depuis l'application pour des raisons de sécurité. Utilisez l'interface d'administration Supabase.`
+                };
+            }
+
+            // Tables autorisées pour le reset administrateur (SANS app_config)
+            const validTables = [
+                'fails', 'reactions', 'profiles', 'comments', 'badges', 'user_badges',
+                'system_logs', 'activity_logs', 'reaction_logs', 'user_activities',
+                'user_management_logs', 'user_preferences'
+            ];
+
+            if (!validTables.includes(tableName)) {
+                return {
+                    success: false,
+                    message: `Table non autorisée: ${tableName}`
+                };
+            }
+
+            console.log(`🔥 Tentative de vidage de ${tableName}...`);
+
+            // Compter les enregistrements avant suppression avec fonction RPC admin
+            const { data: beforeCount, error: countError } = await this.supabase
+                .rpc('admin_count_table', { table_name: tableName });
+
+            if (countError) {
+                console.error(`❌ Erreur lors du comptage RPC de ${tableName}:`, countError);
+                // Fallback sur comptage standard
+                const { count: fallbackCount } = await this.supabase.from(tableName)
+                    .select('*', { count: 'exact', head: true });
+                console.log(`📊 ${tableName} contient ${fallbackCount || 0} enregistrements avant suppression`);
+            } else {
+                console.log(`📊 ${tableName} contient ${beforeCount || 0} enregistrements avant suppression`);
+
+                // Si la table est déjà vide, pas besoin de la vider
+                if (beforeCount === 0) {
+                    console.log(`✅ Table ${tableName} déjà vide`);
+                    console.log(`Action de vidage effectuée sur la table: ${tableName}`);
+                    return {
+                        success: true,
+                        message: `Table ${tableName} était déjà vide`
+                    };
+                }
+            }
+
+            let deleteSuccess = false;
+            let deleteError = null;
+
+            // Stratégie 1: Utiliser la fonction TRUNCATE RPC (plus efficace et bypass RLS)
+            console.log(`🔄 Stratégie 1: RPC TRUNCATE avec bypass RLS...`);
+            const { error: truncateError } = await this.supabase
+                .rpc('admin_truncate_table', { table_name: tableName });
+
+            if (!truncateError) {
+                // Vérifier le résultat avec fonction RPC
+                const { data: afterTruncateCount } = await this.supabase
+                    .rpc('admin_count_table', { table_name: tableName });
+
+                if (afterTruncateCount === 0) {
+                    console.log(`✅ Stratégie RPC TRUNCATE réussie pour ${tableName}`);
+                    deleteSuccess = true;
+                } else {
+                    console.log(`❌ Stratégie RPC TRUNCATE inefficace pour ${tableName} (${afterTruncateCount} restants)`);
+                }
+            } else {
+                console.log(`❌ Stratégie RPC TRUNCATE échouée pour ${tableName}:`, truncateError);
+                deleteError = truncateError;
+            }
+
+            // Stratégie 2: Utiliser la fonction DELETE RPC (si TRUNCATE échoue)
+            if (!deleteSuccess) {
+                console.log(`🔄 Stratégie 2: RPC DELETE avec bypass RLS...`);
+                const { error: deleteRpcError } = await this.supabase
+                    .rpc('admin_delete_all', { table_name: tableName });
+
+                if (!deleteRpcError) {
+                    const { data: afterDeleteCount } = await this.supabase
+                        .rpc('admin_count_table', { table_name: tableName });
+
+                    if (afterDeleteCount === 0) {
+                        console.log(`✅ Stratégie RPC DELETE réussie pour ${tableName}`);
+                        deleteSuccess = true;
+                    } else {
+                        console.log(`❌ Stratégie RPC DELETE inefficace pour ${tableName} (${afterDeleteCount} restants)`);
+                    }
+                } else {
+                    console.log(`❌ Stratégie RPC DELETE échouée pour ${tableName}:`, deleteRpcError);
+                    deleteError = deleteRpcError;
+                }
+            }
+
+            // Stratégie 3: DELETE standard avec condition created_at (fallback classique)
+            if (!deleteSuccess) {
+                console.log(`🔄 Stratégie 3: DELETE standard avec created_at...`);
+                const query = this.supabase.from(tableName);
+                const { error: error3 } = await query
+                    .delete()
+                    .gte('created_at', '2000-01-01T00:00:00.000Z');
+
+                if (!error3) {
+                    const { count: afterCount3 } = await query
+                        .select('*', { count: 'exact', head: true });
+                    if ((afterCount3 || 0) === 0) {
+                        console.log(`✅ Stratégie DELETE standard réussie pour ${tableName}`);
+                        deleteSuccess = true;
+                    } else {
+                        console.log(`❌ Stratégie DELETE standard inefficace pour ${tableName} (${afterCount3} restants)`);
+                    }
+                } else {
+                    console.log(`❌ Stratégie DELETE standard échouée pour ${tableName}:`, error3);
+                    deleteError = error3;
+                }
+            }
+
+            if (!deleteSuccess) {
+                console.error(`❌ TOUTES les stratégies ont échoué pour ${tableName}`);
+                console.error(`💡 Suggestion: Exécuter le fichier sql/admin_reset_functions.sql dans Supabase Dashboard`);
+                return {
+                    success: false,
+                    message: `Impossible de vider ${tableName}: ${deleteError?.message || 'Permissions RLS insuffisantes. Fonctions RPC admin requises.'}`
+                };
+            }
+
+            // Vérifier le résultat final
+            const { data: finalCount } = await this.supabase
+                .rpc('admin_count_table', { table_name: tableName });
+
+            if (finalCount !== null) {
+                console.log(`📊 ${tableName} contient maintenant ${finalCount} enregistrements`);
+            } else {
+                const { count: fallbackFinalCount } = await this.supabase.from(tableName)
+                    .select('*', { count: 'exact', head: true });
+                console.log(`📊 ${tableName} contient maintenant ${fallbackFinalCount || 0} enregistrements`);
+            }
+
+            // Logger l'action de vidage
+            console.log(`Action de vidage effectuée sur la table: ${tableName}`);
+
+            return {
+                success: true,
+                message: `Table ${tableName} vidée avec succès`
+            };
+
+        } catch (error) {
+            console.error(`Erreur générale lors du vidage de ${tableName}:`, error);
+            return {
+                success: false,
+                message: `Erreur inattendue: ${error}`
+            };
+        }
+    }
+
+    /**
+     * 👥 Supprime tous les utilisateurs d'authentification
+     */
+    async deleteAllAuthUsers(): Promise<{ success: boolean, message: string }> {
+        try {
+            console.log('🧹 Tentative de suppression de tous les utilisateurs...');
+
+            // Compter les utilisateurs avant suppression
+            const { data: beforeCount, error: countError } = await this.supabase
+                .rpc('admin_count_auth_users');
+
+            if (countError) {
+                console.error('❌ Erreur lors du comptage des utilisateurs:', countError);
+                return {
+                    success: false,
+                    message: `Erreur lors du comptage des utilisateurs: ${countError.message}`
+                };
+            }
+
+            console.log(`📊 ${beforeCount} utilisateurs trouvés dans auth.users`);
+
+            if (beforeCount === 0) {
+                console.log('✅ Aucun utilisateur à supprimer');
+                return {
+                    success: true,
+                    message: 'Aucun utilisateur à supprimer'
+                };
+            }
+
+            // Supprimer tous les utilisateurs avec fonction RPC
+            const { data: deletedCount, error: deleteError } = await this.supabase
+                .rpc('admin_delete_all_users');
+
+            if (deleteError) {
+                console.error('❌ Erreur lors de la suppression des utilisateurs:', deleteError);
+                return {
+                    success: false,
+                    message: `Erreur lors de la suppression: ${deleteError.message}`
+                };
+            }
+
+            // Vérifier le résultat
+            const { data: afterCount } = await this.supabase
+                .rpc('admin_count_auth_users');
+
+            console.log(`✅ ${deletedCount} utilisateurs supprimés`);
+            console.log(`📊 ${afterCount || 0} utilisateurs restants dans auth.users`);
+
+            return {
+                success: true,
+                message: `${deletedCount} utilisateurs supprimés avec succès`
+            };
+
+        } catch (error) {
+            console.error('❌ Erreur générale lors de la suppression des utilisateurs:', error);
+            return {
+                success: false,
+                message: `Erreur inattendue: ${error}`
+            };
+        }
+    }
+
+    /**
+     * Insère les configurations par défaut nécessaires au fonctionnement de l'application
+     */
+    private async insertDefaultConfigurations(): Promise<void> {
+        try {
+            // Configuration des points par défaut
+            const pointsConfig = {
+                key: 'points_config',
+                value: {
+                    daily_fail: 1,
+                    weekly_bonus: 5,
+                    monthly_bonus: 20,
+                    comment: 1,
+                    reaction: 1,
+                    streak_multiplier: 1.5,
+                    achievements: {
+                        first_fail: 10,
+                        first_week: 25,
+                        first_month: 50
+                    }
+                },
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            };
+
+            const { error } = await this.supabase
+                .from('app_config')
+                .insert([pointsConfig]);
+
+            if (error) {
+                console.error('Erreur insertion configuration par défaut:', error);
+            } else {
+                console.log('✅ Configuration par défaut des points réinsérée');
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'insertion des configurations par défaut:', error);
+        }
+    }
+
+    // ====== MÉTHODES DE GESTION DES BADGE DEFINITIONS ======
+
+    async getAllBadgeDefinitions(): Promise<any[]> {
+        try {
+            const { data, error } = await this.supabase
+                .from('badge_definitions')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Erreur lors de la récupération des badges:', error);
+                throw error;
+            }
+
+            return data || [];
+        } catch (error) {
+            console.error('Erreur getAllBadgeDefinitions:', error);
+            throw error;
+        }
+    }
+
+    async createBadgeDefinition(badgeData: any): Promise<any> {
+        try {
+            const { data, error } = await this.supabase
+                .from('badge_definitions')
+                .insert([{
+                    name: badgeData.name,
+                    description: badgeData.description,
+                    icon: badgeData.icon,
+                    category: badgeData.category,
+                    rarity: badgeData.rarity,
+                    requirement_type: badgeData.requirement_type,
+                    requirement_value: badgeData.requirement_value
+                }])
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Erreur lors de la création du badge:', error);
+                throw error;
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Erreur createBadgeDefinition:', error);
+            throw error;
+        }
+    }
+
+    async deleteBadgeDefinition(badgeId: string): Promise<void> {
+        try {
+            // D'abord supprimer les références dans user_badges
+            const { error: userBadgesError } = await this.supabase
+                .from('user_badges')
+                .delete()
+                .eq('badge_definition_id', badgeId);
+
+            if (userBadgesError) {
+                console.warn('Erreur lors de la suppression des user_badges:', userBadgesError);
+                // Continue quand même, au cas où il n'y aurait pas de références
+            }
+
+            // Supprimer les références dans badges (historique)
+            const { error: badgesError } = await this.supabase
+                .from('badges')
+                .delete()
+                .eq('badge_definition_id', badgeId);
+
+            if (badgesError) {
+                console.warn('Erreur lors de la suppression des badges historiques:', badgesError);
+            }
+
+            // Finalement supprimer la définition du badge
+            const { error } = await this.supabase
+                .from('badge_definitions')
+                .delete()
+                .eq('id', badgeId);
+
+            if (error) {
+                console.error('Erreur lors de la suppression de la définition du badge:', error);
+                throw error;
+            }
+        } catch (error) {
+            console.error('Erreur deleteBadgeDefinition:', error);
             throw error;
         }
     }

@@ -50,6 +50,21 @@ export class AdminService {
         }
     }
 
+    // RESTAURATION D'URGENCE
+    async restoreEssentialConfigurations() {
+        this.debugService.addLog('info', 'AdminService', 'Restoring essential configurations...');
+
+        try {
+            await this.supabaseService.restoreEssentialConfigurations();
+            await this.logSystemEvent('info', 'Essential configurations restored after database reset');
+
+            this.debugService.addLog('info', 'AdminService', 'Essential configurations restored successfully');
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminService', 'Error restoring essential configurations', error);
+            throw error;
+        }
+    }
+
     // SYSTEM LOGS
     async logSystemEvent(level: 'info' | 'warning' | 'error' | 'debug', message: string, details?: any, userId?: string, action?: string) {
         try {
@@ -93,6 +108,26 @@ export class AdminService {
             return await this.supabaseService.analyzeDatabaseIntegrity();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error analyzing database integrity', error);
+            throw error;
+        }
+    }
+
+    async analyzeSpecificFail(failId: string) {
+        this.debugService.addLog('info', 'AdminService', 'Analyzing specific fail', { failId });
+        try {
+            return await this.supabaseService.analyzeSpecificFail(failId);
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminService', 'Error analyzing specific fail', error);
+            throw error;
+        }
+    }
+
+    async fixFailReactionCounts(failId: string) {
+        this.debugService.addLog('info', 'AdminService', 'Fixing fail reaction counts', { failId });
+        try {
+            return await this.supabaseService.fixFailReactionCounts(failId);
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminService', 'Error fixing fail reaction counts', error);
             throw error;
         }
     }
@@ -294,17 +329,121 @@ export class AdminService {
     // AMÉLIORATION DU TEMPS RÉEL
     async getRealTimeEvents() {
         try {
-            // Obtenir les derniers événements en temps réel depuis la base de données
-            const recentEvents = await this.supabaseService.getActivityLogsByType('all', 1, 10); // Dernière heure, 10 événements max
+            // 1. Récupérer les utilisateurs actifs via une méthode alternative
+            const activeUsers = await this.getActiveUsers();
+
+            // 2. Récupérer les événements récents (dernière heure)
+            const recentEvents = await this.supabaseService.getActivityLogsByType('all', 1, 50);
+
+            // 3. Filtrer les événements vraiment récents (derniers 30 min)
+            const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+            const veryRecentEvents = recentEvents.filter(event =>
+                new Date(event.log_timestamp) > thirtyMinutesAgo
+            );
+
+            // 4. Si pas d'utilisateurs actifs détectés mais qu'on sait qu'il y en a un connecté
+            const currentUser = await this.supabaseService.getCurrentUser();
+            const finalActiveCount = activeUsers.length > 0 ? activeUsers.length : (currentUser ? 1 : 0);
+
+            console.log('🔴 Real-time monitoring:', {
+                dbEvents: veryRecentEvents.length,
+                activeUsersFromLogs: activeUsers.length,
+                currentUserExists: !!currentUser,
+                finalActiveCount: finalActiveCount
+            });
+
+            // 5. Si pas d'utilisateurs actifs détectés, essayer de récupérer le profil de l'utilisateur actuel
+            let finalActiveUsers = activeUsers;
+            if (activeUsers.length === 0 && currentUser) {
+                try {
+                    const currentUserProfile = await this.supabaseService.getProfile(currentUser.id);
+                    if (currentUserProfile) {
+                        finalActiveUsers = [currentUserProfile];
+                    } else {
+                        // Fallback avec les données minimales
+                        finalActiveUsers = [{
+                            id: currentUser.id,
+                            display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
+                            username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                            email: currentUser.email
+                        }];
+                    }
+                } catch (error) {
+                    // En cas d'erreur, utiliser les données de base
+                    finalActiveUsers = [{
+                        id: currentUser.id,
+                        display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
+                        username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                        email: currentUser.email
+                    }];
+                }
+            }
 
             return {
-                events: recentEvents,
+                events: veryRecentEvents,
                 lastUpdate: new Date().toISOString(),
-                eventCount: recentEvents.length
+                eventCount: veryRecentEvents.length,
+                activeUsersCount: finalActiveCount,
+                activeUsers: finalActiveUsers
             };
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting real-time events', error);
-            return { events: [], lastUpdate: new Date().toISOString(), eventCount: 0 };
+            // Fallback: Au minimum détecter l'utilisateur actuel s'il existe
+            const currentUser = await this.supabaseService.getCurrentUser();
+            let fallbackActiveUsers: any[] = [];
+
+            if (currentUser) {
+                try {
+                    const currentUserProfile = await this.supabaseService.getProfile(currentUser.id);
+                    fallbackActiveUsers = currentUserProfile ? [currentUserProfile] : [{
+                        id: currentUser.id,
+                        display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
+                        username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                        email: currentUser.email
+                    }];
+                } catch (profileError) {
+                    fallbackActiveUsers = [{
+                        id: currentUser.id,
+                        display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
+                        username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                        email: currentUser.email
+                    }];
+                }
+            }
+
+            return {
+                events: [],
+                lastUpdate: new Date().toISOString(),
+                eventCount: 0,
+                activeUsersCount: currentUser ? 1 : 0,
+                activeUsers: fallbackActiveUsers
+            };
+        }
+    }    // Nouvelle méthode pour récupérer les utilisateurs actifs
+    private async getActiveUsers(): Promise<any[]> {
+        try {
+            // Récupérer les connexions récentes (dernière heure = 1, pas 0.5)
+            const recentLogins = await this.supabaseService.getActivityLogsByType('connexions', 1, 100);
+
+            // Extraire les IDs utilisateurs uniques
+            const activeUserIds = [...new Set(recentLogins.map(log => log.user_id).filter(Boolean))];
+
+            // Récupérer les profils des utilisateurs actifs
+            const activeUsers = await Promise.all(
+                activeUserIds.map(async (userId) => {
+                    try {
+                        return await this.supabaseService.getProfile(userId);
+                    } catch {
+                        return null;
+                    }
+                })
+            );
+
+            console.log('🟢 Active users found:', activeUsers.filter(Boolean).length, 'from', activeUserIds.length, 'login events');
+            return activeUsers.filter(Boolean);
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminService', 'Error getting active users', error);
+            return [];
         }
     }
 

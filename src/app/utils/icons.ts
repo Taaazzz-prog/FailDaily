@@ -39,6 +39,34 @@ import {
     heart,
     happy,
     camera,
+    // Icônes spécifiques manquantes pour l'admin panel
+    refreshOutline,
+    statsChartOutline,
+    bugOutline,
+    eyeOutline,
+    trashOutline,
+    informationCircleOutline,
+    // Icônes manquantes identifiées dans les logs
+    warningOutline,
+    chatbubblesOutline,
+    medalOutline,
+    constructOutline,
+    terminalOutline,
+    listOutline,
+    pulseOutline,
+    cogOutline,
+    radioOutline,
+    layersOutline,
+    folderOutline,
+    archiveOutline,
+    shieldOutline,
+    keyOutline,
+    timeOutline,
+    refreshCircleOutline,
+    nuclearOutline,
+    skullOutline,
+    trashBinOutline,
+
     // Icônes spécifiques manquantes
     calendar,
     create,
@@ -92,6 +120,35 @@ export function initializeIcons() {
         'chevron-down-circle-outline': chevronDownCircleOutline,
         'checkmark-circle-outline': checkmarkCircleOutline,
         'alert-circle-outline': alertCircleOutline,
+
+        // Admin Panel - Icônes manquantes
+        'refresh-outline': refreshOutline,
+        'stats-chart-outline': statsChartOutline,
+        'bug-outline': bugOutline,
+        'eye-outline': eyeOutline,
+        'trash-outline': trashOutline,
+        'information-circle-outline': informationCircleOutline,
+
+        // Icônes manquantes identifiées dans les logs
+        'warning-outline': warningOutline,
+        'chatbubbles-outline': chatbubblesOutline,
+        'medal-outline': medalOutline,
+        'construct-outline': constructOutline,
+        'terminal-outline': terminalOutline,
+        'list-outline': listOutline,
+        'pulse-outline': pulseOutline,
+        'cog-outline': cogOutline,
+        'radio-outline': radioOutline,
+        'layers-outline': layersOutline,
+        'folder-outline': folderOutline,
+        'archive-outline': archiveOutline,
+        'shield-outline': shieldOutline,
+        'key-outline': keyOutline,
+        'time-outline': timeOutline,
+        'refresh-circle-outline': refreshCircleOutline,
+        'nuclear-outline': nuclearOutline,
+        'skull-outline': skullOutline,
+        'trash-bin-outline': trashBinOutline,
 
         // Réactions et social
         'heart-outline': heartOutline,
@@ -164,7 +221,14 @@ export const VALID_ICONS = [
     'people-outline', 'people',
     'chevron-down-circle-outline',
     'checkmark-circle-outline',
-    'alert-circle-outline'
+    'alert-circle-outline',
+    // Admin Panel icons
+    'refresh-outline',
+    'stats-chart-outline',
+    'bug-outline',
+    'eye-outline',
+    'trash-outline',
+    'information-circle-outline'
 ] as const;
 
 export type ValidIconName = typeof VALID_ICONS[number];
