@@ -6,7 +6,6 @@ import { FailService } from '../../services/fail.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { failLog } from '../../utils/logger';
 
 @Component({
     selector: 'app-fail-card',
@@ -46,7 +45,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
         try {
             this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
         } catch (error) {
-            failLog('Erreur lors du chargement des réactions utilisateur:', error);
+            console.log('Erreur lors du chargement des réactions utilisateur:', error);
             this.userReactions = [];
         }
     }
@@ -67,7 +66,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
             // Recharger les données du fail depuis la DB
             await this.refreshFailData();
         } catch (error) {
-            failLog('Erreur lors de la réaction courage:', error);
+            console.log('Erreur lors de la réaction courage:', error);
         }
     }
 
@@ -87,7 +86,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
             // Recharger les données du fail depuis la DB
             await this.refreshFailData();
         } catch (error) {
-            failLog('Erreur lors de la réaction laugh:', error);
+            console.log('Erreur lors de la réaction laugh:', error);
         }
     }
 
@@ -107,7 +106,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
             // Recharger les données du fail depuis la DB
             await this.refreshFailData();
         } catch (error) {
-            failLog('Erreur lors de la réaction empathy:', error);
+            console.log('Erreur lors de la réaction empathy:', error);
         }
     }
 
@@ -127,7 +126,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
             // Recharger les données du fail depuis la DB
             await this.refreshFailData();
         } catch (error) {
-            failLog('Erreur lors de la réaction support:', error);
+            console.log('Erreur lors de la réaction support:', error);
         }
     }
 
@@ -144,7 +143,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
             // Recharger les réactions de l'utilisateur
             await this.loadUserReaction();
         } catch (error) {
-            failLog('Erreur lors du refresh des données du fail:', error);
+            console.log('Erreur lors du refresh des données du fail:', error);
         }
     }
 

@@ -3,6 +3,7 @@ import { SupabaseService } from './supabase.service';
 import { AuthService } from './auth.service';
 import { Follow, FollowStats, UserProfile } from '../models/follow.model';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
+import { ComprehensiveLoggerService } from './comprehensive-logger.service';
 
 @Injectable({
     providedIn: 'root'
@@ -13,7 +14,8 @@ export class FollowService {
 
     constructor(
         private supabaseService: SupabaseService,
-        private authService: AuthService
+        private authService: AuthService,
+        private logger: ComprehensiveLoggerService
     ) {
         // Charger les utilisateurs suivis au démarrage
         this.loadFollowing();
@@ -37,6 +39,9 @@ export class FollowService {
                 });
 
             if (error) throw error;
+
+            // Logger l'action de suivi
+            await this.logger.logFollow(userId, 'follow');
 
             // Mettre à jour la liste locale
             const currentFollowing = this.followingSubject.value;
@@ -67,6 +72,9 @@ export class FollowService {
                 });
 
             if (error) throw error;
+
+            // Logger l'action de ne plus suivre
+            await this.logger.logFollow(userId, 'unfollow');
 
             // Mettre à jour la liste locale
             const currentFollowing = this.followingSubject.value;

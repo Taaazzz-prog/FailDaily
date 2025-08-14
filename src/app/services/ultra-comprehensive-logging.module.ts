@@ -2,17 +2,16 @@
 // MODULE PRINCIPAL DU SYSTÈME DE LOGS ULTRA-COMPLET
 // ========================================
 // Ce module initialise automatiquement tout le système de logging
-// et peut être importé directement dans app.module.ts
+// Version nettoyée - LoggingIntegratorService supprimé
 
 import { NgModule } from '@angular/core';
 import { ComprehensiveLoggerService } from './comprehensive-logger.service';
-import { LoggingIntegratorService } from './logging-integrator.service';
+import { LoggingSetupService } from './logging-setup.service';
 
 // Interface de configuration pour le module
 export interface LoggingModuleConfig {
     enableConsoleLog?: boolean;
     enableDatabaseLog?: boolean;
-    enableAutoIntegration?: boolean;
     enableMonitoring?: boolean;
     bufferSize?: number;
     flushInterval?: number;
@@ -21,26 +20,25 @@ export interface LoggingModuleConfig {
 
 // Configuration par défaut
 const DEFAULT_CONFIG: LoggingModuleConfig = {
-    enableConsoleLog: true,
+    enableConsoleLog: false, // Désactivé - remplacé par PostgreSQL
     enableDatabaseLog: true,
-    enableAutoIntegration: true,
     enableMonitoring: true,
     bufferSize: 100,
     flushInterval: 30000,
-    categories: ['auth', 'profile', 'fail', 'reaction', 'badge', 'navigation', 'admin', 'system', 'security']
+    categories: ['auth', 'profile', 'fail', 'reaction', 'badge', 'navigation', 'admin', 'system', 'security', 'social']
 };
 
 @NgModule({
     providers: [
         ComprehensiveLoggerService,
-        LoggingIntegratorService
+        LoggingSetupService
     ]
 })
 export class UltraComprehensiveLoggingModule {
 
     constructor(
         private logger: ComprehensiveLoggerService,
-        private integrator: LoggingIntegratorService
+        private setupService: LoggingSetupService
     ) {
         this.initializeLoggingSystem();
     }
@@ -57,7 +55,7 @@ export class UltraComprehensiveLoggingModule {
                     useValue: { ...DEFAULT_CONFIG, ...config }
                 },
                 ComprehensiveLoggerService,
-                LoggingIntegratorService
+                LoggingSetupService
             ]
         };
     }
@@ -67,65 +65,13 @@ export class UltraComprehensiveLoggingModule {
      */
     private async initializeLoggingSystem(): Promise<void> {
         try {
-            // Log d'initialisation du module
-            await this.logger.logActivity({
-                eventType: 'logging_module_init',
-                eventCategory: 'system',
-                action: 'initialize',
-                title: 'Module de logging ultra-complet initialisé',
-                description: 'Le système de logging complet est maintenant opérationnel avec tous les intercepteurs activés',
-                payload: {
-                    version: '2.0.0',
-                    features: [
-                        'comprehensive_database_logging',
-                        'automatic_supabase_interception',
-                        'realtime_monitoring',
-                        'performance_tracking',
-                        'user_session_management',
-                        'advanced_statistics',
-                        'error_tracking',
-                        'security_logging'
-                    ],
-                    timestamp: new Date(),
-                    environment: this.getEnvironment()
-                }
-            });
+            console.log('🚀 UltraComprehensiveLoggingModule: Système de logging PostgreSQL initialisé');
 
-            console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║                   🚀 FAILDAILY LOGGING SYSTEM                ║
-║                      ULTRA-COMPLET ACTIVÉ                    ║
-╠══════════════════════════════════════════════════════════════╣
-║ ✅ Logging base de données PostgreSQL                        ║
-║ ✅ Interception automatique Supabase                         ║
-║ ✅ Monitoring temps réel                                     ║
-║ ✅ Suivi des sessions utilisateur                            ║
-║ ✅ Métriques de performance                                  ║
-║ ✅ Tracking des erreurs et sécurité                         ║
-║ ✅ Interface d'administration                                ║
-║ ✅ Export et analytics avancés                              ║
-╚══════════════════════════════════════════════════════════════╝
-      `);
+            // Le logging est maintenant intégré directement dans chaque service
+            // via LoggingSetupService qui configure les dépendances
 
         } catch (error) {
-            console.error('❌ Erreur lors de l\'initialisation du système de logging:', error);
+            console.error('❌ UltraComprehensiveLoggingModule: Erreur d\'initialisation:', error);
         }
-    }
-
-    /**
-     * Déterminer l'environnement d'exécution
-     */
-    private getEnvironment(): string {
-        if (typeof window !== 'undefined') {
-            const hostname = window.location.hostname;
-            if (hostname === 'localhost' || hostname === '127.0.0.1') {
-                return 'development';
-            } else if (hostname.includes('staging') || hostname.includes('test')) {
-                return 'staging';
-            } else {
-                return 'production';
-            }
-        }
-        return 'unknown';
     }
 }

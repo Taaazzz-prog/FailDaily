@@ -10,6 +10,7 @@ import { AppComponent } from './app/app.component';
 import { AuthService } from './app/services/auth.service';
 import { SupabaseService } from './app/services/supabase.service';
 import { FollowService } from './app/services/follow.service';
+import { LoggingSetupService } from './app/services/logging-setup.service';
 import { initializeIcons } from './app/utils/icons';
 
 // Initialiser toutes les icônes au démarrage de l'application
@@ -25,9 +26,10 @@ bootstrapApplication(AppComponent, {
     AuthService,
     SupabaseService,
     FollowService,
+    LoggingSetupService, // Service pour configurer le logging
   ],
 }).then(() => {
-  console.log('FailDaily application started');
-}).catch(err => {
+  console.log('FailDaily application started with comprehensive logging system');
+}).catch((err: any) => {
   console.error('Error starting FailDaily application:', err);
 });

@@ -176,8 +176,8 @@
                 </ion-card-subtitle>
             </ion-card-header>
             <ion-card-content class="logs-container">
-                <ion-virtual-scroll [items]="filteredLogs" approxItemHeight="80px">
-                    <div *virtualItem="let log; trackBy: trackByLogId" class="log-item"
+                <div class="logs-list">
+                    <div *ngFor="let log of filteredLogs; trackBy: trackByLogId" class="log-item"
                         [class.error]="log.success === false" [class.warning]="log.eventCategory === 'security'"
                         (click)="selectLog(log)">
 
@@ -187,7 +187,7 @@
                             <ion-badge [color]="getLogColor(log)" class="log-category">
                                 {{log.eventCategory}}
                             </ion-badge>
-                            <span class="log-time">{{formatDate(log.created_at || new Date())}}</span>
+                            <span class="log-time">{{formatDate(currentDate)}}</span>
                         </div>
 
                         <div class="log-details">
@@ -201,7 +201,7 @@
                             </div>
                         </div>
                     </div>
-                </ion-virtual-scroll>
+                </div>
 
                 <!-- État de chargement -->
                 <div class="loading-container" *ngIf="isLoadingLogs">
@@ -295,7 +295,7 @@
                 <div class="realtime-logs">
                     <div *ngFor="let log of realtimeLogs.slice(0, 20); trackBy: trackByLogId" class="realtime-log-item"
                         [class.error]="log.success === false">
-                        <div class="log-timestamp">{{formatDate(log.created_at || new Date())}}</div>
+                        <div class="log-timestamp">{{formatDate(currentDate)}}</div>
                         <div class="log-content">
                             <span class="log-category-badge" [attr.data-category]="log.eventCategory">
                                 {{log.eventCategory}}

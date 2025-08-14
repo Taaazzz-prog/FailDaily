@@ -1,14 +1,38 @@
-// ========================================
-// COMPOSANT D'ADMINISTRATION DES LOGS FAILDAILY
-// ========================================
-// Interface ultra-complète pour visualiser, filtrer et analyser tous les logs
-
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule } from '@ionic/angular';
+import {
+    IonContent,
+    IonHeader,
+    IonTitle,
+    IonToolbar,
+    IonSegment,
+    IonSegmentButton,
+    IonLabel,
+    IonCard,
+    IonCardContent,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardSubtitle,
+    IonItem,
+    IonList,
+    IonBadge,
+    IonButton,
+    IonButtons,
+    IonIcon,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonSpinner,
+    IonSelect,
+    IonSelectOption,
+    IonCheckbox,
+    IonAvatar,
+    IonModal,
+    IonInput
+} from '@ionic/angular/standalone';
 import { ComprehensiveLoggerService, LogEntry, UsageMetrics } from '../services/comprehensive-logger.service';
-import { LoggingIntegratorService } from '../services/logging-integrator.service';
+// Note: LoggingIntegratorService supprimé - logging intégré directement
 import { Subscription, interval } from 'rxjs';
 
 interface LogFilter {
@@ -27,7 +51,38 @@ interface LogFilter {
     templateUrl: './admin-logs.page.html',
     styleUrls: ['./admin-logs.page.scss'],
     standalone: true,
-    imports: [CommonModule, FormsModule, IonicModule]
+    imports: [IonModal, IonAvatar,
+        CommonModule,
+        FormsModule,
+        IonContent,
+        IonHeader,
+        IonTitle,
+        IonToolbar,
+        IonSegment,
+        IonSegmentButton,
+        IonLabel,
+        IonCard,
+        IonCardContent,
+        IonCardHeader,
+        IonCardTitle,
+        IonCardSubtitle,
+        IonItem,
+        IonList,
+        IonBadge,
+        IonButton,
+        IonButtons,
+        IonIcon,
+        IonGrid,
+        IonRow,
+        IonCol,
+        IonSpinner,
+        IonSelect,
+        IonSelectOption,
+        IonCheckbox,
+        IonAvatar,
+        IonModal,
+        IonInput
+    ]
 })
 export class AdminLogsPage implements OnInit, OnDestroy {
 
@@ -45,7 +100,7 @@ export class AdminLogsPage implements OnInit, OnDestroy {
 
     // Filtres
     activeFilters: LogFilter = {};
-    availableCategories = ['auth', 'profile', 'fail', 'reaction', 'badge', 'navigation', 'admin', 'system', 'security'];
+    availableCategories = ['auth', 'profile', 'fail', 'reaction', 'badge', 'navigation', 'admin', 'system', 'security', 'social'];
     availableLevels = ['debug', 'info', 'warning', 'error', 'critical'];
 
     // Statistiques
@@ -64,9 +119,17 @@ export class AdminLogsPage implements OnInit, OnDestroy {
 
     private subscriptions: Subscription[] = [];
 
+    // Helper pour obtenir la date actuelle
+    get currentDate() {
+        return new Date();
+    }
+
+    // Rendre Math accessible dans le template
+    Math = Math;
+
     constructor(
-        private logger: ComprehensiveLoggerService,
-        private integrator: LoggingIntegratorService
+        private logger: ComprehensiveLoggerService
+        // Note: LoggingIntegratorService supprimé - plus nécessaire
     ) { }
 
     async ngOnInit() {
@@ -74,8 +137,11 @@ export class AdminLogsPage implements OnInit, OnDestroy {
         this.setupRealtimeUpdates();
         this.setupAutoRefresh();
 
-        // Activer le monitoring automatique
-        this.integrator.startAutomaticMonitoring();
+        // Log du démarrage de l'interface admin
+        await this.logger.logAdmin('interface_started', 'Admin logs interface initialized', undefined, {
+            timestamp: new Date(),
+            view: 'admin_logs'
+        });
     }
 
     ngOnDestroy() {
@@ -359,7 +425,8 @@ export class AdminLogsPage implements OnInit, OnDestroy {
     }
 
     async enableDebugMode() {
-        this.integrator.enableDebugMode();
+        // Mode debug activé - logging ultra-verbose activé via ComprehensiveLogger
+        console.log('🔧 Mode debug activé pour l\'interface admin');
 
         await this.logger.logAdmin('enable_debug_mode', 'Activation du mode debug ultra-verbose');
     }
@@ -388,14 +455,22 @@ export class AdminLogsPage implements OnInit, OnDestroy {
     // NAVIGATION ET INTERFACE
     // ========================================
 
-    switchView(view: typeof this.currentView) {
-        this.currentView = view;
+    switchView(view: string | undefined) {
+        if (!view) return; // Ignorer si la valeur est undefined
+
+        // Vérification de type sécurisée
+        const validViews: Array<typeof this.currentView> = ['logs', 'stats', 'metrics', 'realtime', 'users'];
+        if (!validViews.includes(view as typeof this.currentView)) {
+            console.warn(`Vue invalide: ${view}`);
+            return;
+        }
+
+        const previousView = this.currentView;
+        this.currentView = view as typeof this.currentView;
 
         this.logger.logAdmin('switch_view', `Basculement vers la vue ${view}`,
-            undefined, { previousView: this.currentView, newView: view });
-    }
-
-    formatDate(date: string | Date): string {
+            undefined, { previousView: previousView, newView: view });
+    } formatDate(date: string | Date): string {
         return new Date(date).toLocaleString('fr-FR');
     }
 
@@ -405,7 +480,7 @@ export class AdminLogsPage implements OnInit, OnDestroy {
     }
 
     getLogIcon(log: LogEntry): string {
-        const icons = {
+        const icons: Record<string, string> = {
             auth: '👤',
             profile: '📝',
             fail: '❌',
@@ -414,7 +489,8 @@ export class AdminLogsPage implements OnInit, OnDestroy {
             navigation: '🧭',
             admin: '⚙️',
             system: '🔧',
-            security: '🔒'
+            security: '🔒',
+            social: '👥'
         };
         return icons[log.eventCategory] || '📋';
     }

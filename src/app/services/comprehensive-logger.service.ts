@@ -11,7 +11,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 export interface LogEntry {
     id?: string;
     eventType: string;
-    eventCategory: 'auth' | 'profile' | 'fail' | 'reaction' | 'badge' | 'navigation' | 'admin' | 'system' | 'security';
+    eventCategory: 'auth' | 'profile' | 'fail' | 'reaction' | 'badge' | 'navigation' | 'admin' | 'system' | 'security' | 'social';
     action: string;
     title: string;
     description?: string;
@@ -94,7 +94,7 @@ export class ComprehensiveLoggerService {
     // ========================================
 
     /**
-     * Log universel pour toutes les actions
+     * Log universel pour toutes les actions - utilise directement la fonction PostgreSQL
      */
     async logActivity(entry: LogEntry): Promise<string | null> {
         const startTime = performance.now();
@@ -117,9 +117,9 @@ export class ComprehensiveLoggerService {
             this.logToConsole(enrichedEntry);
         }
 
-        // Envoyer à la base de données
+        // Envoyer directement à la fonction PostgreSQL log_comprehensive_activity
         if (this.logConfig.enableDatabaseLog && this.isOnline) {
-            return await this.logToDatabase(enrichedEntry);
+            return await this.logToDatabaseAdvanced(enrichedEntry);
         } else if (this.logConfig.enableBuffering) {
             // Garder en buffer si hors ligne
             this.logBuffer.push(enrichedEntry);
@@ -127,6 +127,62 @@ export class ComprehensiveLoggerService {
         }
 
         return null;
+    }
+
+    /**
+     * Utilise la fonction log_comprehensive_activity de PostgreSQL
+     */
+    private async logToDatabaseAdvanced(entry: LogEntry): Promise<string | null> {
+        try {
+            // Appeler directement la fonction PostgreSQL
+            const { data, error } = await this.supabase.client.rpc('log_comprehensive_activity', {
+                p_event_type: entry.eventType,
+                p_event_category: entry.eventCategory,
+                p_action: entry.action,
+                p_title: entry.title,
+                p_user_id: entry.userId || null,
+                p_resource_type: entry.resourceType || null,
+                p_resource_id: entry.resourceId || null,
+                p_target_user_id: entry.targetUserId || null,
+                p_description: entry.description || null,
+                p_payload: entry.payload ? JSON.stringify(entry.payload) : null,
+                p_old_values: entry.oldValues ? JSON.stringify(entry.oldValues) : null,
+                p_new_values: entry.newValues ? JSON.stringify(entry.newValues) : null,
+                p_ip_address: await this.getClientIP(),
+                p_user_agent: navigator.userAgent,
+                p_session_id: this.sessionId,
+                p_success: entry.success || true,
+                p_error_message: entry.errorMessage || null,
+                p_execution_time_ms: entry.executionTimeMs || null,
+                p_correlation_id: entry.correlationId || null
+            });
+
+            if (error) {
+                console.error('❌ Erreur lors du logging en base:', error);
+                return null;
+            }
+
+            console.log('✅ Log envoyé avec succès, ID:', data);
+            return data;
+        } catch (error) {
+            console.error('❌ Erreur critique lors du logging:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Obtenir l'adresse IP du client (approximative)
+     */
+    private async getClientIP(): Promise<string | null> {
+        try {
+            // Utiliser un service public pour obtenir l'IP
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            return data.ip;
+        } catch (error) {
+            // Fallback - retourner null si on ne peut pas obtenir l'IP
+            return null;
+        }
     }
 
     /**
@@ -189,6 +245,37 @@ export class ComprehensiveLoggerService {
             resourceId: reactionId,
             targetUserId,
             payload: { failId },
+            success
+        });
+    }
+
+    // SYSTÈME SOCIAL - FOLLOWS
+    async logFollow(action: string, title: string, followId?: string, targetUserId?: string, success: boolean = true) {
+        return await this.logActivity({
+            eventType: `follow_${action}`,
+            eventCategory: 'social',
+            action,
+            title,
+            description: `Action de suivi: ${action}`,
+            resourceType: 'follow',
+            resourceId: followId,
+            targetUserId,
+            success
+        });
+    }
+
+    // SYSTÈME SOCIAL - COMMENTAIRES
+    async logComment(action: string, title: string, commentId?: string, failId?: string, targetUserId?: string, details?: any, success: boolean = true) {
+        return await this.logActivity({
+            eventType: `comment_${action}`,
+            eventCategory: 'social',
+            action,
+            title,
+            description: `Action de commentaire: ${action}`,
+            resourceType: 'comment',
+            resourceId: commentId,
+            targetUserId,
+            payload: { failId, ...details },
             success
         });
     }

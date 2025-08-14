@@ -5,7 +5,7 @@ import { EventBusService, AppEvents } from './event-bus.service';
 import { Fail } from '../models/fail.model';
 import { User } from '@supabase/supabase-js';
 import { FailCategory } from '../models/enums';
-import { failLog } from '../utils/logger';
+import { ComprehensiveLoggerService } from './comprehensive-logger.service';
 
 export interface CreateFailData {
   title: string;
@@ -24,9 +24,10 @@ export class FailService {
 
   constructor(
     private supabaseService: SupabaseService,
-    private eventBus: EventBusService
+    private eventBus: EventBusService,
+    private logger: ComprehensiveLoggerService
   ) {
-    failLog('FailService: Constructor called - initializing fail service');
+    console.log('FailService: Constructor called - initializing fail service');
     // Charger les fails au démarrage
     this.loadFails();
   }
@@ -74,6 +75,13 @@ export class FailService {
     try {
       await this.supabaseService.createFail(failToCreate);
 
+      // Logger la création du fail
+      await this.logger.logFail('create', failToCreate.title, undefined, {
+        category: failToCreate.category,
+        isPublic: failToCreate.is_public,
+        hasImage: !!imageUrl
+      });
+
       // Recharger les fails après création
       await this.loadFails();
 
@@ -84,6 +92,12 @@ export class FailService {
       });
     } catch (error) {
       console.error('Erreur lors de la création du fail:', error);
+
+      // Logger l'erreur de création
+      await this.logger.logFail('create_error', failToCreate.title, undefined, {
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      }, false);
+
       throw error;
     }
   }
@@ -151,8 +165,8 @@ export class FailService {
     }
 
     // Log des données de réactions pour débugger
-    failLog('📊 formatFailWithAuthor - Raw failData.reactions:', failData.reactions);
-    failLog('📊 formatFailWithAuthor - Type of reactions:', typeof failData.reactions);
+    console.log('📊 formatFailWithAuthor - Raw failData.reactions:', failData.reactions);
+    console.log('📊 formatFailWithAuthor - Type of reactions:', typeof failData.reactions);
 
     return {
       id: failData.id,
@@ -176,28 +190,28 @@ export class FailService {
   }
 
   async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
-    failLog('FailService: addReaction called for fail:', failId, 'type:', reactionType);
+    console.log('FailService: addReaction called for fail:', failId, 'type:', reactionType);
 
     const user = await this.supabaseService.getCurrentUser();
     if (!user) {
-      failLog('FailService: No user connected for addReaction');
+      console.log('FailService: No user connected for addReaction');
       throw new Error('Utilisateur non connecté');
     }
 
-    failLog('FailService: User found for reaction:', user.id);
+    console.log('FailService: User found for reaction:', user.id);
 
     try {
       const result = await this.supabaseService.addReaction(failId, reactionType);
-      failLog('FailService: supabaseService.addReaction completed successfully');
+      console.log('FailService: supabaseService.addReaction completed successfully');
 
       // Émettre un événement pour notifier la réaction
-      failLog('FailService: Emitting REACTION_GIVEN event');
+      console.log('FailService: Emitting REACTION_GIVEN event');
       this.eventBus.emit(AppEvents.REACTION_GIVEN, {
         userId: user.id,
         failId: failId,
         reactionType: reactionType
       });
-      failLog('FailService: REACTION_GIVEN event emitted successfully');
+      console.log('FailService: REACTION_GIVEN event emitted successfully');
 
       return result;
     } catch (error) {
@@ -220,25 +234,25 @@ export class FailService {
   }
 
   async getUserReactionsForFail(failId: string): Promise<string[]> {
-    failLog('FailService: getUserReactionsForFail called for fail:', failId);
+    console.log('FailService: getUserReactionsForFail called for fail:', failId);
     const result = await this.supabaseService.getUserReactionsForFail(failId);
-    failLog('FailService: getUserReactionsForFail result:', result);
+    console.log('FailService: getUserReactionsForFail result:', result);
     return result;
   }
 
   async getFailById(failId: string): Promise<Fail | null> {
-    failLog('FailService: getFailById called for fail:', failId);
+    console.log('FailService: getFailById called for fail:', failId);
 
     try {
       const failData = await this.supabaseService.getFailById(failId);
       if (!failData) {
-        failLog('FailService: No fail data found for ID:', failId);
+        console.log('FailService: No fail data found for ID:', failId);
         return null;
       }
 
-      failLog('FailService: Fail data found, formatting with author');
+      console.log('FailService: Fail data found, formatting with author');
       const result = await this.formatFailWithAuthor(failData);
-      failLog('FailService: Fail formatted successfully');
+      console.log('FailService: Fail formatted successfully');
       return result;
     } catch (error) {
       console.error('❌ FailService: Erreur lors de la récupération du fail:', error);

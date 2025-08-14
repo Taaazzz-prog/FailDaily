@@ -1,40 +1,39 @@
-﻿import { Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable, from, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Badge } from '../models/badge.model';
 import { BadgeCategory } from '../models/enums';
 import { SupabaseService } from './supabase.service';
 import { EventBusService, AppEvents } from './event-bus.service';
-import { badgeLog } from '../utils/logger';
 
 @Injectable({ providedIn: 'root' })
 export class BadgeService {
   private userBadgesSubject = new BehaviorSubject<Badge[]>([]);
   public userBadges$ = this.userBadgesSubject.asObservable();
 
-  // SystÃ¨me de debounce pour Ã©viter les vÃ©rifications trop frÃ©quentes
+  // Système de debounce pour éviter les vérifications trop fréquentes
   private lastBadgeCheck = 0;
-  private readonly BADGE_CHECK_COOLDOWN = 2000; // 2 secondes entre les vÃ©rifications
+  private readonly BADGE_CHECK_COOLDOWN = 2000; // 2 secondes entre les vérifications
 
   constructor(private supabase: SupabaseService, private eventBus: EventBusService) {
-    badgeLog('BadgeService: Constructor called - initializing badge service');
+    console.log('BadgeService: Constructor called - initializing badge service');
 
-    // Charger les badges utilisateur au dÃ©marrage
-    badgeLog('BadgeService: Calling initializeBadges');
+    // Charger les badges utilisateur au démarrage
+    console.log('BadgeService: Calling initializeBadges');
     this.initializeBadges();
 
-    // Ã‰couter les Ã©vÃ©nements pour vÃ©rifier les badges automatiquement
-    badgeLog('BadgeService: Setting up event listeners');
+    // Écouter les événements pour vérifier les badges automatiquement
+    console.log('BadgeService: Setting up event listeners');
     this.setupEventListeners();
   }
 
   /**
-   * Configure les Ã©couteurs d'Ã©vÃ©nements pour le dÃ©blocage automatique des badges
+   * Configure les écouteurs d'événements pour le déblocage automatique des badges
    */
   private setupEventListeners(): void {
-    // Ã‰couter les Ã©vÃ©nements de crÃ©ation de fail
+    // Écouter les événements de création de fail
     this.eventBus.on(AppEvents.FAIL_POSTED).subscribe(async (payload) => {
-      badgeLog('Ã‰vÃ©nement FAIL_POSTED reÃ§u:', payload);
+      console.log('Événement FAIL_POSTED reçu:', payload);
       try {
         const user = await this.supabase.getCurrentUser();
         if (user) {
@@ -44,13 +43,13 @@ export class BadgeService {
           }
         }
       } catch (error) {
-        console.error('Erreur lors de la vÃ©rification des badges aprÃ¨s crÃ©ation de fail:', error);
+        console.error('Erreur lors de la vérification des badges après création de fail:', error);
       }
     });
 
-    // Ã‰couter les Ã©vÃ©nements de rÃ©action
+    // Écouter les événements de réaction
     this.eventBus.on(AppEvents.REACTION_GIVEN).subscribe(async (payload) => {
-      badgeLog('Ã‰vÃ©nement REACTION_GIVEN reÃ§u:', payload);
+      console.log('Événement REACTION_GIVEN reçu:', payload);
       try {
         const user = await this.supabase.getCurrentUser();
         if (user) {
@@ -60,32 +59,32 @@ export class BadgeService {
           }
         }
       } catch (error) {
-        console.error('Erreur lors de la vÃ©rification des badges aprÃ¨s rÃ©action:', error);
+        console.error('Erreur lors de la vérification des badges après réaction:', error);
       }
     });
   }
 
   /**
-   * VÃ©rifie les badges avec un systÃ¨me de cooldown pour Ã©viter les appels trop frÃ©quents
+   * Vérifie les badges avec un système de cooldown pour éviter les appels trop fréquents
    */
   private async checkAndUnlockBadgesWithCooldown(userId: string, eventType: string): Promise<Badge[]> {
     const now = Date.now();
 
-    // Si la derniÃ¨re vÃ©rification Ã©tait il y a moins de 2 secondes, ignorer
+    // Si la dernière vérification était il y a moins de 2 secondes, ignorer
     if (now - this.lastBadgeCheck < this.BADGE_CHECK_COOLDOWN) {
-      badgeLog(`â° Cooldown actif, vÃ©rification ignorÃ©e (${eventType})`);
+      console.log(`⏰ Cooldown actif, vérification ignorée (${eventType})`);
       return [];
     }
 
     this.lastBadgeCheck = now;
-    badgeLog(`ðŸ” VÃ©rification des badges dÃ©clenchÃ©e par: ${eventType}`);
+    console.log(`🔍 Vérification des badges déclenchée par: ${eventType}`);
 
     return await this.checkAndUnlockBadges(userId);
   }
 
   private async initializeBadges(): Promise<void> {
     try {
-      // Attendre que l'utilisateur soit connectÃ©
+      // Attendre que l'utilisateur soit connecté
       const user = await this.supabase.getCurrentUser();
       if (user) {
         await this.loadUserBadges(user.id);
@@ -98,22 +97,22 @@ export class BadgeService {
   private async loadUserBadges(userId: string): Promise<void> {
     try {
       const badgeIds = await this.supabase.getUserBadgesNew(userId);
-      badgeLog('Badges rÃ©cupÃ©rÃ©s de la DB:', badgeIds);
+      console.log('Badges récupérés de la DB:', badgeIds);
 
-      // RÃ©cupÃ©rer TOUS les badges disponibles (BDD + fallback)
+      // Récupérer TOUS les badges disponibles (BDD + fallback)
       const allAvailableBadges = await this.getAllAvailableBadges();
 
       const userBadges = allAvailableBadges.filter(badge =>
         badgeIds.includes(badge.id)
       );
-      badgeLog('Badges filtrÃ©s:', userBadges);
+      console.log('Badges filtrés:', userBadges);
 
       this.userBadgesSubject.next(userBadges);
     } catch (error) {
       console.error('Erreur lors du chargement des badges utilisateur:', error);
     }
   }  /**
-   * Force le rechargement des badges utilisateur depuis la base de donnÃ©es
+   * Force le rechargement des badges utilisateur depuis la base de données
    */
   async refreshUserBadges(): Promise<void> {
     const user = await this.supabase.getCurrentUser();
@@ -123,15 +122,15 @@ export class BadgeService {
   }
 
   /**
-   * RÃ©cupÃ¨re tous les badges disponibles UNIQUEMENT depuis la base de donnÃ©es
+   * Récupère tous les badges disponibles UNIQUEMENT depuis la base de données
    */
   async getAllAvailableBadges(): Promise<Badge[]> {
     try {
-      // RÃ©cupÃ©rer depuis la base de donnÃ©es
+      // Récupérer depuis la base de données
       const dbBadges = await this.supabase.getAllAvailableBadges();
 
       if (dbBadges && dbBadges.length > 0) {
-        badgeLog(`âœ¨ Badges chargÃ©s depuis la BDD: ${dbBadges.length} badges trouvÃ©s`);
+        console.log(`✨ Badges chargés depuis la BDD: ${dbBadges.length} badges trouvés`);
 
         // Mapper les badges de la BDD vers le format Badge
         return dbBadges.map(dbBadge => ({
@@ -141,30 +140,30 @@ export class BadgeService {
           icon: dbBadge.icon || dbBadge.badge_icon || 'trophy-outline',
           category: dbBadge.category || dbBadge.badge_category || BadgeCategory.SPECIAL,
           rarity: dbBadge.rarity || dbBadge.badge_rarity || 'common',
-          // Ajouter les infos de requirement pour le nouveau systÃ¨me
+          // Ajouter les infos de requirement pour le nouveau système
           requirementType: dbBadge.requirement_type,
           requirementValue: dbBadge.requirement_value
         } as Badge));
       }
 
       // Plus de fallback - si pas de badges en BDD, retourner tableau vide
-      badgeLog(`âŒ Aucun badge trouvÃ© en base de donnÃ©es`);
+      console.log(`❌ Aucun badge trouvé en base de données`);
       return [];
     } catch (error) {
-      console.error('Erreur lors de la rÃ©cupÃ©ration des badges depuis la BDD:', error);
+      console.error('Erreur lors de la récupération des badges depuis la BDD:', error);
       return [];
     }
   }
 
   /**
-   * RÃ©cupÃ¨re une version filtrÃ©e des badges pour l'affichage par dÃ©faut
-   * Seulement 2-3 badges par catÃ©gorie, pas de legendaires
+   * Récupère une version filtrée des badges pour l'affichage par défaut
+   * Seulement 2-3 badges par catégorie, pas de legendaires
    */
   async getFilteredBadgesForDisplay(): Promise<Badge[]> {
     try {
       const allBadges = await this.getAllAvailableBadges();
 
-      // Grouper les badges par catÃ©gorie
+      // Grouper les badges par catégorie
       const badgesByCategory = allBadges.reduce((acc, badge) => {
         if (!acc[badge.category]) {
           acc[badge.category] = [];
@@ -175,139 +174,139 @@ export class BadgeService {
 
       const filteredBadges: Badge[] = [];
 
-      // Pour chaque catÃ©gorie, prendre 2-3 badges (pas de legendaires)
+      // Pour chaque catégorie, prendre 2-3 badges (pas de legendaires)
       Object.keys(badgesByCategory).forEach(category => {
         const categoryBadges = badgesByCategory[category]
           .filter(badge => badge.rarity !== 'legendary') // Exclure les legendaires
           .sort((a, b) => {
-            // Trier par raretÃ© (common -> rare -> epic)
+            // Trier par rareté (common -> rare -> epic)
             const rarityOrder = { 'common': 1, 'rare': 2, 'epic': 3 };
             return rarityOrder[a.rarity as keyof typeof rarityOrder] - rarityOrder[b.rarity as keyof typeof rarityOrder];
           });
 
-        // Prendre les 3 premiers badges de chaque catÃ©gorie
+        // Prendre les 3 premiers badges de chaque catégorie
         filteredBadges.push(...categoryBadges.slice(0, 3));
       });
 
-      badgeLog(`ðŸŽ¯ Badges filtrÃ©s pour affichage: ${filteredBadges.length}/${allBadges.length} badges`);
+      console.log(`🎯 Badges filtrés pour affichage: ${filteredBadges.length}/${allBadges.length} badges`);
       return filteredBadges;
     } catch (error) {
       console.error('Erreur lors du filtrage des badges:', error);
-      return []; // Plus de fallback hardcodÃ©
+      return []; // Plus de fallback hardcodé
     }
   }
 
   /**
-   * Version synchrone pour compatibilitÃ© - retourne un tableau vide car on n'utilise plus les badges hardcodÃ©s
+   * Version synchrone pour compatibilité - retourne un tableau vide car on n'utilise plus les badges hardcodés
    */
   getAllAvailableBadgesSync(): Badge[] {
-    badgeLog('getAllAvailableBadgesSync est dÃ©prÃ©ciÃ©e - utilisez getAllAvailableBadges() Ã  la place');
-    return []; // Plus de badges hardcodÃ©s
+    console.log('getAllAvailableBadgesSync est dépréciée - utilisez getAllAvailableBadges() à la place');
+    return []; // Plus de badges hardcodés
   }
 
   /**
-   * RÃ©cupÃ¨re les badges de l'utilisateur
+   * Récupère les badges de l'utilisateur
    */
   getUserBadges(): Observable<Badge[]> {
     return this.userBadges$;
   }
 
   /**
-   * RÃ©cupÃ¨re les badges d'un utilisateur spÃ©cifique (pour admin)
+   * Récupère les badges d'un utilisateur spécifique (pour admin)
    */
   async getUserBadgesForUser(userId: string): Promise<Badge[]> {
     try {
-      badgeLog('ðŸ† BadgeService: Getting badges for user:', userId);
+      console.log('🏆 BadgeService: Getting badges for user:', userId);
 
-      // RÃ©cupÃ©rer les IDs des badges de l'utilisateur
+      // Récupérer les IDs des badges de l'utilisateur
       const badgeIds = await this.supabase.getUserBadgesNew(userId);
-      badgeLog('ðŸ† BadgeService: User badge IDs:', badgeIds);
+      console.log('🏆 BadgeService: User badge IDs:', badgeIds);
 
-      // RÃ©cupÃ©rer tous les badges disponibles
+      // Récupérer tous les badges disponibles
       const allAvailableBadges = await this.getAllAvailableBadges();
-      badgeLog('ðŸ† BadgeService: Total available badges:', allAvailableBadges.length);
+      console.log('🏆 BadgeService: Total available badges:', allAvailableBadges.length);
 
-      // Filtrer les badges dÃ©bloquÃ©s avec dates
+      // Filtrer les badges débloqués avec dates
       const userBadges = allAvailableBadges
         .filter(badge => badgeIds.includes(badge.id))
         .map(badge => ({ ...badge, unlockedDate: new Date() }));
 
-      badgeLog('ðŸ† BadgeService: User unlocked badges:', userBadges.length);
+      console.log('🏆 BadgeService: User unlocked badges:', userBadges.length);
       return userBadges;
     } catch (error) {
-      console.error('âŒ Error getting user badges:', error);
+      console.error('❌ Error getting user badges:', error);
       return [];
     }
   }
 
   /**
-   * VÃ©rifie et dÃ©verrouille automatiquement les badges basÃ©s sur les statistiques utilisateur
+   * Vérifie et déverrouille automatiquement les badges basés sur les statistiques utilisateur
    */
   async checkAndUnlockBadges(userId: string): Promise<Badge[]> {
-    badgeLog('ðŸ† BadgeService: checkAndUnlockBadges called for user:', userId);
+    console.log('🏆 BadgeService: checkAndUnlockBadges called for user:', userId);
 
     try {
-      badgeLog('ðŸ† BadgeService: Getting user stats');
+      console.log('🏆 BadgeService: Getting user stats');
       const userStats = await this.getUserStats(userId);
-      badgeLog('ðŸ† BadgeService: User stats retrieved:', userStats);
+      console.log('🏆 BadgeService: User stats retrieved:', userStats);
 
-      // CORRECTION: RÃ©cupÃ©rer les badges depuis la BDD, pas depuis le cache local
-      badgeLog('ðŸ† BadgeService: Getting current user badges from database');
+      // CORRECTION: Récupérer les badges depuis la BDD, pas depuis le cache local
+      console.log('🏆 BadgeService: Getting current user badges from database');
       const currentBadgeIds = await this.supabase.getUserBadgesNew(userId);
-      badgeLog('ðŸ† BadgeService: Current user badges:', currentBadgeIds);
+      console.log('🏆 BadgeService: Current user badges:', currentBadgeIds);
 
-      badgeLog('ðŸ† BadgeService: Getting all available badges');
+      console.log('🏆 BadgeService: Getting all available badges');
       const allAvailableBadges = await this.getAllAvailableBadges();
-      badgeLog('ðŸ† BadgeService: Total available badges:', allAvailableBadges.length);
+      console.log('🏆 BadgeService: Total available badges:', allAvailableBadges.length);
 
       const newBadges: Badge[] = [];
 
-      badgeLog(`ðŸ† BadgeService: VÃ©rification des badges pour ${allAvailableBadges.length} badges disponibles`);
-      badgeLog(`ðŸ† BadgeService: Badges actuels en BDD: [${currentBadgeIds.join(', ')}]`);
-      badgeLog('ðŸ† BadgeService: Stats utilisateur:', userStats);
+      console.log(`🏆 BadgeService: Vérification des badges pour ${allAvailableBadges.length} badges disponibles`);
+      console.log(`🏆 BadgeService: Badges actuels en BDD: [${currentBadgeIds.join(', ')}]`);
+      console.log('🏆 BadgeService: Stats utilisateur:', userStats);
 
-      // VÃ©rifier chaque badge avec le nouveau systÃ¨me
+      // Vérifier chaque badge avec le nouveau système
       for (const badge of allAvailableBadges) {
-        badgeLog('ðŸ† BadgeService: Checking badge:', badge.id, 'already has?', currentBadgeIds.includes(badge.id));
+        console.log('🏆 BadgeService: Checking badge:', badge.id, 'already has?', currentBadgeIds.includes(badge.id));
         if (!currentBadgeIds.includes(badge.id)) {
-          badgeLog('ðŸ† BadgeService: Badge not unlocked yet, checking requirements for:', badge.id);
+          console.log('🏆 BadgeService: Badge not unlocked yet, checking requirements for:', badge.id);
           if (this.checkBadgeRequirementsNew(badge, userStats)) {
-            badgeLog('ðŸ† BadgeService: Requirements met, unlocking badge:', badge.id);
+            console.log('🏆 BadgeService: Requirements met, unlocking badge:', badge.id);
             const unlocked = await this.unlockBadge(badge.id);
             if (unlocked) {
               newBadges.push(badge);
-              badgeLog(`ðŸ† Nouveau badge dÃ©bloquÃ©: ${badge.name}`);
+              console.log(`🏆 Nouveau badge débloqué: ${badge.name}`);
             }
           }
         }
       }
 
-      badgeLog(`âœ¨ ${newBadges.length} nouveaux badges dÃ©bloquÃ©s`);
+      console.log(`✨ ${newBadges.length} nouveaux badges débloqués`);
       return newBadges;
     } catch (error) {
-      console.error('Erreur lors de la vÃ©rification des badges:', error);
+      console.error('Erreur lors de la vérification des badges:', error);
       return [];
     }
   }
 
   /**
-   * ðŸš€ MÃ‰THODE DEBUG - Pour tester les badges de bruno manuellement
+   * 🚀 MÉTHODE DEBUG - Pour tester les badges de bruno manuellement
    */
   async debugBadgeCheck(userId: string): Promise<any> {
-    badgeLog('ðŸš€ DEBUG: VÃ©rification complÃ¨te des badges pour:', userId);
+    console.log('🚀 DEBUG: Vérification complète des badges pour:', userId);
 
     try {
       // 1. Stats utilisateur
       const userStats = await this.getUserStats(userId);
-      badgeLog('ðŸ“Š Stats utilisateur:', userStats);
+      console.log('📊 Stats utilisateur:', userStats);
 
       // 2. Badges actuels en BDD
       const currentBadgeIds = await this.supabase.getUserBadgesNew(userId);
-      badgeLog('âœ… Badges actuellement possÃ©dÃ©s:', currentBadgeIds);
+      console.log('✅ Badges actuellement possédés:', currentBadgeIds);
 
       // 3. Tous les badges disponibles
       const allBadges = await this.getAllAvailableBadges();
-      badgeLog('ðŸ† Total badges disponibles:', allBadges.length);
+      console.log('🏆 Total badges disponibles:', allBadges.length);
 
       // 4. Test de chaque badge
       const results = [];
@@ -322,10 +321,10 @@ export class BadgeService {
           requirementValue: badge.requirementValue,
           alreadyHas,
           meetsRequirements: meetsReqs,
-          status: alreadyHas ? 'âœ… PossÃ©dÃ©' : (meetsReqs ? 'ðŸŽ¯ Ã‰ligible' : 'âŒ Pas encore')
+          status: alreadyHas ? '✅ Possédé' : (meetsReqs ? '🎯 Éligible' : '❌ Pas encore')
         });
 
-        badgeLog(`ðŸ† ${badge.id}: ${results[results.length - 1].status}`);
+        console.log(`🏆 ${badge.id}: ${results[results.length - 1].status}`);
       }
 
       return {
@@ -336,22 +335,22 @@ export class BadgeService {
       };
 
     } catch (error) {
-      console.error('âŒ Erreur debug badges:', error);
+      console.error('❌ Erreur debug badges:', error);
       return null;
     }
   }
 
   /**
-   * Nouvelle mÃ©thode qui utilise requirement_type et requirement_value de la BDD
+   * Nouvelle méthode qui utilise requirement_type et requirement_value de la BDD
    */
   private checkBadgeRequirementsNew(badge: Badge, userStats: any): boolean {
     if (!badge.requirementType || !badge.requirementValue) {
-      badgeLog(`âš ï¸ Badge ${badge.id} n'a pas de requirements dÃ©finis en BDD - ignorÃ©`);
-      return false; // Plus de fallback vers les badges hardcodÃ©s
+      console.log(`⚠️ Badge ${badge.id} n'a pas de requirements définis en BDD - ignoré`);
+      return false; // Plus de fallback vers les badges hardcodés
     }
 
     const requiredValue = parseInt(badge.requirementValue, 10);
-    badgeLog(`ðŸ” VÃ©rification badge ${badge.id}: requirement ${badge.requirementType} >= ${requiredValue}`);
+    console.log(`🔍 Vérification badge ${badge.id}: requirement ${badge.requirementType} >= ${requiredValue}`);
 
     switch (badge.requirementType) {
       case 'fail_count':
@@ -457,18 +456,18 @@ export class BadgeService {
         return percentage >= requiredValue;
 
       default:
-        badgeLog(`âš ï¸ Type de requirement inconnu: ${badge.requirementType}`);
+        console.log(`⚠️ Type de requirement inconnu: ${badge.requirementType}`);
         return false;
     }
   }
 
   private getUserStats(userId: string): Promise<any> {
-    // RÃ©cupÃ©rer les statistiques utilisateur depuis Supabase
+    // Récupérer les statistiques utilisateur depuis Supabase
     return this.supabase.getUserStats(userId);
   }
 
   /**
-   * DÃ©verrouille un badge spÃ©cifique
+   * Déverrouille un badge spécifique
    */
   private async unlockBadge(badgeId: string): Promise<boolean> {
     try {
@@ -484,21 +483,21 @@ export class BadgeService {
       }
       return false;
     } catch (error) {
-      console.error('Erreur lors du dÃ©verrouillage du badge:', error);
+      console.error('Erreur lors du déverrouillage du badge:', error);
       return false;
     }
   }
 
   /**
-   * RÃ©cupÃ¨re tous les badges de l'utilisateur actuel (obsolÃ¨te - utiliser getUserBadges)
+   * Récupère tous les badges de l'utilisateur actuel (obsolète - utiliser getUserBadges)
    */
   getBadges(): Observable<Badge[]> {
     return this.userBadges$;
   }
 
   /**
-   * RÃ©cupÃ¨re les statistiques dÃ©taillÃ©es pour les "Prochains dÃ©fis"
-   * Affiche seulement 3-4 badges dÃ©jÃ  entamÃ©s (progress > 0) - les autres restent "secrets"
+   * Récupère les statistiques détaillées pour les "Prochains défis"
+   * Affiche seulement 3-4 badges déjà entamés (progress > 0) - les autres restent "secrets"
    */
   async getNextChallengesStats(): Promise<Array<{
     name: string;
@@ -516,7 +515,7 @@ export class BadgeService {
       const userBadgeIds = await this.supabase.getUserBadgesNew(user.id);
       const allAvailableBadges = await this.getAllAvailableBadges();
 
-      // Trouver les badges non dÃ©bloquÃ©s et leurs statistiques
+      // Trouver les badges non débloqués et leurs statistiques
       const unlockedBadges = allAvailableBadges.filter(badge =>
         !userBadgeIds.includes(badge.id)
       );
@@ -533,8 +532,8 @@ export class BadgeService {
       for (const badge of unlockedBadges) {
         const progress = await this.getBadgeProgressNew(badge, userStats);
 
-        // SEULEMENT inclure les badges dÃ©jÃ  entamÃ©s (progress > 0)
-        // Les badges non commencÃ©s restent "secrets"
+        // SEULEMENT inclure les badges déjà entamés (progress > 0)
+        // Les badges non commencés restent "secrets"
         if (progress.current > 0) {
           challenges.push({
             name: badge.name,
@@ -547,23 +546,23 @@ export class BadgeService {
         }
       }
 
-      // Trier par progression dÃ©croissante (les plus proches d'Ãªtre dÃ©bloquÃ©s en premier)
-      // et limiter Ã  4 badges maximum pour garder le focus
+      // Trier par progression décroissante (les plus proches d'être débloqués en premier)
+      // et limiter à 4 badges maximum pour garder le focus
       return challenges
         .sort((a, b) => b.progress - a.progress)
         .slice(0, 4);
     } catch (error) {
-      console.error('Erreur lors de la rÃ©cupÃ©ration des challenges:', error);
+      console.error('Erreur lors de la récupération des challenges:', error);
       return [];
     }
   }
 
   /**
-   * Nouvelle mÃ©thode pour calculer le progress d'un badge avec le systÃ¨me requirement_type/requirement_value
+   * Nouvelle méthode pour calculer le progress d'un badge avec le système requirement_type/requirement_value
    */
   private async getBadgeProgressNew(badge: Badge, userStats: any): Promise<{ current: number, required: number, progress: number }> {
     if (!badge.requirementType || !badge.requirementValue) {
-      // Fallback vers l'ancien systÃ¨me
+      // Fallback vers l'ancien système
       return await this.getBadgeProgress(badge.id);
     }
 
@@ -677,53 +676,53 @@ export class BadgeService {
   }
 
   /**
-   * MÃ©thode utilitaire pour vÃ©rifier les badges aprÃ¨s une action utilisateur
-   * @deprecated Utiliser EventBus Ã  la place
+   * Méthode utilitaire pour vérifier les badges après une action utilisateur
+   * @deprecated Utiliser EventBus à la place
    */
   async checkBadgesAfterAction(action: 'fail_posted' | 'reaction_given'): Promise<Badge[]> {
-    badgeLog('ðŸ† BadgeService: checkBadgesAfterAction called with action:', action);
-    badgeLog('ðŸ† BadgeService: checkBadgesAfterAction est dÃ©prÃ©ciÃ©, utiliser EventBus Ã  la place');
+    console.log('🏆 BadgeService: checkBadgesAfterAction called with action:', action);
+    console.log('🏆 BadgeService: checkBadgesAfterAction est déprécié, utiliser EventBus à la place');
 
     const user = await this.supabase.getCurrentUser();
     if (!user) {
-      badgeLog('ðŸ† BadgeService: No user found, returning empty badges array');
+      console.log('🏆 BadgeService: No user found, returning empty badges array');
       return [];
     }
 
-    badgeLog('ðŸ† BadgeService: User found, checking and unlocking badges for user:', user.id);
+    console.log('🏆 BadgeService: User found, checking and unlocking badges for user:', user.id);
     const result = await this.checkAndUnlockBadges(user.id);
-    badgeLog('ðŸ† BadgeService: Badge check completed, found', result.length, 'new badges');
+    console.log('🏆 BadgeService: Badge check completed, found', result.length, 'new badges');
     return result;
   }
 
   /**
-   * Force la vÃ©rification manuelle des badges pour l'utilisateur actuel
-   * Utile pour les tests et le dÃ©bogage
+   * Force la vérification manuelle des badges pour l'utilisateur actuel
+   * Utile pour les tests et le débogage
    */
   async forceCheckBadges(): Promise<Badge[]> {
     try {
       const user = await this.supabase.getCurrentUser();
       if (!user) {
-        badgeLog('Aucun utilisateur connectÃ© pour la vÃ©rification des badges');
+        console.log('Aucun utilisateur connecté pour la vérification des badges');
         return [];
       }
 
-      badgeLog('ðŸ” VÃ©rification forcÃ©e des badges pour:', user.email);
+      console.log('🔍 Vérification forcée des badges pour:', user.email);
       const newBadges = await this.checkAndUnlockBadges(user.id);
 
       if (newBadges.length > 0) {
-        badgeLog(`ðŸ† ${newBadges.length} nouveaux badges dÃ©bloquÃ©s:`, newBadges.map(b => b.name));
-        // Ã‰mettre l'Ã©vÃ©nement pour les notifications
+        console.log(`🏆 ${newBadges.length} nouveaux badges débloqués:`, newBadges.map(b => b.name));
+        // Émettre l'événement pour les notifications
         this.eventBus.emit(AppEvents.BADGE_UNLOCKED, { badges: newBadges });
         // Recharger les badges utilisateur
         await this.refreshUserBadges();
       } else {
-        badgeLog('âœ… Aucun nouveau badge Ã  dÃ©bloquer');
+        console.log('✅ Aucun nouveau badge à débloquer');
       }
 
       return newBadges;
     } catch (error) {
-      console.error('Erreur lors de la vÃ©rification forcÃ©e des badges:', error);
+      console.error('Erreur lors de la vérification forcée des badges:', error);
       return [];
     }
   }

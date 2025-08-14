@@ -1,12 +1,13 @@
-import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonIcon, ViewWillEnter, ToastController } from '@ionic/angular/standalone';
+import { IonButton, IonIcon, ViewWillEnter, ToastController, PopoverController } from '@ionic/angular/standalone';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { failLog } from '../../utils/logger';
+import { SupabaseService } from '../../services/supabase.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-fail-card',
@@ -47,7 +48,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     try {
       this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
     } catch (error) {
-      failLog('Erreur lors du chargement des réactions utilisateur:', error);
+      console.log('Erreur lors du chargement des réactions utilisateur:', error);
       this.userReactions = [];
     }
   }
@@ -77,7 +78,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       await this.loadUserReaction();
       this.cdr.detectChanges();
     } catch (error) {
-      failLog('Erreur lors de la réaction courage:', error);
+      console.log('Erreur lors de la réaction courage:', error);
     }
   }
 
@@ -106,7 +107,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       await this.loadUserReaction();
       this.cdr.detectChanges();
     } catch (error) {
-      failLog('Erreur lors de la réaction laugh:', error);
+      console.log('Erreur lors de la réaction laugh:', error);
     }
   }
 
@@ -135,7 +136,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       await this.loadUserReaction();
       this.cdr.detectChanges();
     } catch (error) {
-      failLog('Erreur lors de la réaction empathy:', error);
+      console.log('Erreur lors de la réaction empathy:', error);
     }
   }
 
@@ -164,7 +165,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       await this.loadUserReaction();
       this.cdr.detectChanges();
     } catch (error) {
-      failLog('Erreur lors de la réaction support:', error);
+      console.log('Erreur lors de la réaction support:', error);
     }
   }
 
@@ -173,20 +174,20 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
    */
   private async refreshFailData() {
     try {
-      failLog(`🔄 Refreshing data for fail ${this.fail.id}...`);
-      failLog(`🔄 Current reactions:`, this.fail.reactions);
+      console.log(`🔄 Refreshing data for fail ${this.fail.id}...`);
+      console.log(`🔄 Current reactions:`, this.fail.reactions);
 
       // Attendre un peu pour que la base de données soit à jour
       await new Promise(resolve => setTimeout(resolve, 500));
 
       const updatedFail = await this.failService.getFailById(this.fail.id);
       if (updatedFail) {
-        failLog(`✅ Updated reactions from DB:`, updatedFail.reactions);
+        console.log(`✅ Updated reactions from DB:`, updatedFail.reactions);
 
         // Mettre à jour les compteurs de réactions
         this.fail.reactions = { ...updatedFail.reactions };
 
-        failLog(`✅ Local reactions after update:`, this.fail.reactions);
+        console.log(`✅ Local reactions after update:`, this.fail.reactions);
 
         // Forcer la détection de changement
         this.cdr.detectChanges();
@@ -195,7 +196,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       // Recharger les réactions de l'utilisateur
       await this.loadUserReaction();
     } catch (error) {
-      failLog('❌ Erreur lors du refresh des données du fail:', error);
+      console.log('❌ Erreur lors du refresh des données du fail:', error);
     }
   }
 

@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { ComprehensiveLoggerService } from './comprehensive-logger.service';
 
 export interface ConsentRecord {
     id: string;
@@ -18,7 +19,7 @@ export class ConsentService {
     private consentStatusSubject = new BehaviorSubject<boolean>(false);
     public consentStatus$ = this.consentStatusSubject.asObservable();
 
-    constructor() { }
+    constructor(private logger: ComprehensiveLoggerService) { }
 
     /**
      * Vérifie si l'utilisateur a accepté tous les documents obligatoires
@@ -46,6 +47,22 @@ export class ConsentService {
                 ...additionalData
             };
 
+            // Logger l'acceptation du consentement
+            await this.logger.logActivity({
+                eventType: 'consent_accepted',
+                eventCategory: 'system',
+                action: 'legal_consent',
+                title: 'Consentement légal accepté',
+                description: `L'utilisateur a accepté les documents légaux: ${documentsAccepted.join(', ')}`,
+                resourceType: 'consent',
+                targetUserId: userId,
+                payload: {
+                    documentsAccepted,
+                    ipAddress: additionalData?.ipAddress,
+                    userAgent: additionalData?.userAgent
+                }
+            });
+
             // TODO: Sauvegarder en base de données via Supabase
             // Pour l'instant, on utilise le localStorage
             localStorage.setItem(`user_consent_${userId}`, 'accepted');
@@ -55,6 +72,21 @@ export class ConsentService {
             return true;
         } catch (error) {
             console.error('Erreur lors de l\'enregistrement du consentement:', error);
+
+            // Logger l'erreur de consentement
+            await this.logger.logActivity({
+                eventType: 'consent_error',
+                eventCategory: 'system',
+                action: 'legal_consent_failed',
+                title: 'Erreur consentement légal',
+                description: `Erreur lors de l'enregistrement du consentement pour l'utilisateur`,
+                resourceType: 'consent',
+                targetUserId: userId,
+                success: false,
+                errorMessage: error instanceof Error ? error.message : 'Erreur inconnue',
+                payload: { documentsAccepted }
+            });
+
             return false;
         }
     }
