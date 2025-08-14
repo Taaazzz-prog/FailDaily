@@ -1,0 +1,449 @@
+<!-- ========================================
+     INTERFACE D'ADMINISTRATION DES LOGS FAILDAILY
+     ======================================== -->
+
+<ion-header [translucent]="true">
+    <ion-toolbar color="primary">
+        <ion-title>
+            <ion-icon name="analytics-outline"></ion-icon>
+            Administration des Logs
+        </ion-title>
+        <ion-buttons slot="end">
+            <ion-button [color]="isRealTimeEnabled ? 'success' : 'medium'" (click)="toggleRealTime()">
+                <ion-icon [name]="isRealTimeEnabled ? 'radio' : 'radio-outline'"></ion-icon>
+            </ion-button>
+            <ion-button (click)="forceRefresh()">
+                <ion-icon name="refresh"></ion-icon>
+            </ion-button>
+        </ion-buttons>
+    </ion-toolbar>
+
+    <!-- Navigation entre les vues -->
+    <ion-toolbar color="light">
+        <ion-segment [(ngModel)]="currentView" (ionChange)="switchView($event.detail.value)">
+            <ion-segment-button value="logs">
+                <ion-label>Logs</ion-label>
+                <ion-icon name="list"></ion-icon>
+            </ion-segment-button>
+            <ion-segment-button value="stats">
+                <ion-label>Stats</ion-label>
+                <ion-icon name="bar-chart"></ion-icon>
+            </ion-segment-button>
+            <ion-segment-button value="realtime">
+                <ion-label>Temps Réel</ion-label>
+                <ion-icon name="pulse"></ion-icon>
+            </ion-segment-button>
+            <ion-segment-button value="users">
+                <ion-label>Utilisateurs</ion-label>
+                <ion-icon name="people"></ion-icon>
+            </ion-segment-button>
+        </ion-segment>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="admin-logs-content">
+
+    <!-- ========================================
+       FILTRES ET RECHERCHE
+       ======================================== -->
+    <ion-card class="filters-card" *ngIf="currentView === 'logs'">
+        <ion-card-header>
+            <ion-card-title>
+                <ion-icon name="filter-outline"></ion-icon>
+                Filtres
+            </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+            <ion-grid>
+                <ion-row>
+                    <ion-col size="12" size-md="4">
+                        <ion-item>
+                            <ion-select [(ngModel)]="activeFilters.category" placeholder="Catégorie"
+                                (ionChange)="onFilterChange()">
+                                <ion-select-option value="">Toutes</ion-select-option>
+                                <ion-select-option *ngFor="let cat of categoryOptions" [value]="cat.value">
+                                    {{cat.label}}
+                                </ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                    </ion-col>
+                    <ion-col size="12" size-md="4">
+                        <ion-item>
+                            <ion-select [(ngModel)]="activeFilters.level" placeholder="Niveau"
+                                (ionChange)="onFilterChange()">
+                                <ion-select-option value="">Tous</ion-select-option>
+                                <ion-select-option *ngFor="let level of levelOptions" [value]="level.value">
+                                    {{level.label}}
+                                </ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                    </ion-col>
+                    <ion-col size="12" size-md="4">
+                        <ion-item>
+                            <ion-input [(ngModel)]="activeFilters.searchText" placeholder="Rechercher..."
+                                (ionInput)="onFilterChange()" clearInput="true">
+                            </ion-input>
+                            <ion-icon name="search" slot="start"></ion-icon>
+                        </ion-item>
+                    </ion-col>
+                </ion-row>
+                <ion-row>
+                    <ion-col size="6" size-md="3">
+                        <ion-item>
+                            <ion-checkbox [(ngModel)]="activeFilters.successOnly"
+                                (ionChange)="onFilterChange()"></ion-checkbox>
+                            <ion-label class="ion-margin-start">Succès seulement</ion-label>
+                        </ion-item>
+                    </ion-col>
+                    <ion-col size="6" size-md="3">
+                        <ion-item>
+                            <ion-checkbox [(ngModel)]="activeFilters.errorOnly"
+                                (ionChange)="onFilterChange()"></ion-checkbox>
+                            <ion-label class="ion-margin-start">Erreurs seulement</ion-label>
+                        </ion-item>
+                    </ion-col>
+                    <ion-col size="12" size-md="6">
+                        <ion-button fill="clear" (click)="clearFilters()">
+                            <ion-icon name="close" slot="start"></ion-icon>
+                            Effacer filtres
+                        </ion-button>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
+        </ion-card-content>
+    </ion-card>
+
+    <!-- ========================================
+       VUE LOGS PRINCIPAUX
+       ======================================== -->
+    <div *ngIf="currentView === 'logs'">
+
+        <!-- Statistiques rapides -->
+        <ion-card class="stats-overview">
+            <ion-card-content>
+                <ion-grid>
+                    <ion-row>
+                        <ion-col size="3">
+                            <div class="stat-item">
+                                <div class="stat-number">{{logStats.total}}</div>
+                                <div class="stat-label">Total</div>
+                            </div>
+                        </ion-col>
+                        <ion-col size="3">
+                            <div class="stat-item success">
+                                <div class="stat-number">{{logStats.successful}}</div>
+                                <div class="stat-label">Succès</div>
+                            </div>
+                        </ion-col>
+                        <ion-col size="3">
+                            <div class="stat-item error">
+                                <div class="stat-number">{{logStats.failed}}</div>
+                                <div class="stat-label">Erreurs</div>
+                            </div>
+                        </ion-col>
+                        <ion-col size="3">
+                            <div class="stat-item">
+                                <div class="stat-number">{{Math.round(logStats.successful / logStats.total * 100) ||
+                                    0}}%</div>
+                                <div class="stat-label">Taux succès</div>
+                            </div>
+                        </ion-col>
+                    </ion-row>
+                </ion-grid>
+            </ion-card-content>
+        </ion-card>
+
+        <!-- Liste des logs -->
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>
+                    Logs d'activité ({{filteredLogs.length}})
+                    <ion-badge color="success" *ngIf="isRealTimeEnabled">LIVE</ion-badge>
+                </ion-card-title>
+                <ion-card-subtitle>
+                    <ion-button size="small" fill="outline" (click)="exportLogs()">
+                        <ion-icon name="download" slot="start"></ion-icon>
+                        Exporter
+                    </ion-button>
+                    <ion-button size="small" fill="outline" color="warning" (click)="testLogging()">
+                        <ion-icon name="bug" slot="start"></ion-icon>
+                        Test
+                    </ion-button>
+                    <ion-button size="small" fill="outline" color="danger" (click)="clearLocalLogs()">
+                        <ion-icon name="trash" slot="start"></ion-icon>
+                        Vider
+                    </ion-button>
+                </ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content class="logs-container">
+                <ion-virtual-scroll [items]="filteredLogs" approxItemHeight="80px">
+                    <div *virtualItem="let log; trackBy: trackByLogId" class="log-item"
+                        [class.error]="log.success === false" [class.warning]="log.eventCategory === 'security'"
+                        (click)="selectLog(log)">
+
+                        <div class="log-header">
+                            <span class="log-icon">{{getLogIcon(log)}}</span>
+                            <span class="log-title">{{log.title}}</span>
+                            <ion-badge [color]="getLogColor(log)" class="log-category">
+                                {{log.eventCategory}}
+                            </ion-badge>
+                            <span class="log-time">{{formatDate(log.created_at || new Date())}}</span>
+                        </div>
+
+                        <div class="log-details">
+                            <div class="log-action">{{log.action}}</div>
+                            <div class="log-description" *ngIf="log.description">{{log.description}}</div>
+                            <div class="log-meta">
+                                <span *ngIf="log.userId" class="log-user">👤 {{log.userId}}</span>
+                                <span *ngIf="log.executionTimeMs" class="log-duration">⏱️
+                                    {{formatDuration(log.executionTimeMs)}}</span>
+                                <span *ngIf="log.success === false" class="log-error">❌ {{log.errorMessage}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </ion-virtual-scroll>
+
+                <!-- État de chargement -->
+                <div class="loading-container" *ngIf="isLoadingLogs">
+                    <ion-spinner></ion-spinner>
+                    <p>Chargement des logs...</p>
+                </div>
+
+                <!-- Aucun log -->
+                <div class="no-logs" *ngIf="filteredLogs.length === 0 && !isLoadingLogs">
+                    <ion-icon name="document-text-outline" size="large"></ion-icon>
+                    <p>Aucun log trouvé avec les filtres actuels</p>
+                </div>
+            </ion-card-content>
+        </ion-card>
+    </div>
+
+    <!-- ========================================
+       VUE STATISTIQUES
+       ======================================== -->
+    <div *ngIf="currentView === 'stats'">
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>Statistiques détaillées</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+
+                <!-- Répartition par catégorie -->
+                <div class="chart-section">
+                    <h3>Répartition par catégorie</h3>
+                    <div class="category-stats">
+                        <div *ngFor="let stat of statisticsEntries" class="category-stat-item">
+                            <div class="category-label">{{stat.category}}</div>
+                            <div class="category-bar">
+                                <div class="category-fill" [style.width.%]="stat.percentage">
+                                </div>
+                                <span class="category-count">{{stat.count}} ({{stat.percentage}}%)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Top actions -->
+                <div class="chart-section">
+                    <h3>Actions les plus fréquentes</h3>
+                    <ion-list>
+                        <ion-item *ngFor="let action of logStats.topActions.slice(0, 10)">
+                            <ion-label>
+                                <h2>{{action.action}}</h2>
+                                <p>{{action.count}} occurrences</p>
+                            </ion-label>
+                            <ion-badge slot="end">{{action.count}}</ion-badge>
+                        </ion-item>
+                    </ion-list>
+                </div>
+
+                <!-- Top utilisateurs -->
+                <div class="chart-section">
+                    <h3>Utilisateurs les plus actifs</h3>
+                    <ion-list>
+                        <ion-item *ngFor="let user of logStats.topUsers.slice(0, 10)">
+                            <ion-avatar slot="start">
+                                <div class="user-avatar">👤</div>
+                            </ion-avatar>
+                            <ion-label>
+                                <h2>{{user.userId}}</h2>
+                                <p>{{user.count}} actions</p>
+                            </ion-label>
+                            <ion-badge color="primary" slot="end">{{user.count}}</ion-badge>
+                        </ion-item>
+                    </ion-list>
+                </div>
+            </ion-card-content>
+        </ion-card>
+    </div>
+
+    <!-- ========================================
+       VUE TEMPS RÉEL
+       ======================================== -->
+    <div *ngIf="currentView === 'realtime'">
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>
+                    <ion-icon name="pulse" color="success"></ion-icon>
+                    Logs en temps réel
+                </ion-card-title>
+                <ion-card-subtitle>
+                    Mise à jour automatique toutes les {{autoRefreshInterval/1000}}s
+                </ion-card-subtitle>
+            </ion-card-header>
+            <ion-card-content>
+                <div class="realtime-logs">
+                    <div *ngFor="let log of realtimeLogs.slice(0, 20); trackBy: trackByLogId" class="realtime-log-item"
+                        [class.error]="log.success === false">
+                        <div class="log-timestamp">{{formatDate(log.created_at || new Date())}}</div>
+                        <div class="log-content">
+                            <span class="log-category-badge" [attr.data-category]="log.eventCategory">
+                                {{log.eventCategory}}
+                            </span>
+                            <span class="log-title">{{log.title}}</span>
+                        </div>
+                    </div>
+                </div>
+            </ion-card-content>
+        </ion-card>
+    </div>
+
+    <!-- ========================================
+       VUE UTILISATEURS
+       ======================================== -->
+    <div *ngIf="currentView === 'users'">
+        <ion-card>
+            <ion-card-header>
+                <ion-card-title>Métriques utilisateurs</ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+                <ion-list>
+                    <ion-item *ngFor="let metric of userMetrics">
+                        <ion-label>
+                            <h2>Utilisateur {{metric.userId}}</h2>
+                            <p>
+                                Connexions: {{metric.loginsCount}} |
+                                Fails: {{metric.failsCreated}} |
+                                Réactions: {{metric.reactionsGiven}}
+                            </p>
+                            <p>Date: {{metric.date}}</p>
+                        </ion-label>
+                        <div slot="end" class="user-metrics">
+                            <ion-badge color="primary">{{metric.successfulActions}} succès</ion-badge>
+                            <ion-badge color="danger" *ngIf="metric.errorsEncountered > 0">
+                                {{metric.errorsEncountered}} erreurs
+                            </ion-badge>
+                        </div>
+                    </ion-item>
+                </ion-list>
+            </ion-card-content>
+        </ion-card>
+    </div>
+
+    <!-- ========================================
+       MODAL DÉTAILS D'UN LOG
+       ======================================== -->
+    <ion-modal [isOpen]="selectedLog !== null" (willDismiss)="closeLogDetails()">
+        <ng-template>
+            <ion-header>
+                <ion-toolbar color="primary">
+                    <ion-title>Détails du log</ion-title>
+                    <ion-buttons slot="end">
+                        <ion-button (click)="closeLogDetails()">
+                            <ion-icon name="close"></ion-icon>
+                        </ion-button>
+                    </ion-buttons>
+                </ion-toolbar>
+            </ion-header>
+
+            <ion-content *ngIf="selectedLog">
+                <ion-card>
+                    <ion-card-header>
+                        <ion-card-title>
+                            {{getLogIcon(selectedLog)}} {{selectedLog.title}}
+                        </ion-card-title>
+                        <ion-card-subtitle>
+                            {{selectedLog.eventCategory}} - {{selectedLog.action}}
+                        </ion-card-subtitle>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-list>
+                            <ion-item>
+                                <ion-label>
+                                    <h3>Type d'événement</h3>
+                                    <p>{{selectedLog.eventType}}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item *ngIf="selectedLog.description">
+                                <ion-label>
+                                    <h3>Description</h3>
+                                    <p>{{selectedLog.description}}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item>
+                                <ion-label>
+                                    <h3>Statut</h3>
+                                    <ion-badge [color]="selectedLog.success ? 'success' : 'danger'">
+                                        {{selectedLog.success ? 'Succès' : 'Échec'}}
+                                    </ion-badge>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item *ngIf="selectedLog.errorMessage">
+                                <ion-label>
+                                    <h3>Message d'erreur</h3>
+                                    <p class="error-message">{{selectedLog.errorMessage}}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item *ngIf="selectedLog.userId">
+                                <ion-label>
+                                    <h3>Utilisateur</h3>
+                                    <p>{{selectedLog.userId}}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item *ngIf="selectedLog.executionTimeMs">
+                                <ion-label>
+                                    <h3>Temps d'exécution</h3>
+                                    <p>{{formatDuration(selectedLog.executionTimeMs)}}</p>
+                                </ion-label>
+                            </ion-item>
+
+                            <ion-item *ngIf="selectedLog.correlationId">
+                                <ion-label>
+                                    <h3>ID de corrélation</h3>
+                                    <p class="correlation-id">{{selectedLog.correlationId}}</p>
+                                </ion-label>
+                            </ion-item>
+                        </ion-list>
+
+                        <!-- Données JSON -->
+                        <div *ngIf="selectedLog.payload" class="json-data">
+                            <h3>Données JSON</h3>
+                            <pre>{{selectedLog.payload | json}}</pre>
+                        </div>
+
+                        <!-- Anciennes/Nouvelles valeurs -->
+                        <div *ngIf="selectedLog.oldValues || selectedLog.newValues" class="value-changes">
+                            <h3>Modifications</h3>
+                            <div class="value-comparison">
+                                <div class="old-values" *ngIf="selectedLog.oldValues">
+                                    <h4>Avant</h4>
+                                    <pre>{{selectedLog.oldValues | json}}</pre>
+                                </div>
+                                <div class="new-values" *ngIf="selectedLog.newValues">
+                                    <h4>Après</h4>
+                                    <pre>{{selectedLog.newValues | json}}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </ion-card-content>
+                </ion-card>
+            </ion-content>
+        </ng-template>
+    </ion-modal>
+
+</ion-content>
