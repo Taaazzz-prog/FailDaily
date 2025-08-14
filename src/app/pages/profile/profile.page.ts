@@ -12,7 +12,7 @@ import {
     calendar, createOutline, shareOutline, trophy, documentText, heart,
     flame, analytics, add, ribbonOutline, arrowForward, ellipsisHorizontal,
     documentOutline, shieldCheckmark, chevronForward, settingsOutline,
-    lockClosed, chevronDownCircleOutline
+    lockClosed, chevronDownCircleOutline, personOutline
 } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
@@ -149,7 +149,7 @@ export class ProfilePage implements OnInit, OnDestroy {
             calendar, createOutline, shareOutline, trophy, documentText, heart,
             flame, analytics, add, ribbonOutline, arrowForward, ellipsisHorizontal,
             documentOutline, shieldCheckmark, chevronForward, settingsOutline,
-            lockClosed, chevronDownCircleOutline
+            lockClosed, chevronDownCircleOutline, personOutline
         });
 
         console.log('👤 ProfilePage - Constructor called');

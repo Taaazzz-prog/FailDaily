@@ -15,6 +15,80 @@
     margin: 0 auto;
     padding: 1rem;
 
+    // En-tête utilisateur
+    .welcome-section {
+        .user-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+
+            .profile-avatar {
+                width: 80px;
+                height: 80px;
+                flex-shrink: 0;
+
+                img {
+                    border-radius: 50%;
+                }
+            }
+
+            .user-info {
+                flex: 1;
+                min-width: 0; // Pour permettre le wrap du texte
+
+                h1 {
+                    margin: 0 0 0.5rem 0;
+                    font-size: 1.5rem;
+                }
+
+                .encouragement-text {
+                    font-style: italic;
+                    color: var(--profile-accent);
+                    margin: 0.25rem 0;
+                    font-size: 0.9rem;
+                    opacity: 0.8;
+                }
+
+                .comfort-text {
+                    margin: 0.25rem 0;
+                    font-size: 0.85rem;
+
+                    ion-icon {
+                        margin-right: 0.25rem;
+                        font-size: 0.9rem;
+                        vertical-align: middle;
+                    }
+                }
+
+                .user-bio {
+                    margin: 0.5rem 0;
+                    font-size: 0.9rem;
+                    color: var(--ion-color-dark);
+                    line-height: 1.4;
+                    background: rgba(var(--ion-color-light-rgb), 0.5);
+                    padding: 0.5rem;
+                    border-radius: 8px;
+                    border-left: 3px solid var(--profile-primary);
+
+                    ion-icon {
+                        margin-right: 0.25rem;
+                        color: var(--profile-primary);
+                        font-size: 0.9rem;
+                        vertical-align: middle;
+                    }
+                }
+            }
+        }
+
+        .profile-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+    }
+
     // Sections principales avec cadres
     .welcome-section,
     .level-section,

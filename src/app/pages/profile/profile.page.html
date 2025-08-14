@@ -23,16 +23,21 @@
                 </ion-avatar>
                 <div class="user-info">
                     <h1 class="handwriting">{{ user.displayName }}</h1>
+                    <p class="encouragement-text comfort-text">{{ currentEncouragementMessage }}</p>
                     @if (profileStats$ | async; as stats) {
                     <p class="comfort-text">
                         <ion-icon name="calendar"></ion-icon>
                         Membre depuis {{ stats.joinedDaysAgo }} jour{{ stats.joinedDaysAgo > 1 ? 's' : '' }}
                     </p>
                     }
+                    @if (user.preferences?.bio) {
+                    <p class="user-bio comfort-text">
+                        <ion-icon name="person-outline"></ion-icon>
+                        {{ user.preferences?.bio }}
+                    </p>
+                    }
                 </div>
             </div>
-
-            <p class="encouragement-text comfort-text">{{ currentEncouragementMessage }}</p>
 
             <!-- Actions rapides -->
             <div class="profile-actions">
