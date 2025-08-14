@@ -5,7 +5,7 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
     IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
-    IonButtons, IonBackButton, IonInput, IonAlert, ToastController
+    IonButtons, IonBackButton, IonInput, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { bugOutline, checkmarkCircle, documentText, flask, heart, hourglass, refresh, sync, trashBin, warning, shield, people, personAdd, ban } from 'ionicons/icons';
@@ -68,7 +68,7 @@ interface UserActivity {
         IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
         IonSelect, IonSelectOption, IonCard, IonCardHeader, IonCardTitle,
         IonCardContent, IonBadge, IonSpinner, IonChip, IonIcon, IonButton,
-        IonButtons, IonBackButton, IonInput, IonAlert
+        IonButtons, IonBackButton, IonInput
     ]
 })
 export class AdminPage implements OnInit {

@@ -17,6 +17,7 @@ import {
 import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
+import { SupabaseService } from '../../services/supabase.service';
 import { EventBusService, AppEvents } from '../../services/event-bus.service';
 import { User } from '../../models/user.model';
 import { Fail } from '../../models/fail.model';
@@ -96,15 +97,15 @@ export class ProfilePage implements OnInit, OnDestroy {
             icon: 'shield-outline',
             handler: () => {
                 this.closeActionSheet();
-                // Petit délai pour permettre à l'action sheet de se fermer complètement
-                setTimeout(() => {
-                    console.log('Navigation vers privacy-settings...');
-                    this.router.navigate(['/tabs/privacy-settings']).then(success => {
-                        console.log('Navigation réussie:', success);
-                    }).catch(error => {
-                        console.error('Erreur de navigation:', error);
-                    });
-                }, 300);
+
+                // Navigation vers les paramètres de confidentialité
+                this.router.navigateByUrl('/tabs/privacy-settings').then(success => {
+                    console.log('Navigation privacy-settings:', success ? 'réussie' : 'échouée');
+                }).catch(error => {
+                    console.error('Erreur navigation privacy-settings:', error);
+                });
+
+                return true;
             }
         },
         {
@@ -125,7 +126,13 @@ export class ProfilePage implements OnInit, OnDestroy {
             text: 'Se déconnecter',
             handler: () => this.confirmLogout()
         }
-    ];    // Messages d'encouragement rotatifs
+    ];
+
+    // Debug des points de courage
+    courageDebugInfo: any = null;
+    showDebug = false; // Pour afficher/masquer le debug
+
+    // Messages d'encouragement rotatifs
     private encouragementMessages = [
         "Chaque échec est un pas vers la réussite ! 🌟",
         "Ton courage inspire la communauté ! 💪",
@@ -141,6 +148,7 @@ export class ProfilePage implements OnInit, OnDestroy {
         private authService: AuthService,
         private failService: FailService,
         private badgeService: BadgeService,
+        private supabaseService: SupabaseService,
         private eventBus: EventBusService,
         private router: Router
     ) {
@@ -191,6 +199,23 @@ export class ProfilePage implements OnInit, OnDestroy {
                 console.log('👤 ProfilePage - Refreshing data...');
                 // Forcer un rafraîchissement des données
                 this.failService.refreshFails();
+            })
+        );
+
+        // Écouter les réactions pour mettre à jour les statistiques en temps réel
+        console.log('👤 ProfilePage - Setting up reaction listener...');
+        this.subscriptions.add(
+            this.eventBus.on(AppEvents.REACTION_GIVEN).subscribe((reactionData) => {
+                console.log('👤 ProfilePage - Reaction given event received:', reactionData);
+
+                // Rafraîchir les données pour mettre à jour les statistiques
+                this.failService.refreshFails();
+
+                // Forcer la recalcul des statistiques en déclenchant une nouvelle émission
+                setTimeout(() => {
+                    // Le système d'observables se rechargera automatiquement
+                    console.log('👤 ProfilePage - Stats should be updated now');
+                }, 500);
             })
         );
 
@@ -247,7 +272,7 @@ export class ProfilePage implements OnInit, OnDestroy {
 
         return {
             totalFails: fails.length,
-            couragePoints: user.couragePoints,
+            couragePoints: user.couragePoints, // Retour à l'ancien système qui fonctionnait
             totalReactions,
             currentStreak: this.calculateCurrentStreak(fails),
             joinedDaysAgo,
@@ -264,6 +289,37 @@ export class ProfilePage implements OnInit, OnDestroy {
     getRandomEncouragement(): string {
         const randomIndex = Math.floor(Math.random() * this.encouragementMessages.length);
         return this.encouragementMessages[randomIndex];
+    }
+
+    // ✅ NOUVEAU : Debug des points de courage
+    async debugCouragePoints() {
+        const user = this.authService.getCurrentUser();
+        if (!user?.id) return;
+
+        console.log('🔍 Lancement du debug des points de courage...');
+        this.courageDebugInfo = await this.supabaseService.debugCouragePoints(user.id);
+        this.showDebug = true;
+    }
+
+    toggleDebug() {
+        this.showDebug = !this.showDebug;
+    }
+
+    hideDebug() {
+        this.showDebug = false;
+        this.courageDebugInfo = null;
+    }
+
+    // ✅ NOUVEAU : Tester l'ajout de points manuellement (pour debug)
+    async testAddCouragePoints() {
+        const user = this.authService.getCurrentUser();
+        if (!user?.id) return;
+
+        await this.supabaseService.testAddCouragePoints(user.id, 10);
+        console.log('✅ +10 points de test ajoutés');
+
+        // Rafraîchir le debug
+        await this.debugCouragePoints();
     }
 
     getProgressLevel(couragePoints: number): { level: number; progress: number; nextLevel: number } {
@@ -298,15 +354,8 @@ export class ProfilePage implements OnInit, OnDestroy {
 
     // Méthode pour accès direct aux paramètres de confidentialité
     goToPrivacySettings() {
-        console.log('Navigation vers privacy-settings...');
-        this.router.navigate(['/tabs/privacy-settings']).then(success => {
-            console.log('Navigation réussie:', success);
-        }).catch(error => {
-            console.error('Erreur de navigation:', error);
-        });
-    }
-
-    async logout() {
+        this.router.navigateByUrl('/tabs/privacy-settings');
+    } async logout() {
         this.isAlertOpen = true;
     }
 

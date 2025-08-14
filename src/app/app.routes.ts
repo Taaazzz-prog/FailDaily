@@ -43,7 +43,7 @@ export const routes: Routes = [
       {
         path: 'privacy-settings',
         loadComponent: () => import('./pages/privacy-settings/privacy-settings.page').then(m => {
-          console.log('Chargement du composant PrivacySettings...', m);
+          console.log('Chargement du composant PrivacySettings...', !!m.PrivacySettingsPage);
           return m.PrivacySettingsPage;
         }),
         canActivate: [AuthGuard]
@@ -64,6 +64,11 @@ export const routes: Routes = [
         pathMatch: 'full'
       }
     ]
+  },
+  // Profil utilisateur public
+  {
+    path: 'user-profile/:userId',
+    loadComponent: () => import('./pages/user-profile/user-profile.page').then(m => m.UserProfilePage)
   },
   // Redirection home directe vers tabs
   {

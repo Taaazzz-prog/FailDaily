@@ -9,6 +9,7 @@ import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { AuthService } from './app/services/auth.service';
 import { SupabaseService } from './app/services/supabase.service';
+import { FollowService } from './app/services/follow.service';
 import { initializeIcons } from './app/utils/icons';
 
 // Initialiser toutes les icônes au démarrage de l'application
@@ -23,6 +24,7 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(BrowserModule),
     AuthService,
     SupabaseService,
+    FollowService,
   ],
 }).then(() => {
   console.log('FailDaily application started');

@@ -150,6 +150,10 @@ export class FailService {
       }
     }
 
+    // Log des données de réactions pour débugger
+    failLog('📊 formatFailWithAuthor - Raw failData.reactions:', failData.reactions);
+    failLog('📊 formatFailWithAuthor - Type of reactions:', typeof failData.reactions);
+
     return {
       id: failData.id,
       title: failData.title,
@@ -157,6 +161,7 @@ export class FailService {
       category: failData.category as FailCategory,
       authorName: authorName,
       authorAvatar: authorAvatar,
+      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par is_public)
       imageUrl: failData.image_url,
       createdAt: new Date(failData.created_at),
       isPublic: failData.is_public,

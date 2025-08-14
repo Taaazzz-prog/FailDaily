@@ -19,6 +19,7 @@ export interface Fail {
   description: string;
   category: FailCategory;
   imageUrl?: string;
+  authorId: string;
   authorName: string;
   authorAvatar: string;
   reactions: FailReactions;

@@ -3,6 +3,8 @@
  * À utiliser dans la console du navigateur pour diagnostiquer les problèmes de logs
  */
 
+export { }; // Rendre ce fichier un module
+
 declare global {
     interface Window {
         FailDailyDebug: {
@@ -73,7 +75,7 @@ function testReactionLog() {
 
 // Exposer les fonctions globalement pour la console
 if (typeof window !== 'undefined') {
-    window.FailDailyDebug = {
+    (window as any).FailDailyDebug = {
         enableReactionLogs,
         disableReactionLogs,
         enableAllLogs: () => console.log('🔧 Utilisez enableReactionLogs() ou modifiez logger.ts'),

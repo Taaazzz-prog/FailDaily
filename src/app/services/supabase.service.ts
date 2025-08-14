@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { safeAuthOperation } from '../utils/mobile-fixes';
 import { supabaseLog } from '../utils/logger';
 import { SUPABASE_CONFIG, withTimeout, retryWithBackoff } from '../utils/supabase-config';
@@ -15,6 +15,10 @@ export class SupabaseService {
     public user$: Observable<User | null> = this.currentUser.asObservable();
     public currentUser$: Observable<User | null> = this.currentUser.asObservable();
     public client: SupabaseClient;
+
+    // Subject pour notifier les changements de données
+    private profileUpdated = new Subject<void>();
+    public profileUpdated$ = this.profileUpdated.asObservable();
 
     // ✅ NOUVEAU : Debounce pour éviter les NavigatorLockAcquireTimeoutError
     private authChangeTimeout: any = null;
@@ -353,6 +357,13 @@ export class SupabaseService {
                 throw new Error(`Erreur lors de la création du fail: ${error.message}`);
             }
 
+            // ✅ NOUVEAU : Donner des points de courage pour la création d'un fail
+            await this.addCouragePointsForFailCreation(user.id);
+
+            // Émettre un événement pour mettre à jour l'interface
+            this.profileUpdated.next();
+            supabaseLog(`Fail créé avec succès, points de courage ajoutés pour ${user.id}`);
+
             return data;
         });
     } async getFails(limit: number = 20, offset: number = 0): Promise<any[]> {
@@ -373,6 +384,9 @@ export class SupabaseService {
     }
 
     async getFailById(failId: string): Promise<any | null> {
+        // Ajouter un timestamp pour éviter le cache
+        const timestamp = Date.now();
+
         const { data, error } = await this.supabase
             .from('fails')
             .select('*')
@@ -383,6 +397,7 @@ export class SupabaseService {
             throw error;
         }
 
+        supabaseLog(`📊 getFailById - Fail récupéré (${timestamp}):`, data?.reactions);
         return data || null;
     }
 
@@ -467,6 +482,13 @@ export class SupabaseService {
 
             // Incrémenter le compteur
             await this.updateReactionCount(failId, reactionType, 1);
+
+            // Mettre à jour les points de courage de l'auteur du fail
+            await this.updateCouragePoints(failId, reactionType, 1);
+
+            // Émettre un événement pour mettre à jour l'interface
+            this.profileUpdated.next();
+            supabaseLog(`Réaction ${reactionType} ajoutée avec succès pour le fail ${failId}`);
         } catch (error) {
             console.error('Erreur dans addReaction:', error);
             throw error;
@@ -488,26 +510,285 @@ export class SupabaseService {
 
         if (error) throw error;
         await this.updateReactionCount(failId, reactionType, -1);
+
+        // Mettre à jour les points de courage (diminuer)
+        await this.updateCouragePoints(failId, reactionType, -1);
+
+        // Émettre un événement pour mettre à jour l'interface
+        this.profileUpdated.next();
+        supabaseLog(`Réaction ${reactionType} retirée avec succès pour le fail ${failId}`);
     }
 
     private async updateReactionCount(failId: string, reactionType: string, delta: number): Promise<void> {
+        supabaseLog(`🔢 updateReactionCount: ${reactionType} ${delta > 0 ? '+' : ''}${delta} pour fail ${failId}`);
+
+        try {
+            // Utilisation d'une fonction RPC pour mise à jour atomique
+            const { error } = await this.supabase.rpc('increment_reaction_count', {
+                fail_id: failId,
+                reaction_type: reactionType,
+                increment_value: delta
+            });
+
+            if (error) {
+                supabaseLog(`❌ Erreur RPC increment_reaction_count: ${error.message}`);
+                // Fallback vers la méthode manuelle
+                await this.updateReactionCountManual(failId, reactionType, delta);
+            } else {
+                supabaseLog(`✅ Compteur ${reactionType} mis à jour avec succès via RPC`);
+            }
+        } catch (rpcError) {
+            supabaseLog(`❌ Erreur RPC, fallback manuel: ${rpcError}`);
+            // Fallback vers la méthode manuelle
+            await this.updateReactionCountManual(failId, reactionType, delta);
+        }
+    }
+
+    private async updateReactionCountManual(failId: string, reactionType: string, delta: number): Promise<void> {
+        supabaseLog(`🔢 updateReactionCountManual: ${reactionType} ${delta > 0 ? '+' : ''}${delta} pour fail ${failId}`);
+
         const { data: fail, error: fetchError } = await this.supabase
             .from('fails')
             .select('reactions')
             .eq('id', failId)
             .single();
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+            supabaseLog(`❌ Erreur fetch fail pour compteur: ${fetchError.message}`);
+            throw fetchError;
+        }
 
         const reactions = fail.reactions || {};
-        reactions[reactionType] = Math.max(0, (reactions[reactionType] || 0) + delta);
+        const oldValue = reactions[reactionType] || 0;
+        const newValue = Math.max(0, oldValue + delta);
+
+        supabaseLog(`🔢 Mise à jour compteur ${reactionType}: ${oldValue} → ${newValue}`);
+
+        reactions[reactionType] = newValue;
 
         const { error: updateError } = await this.supabase
             .from('fails')
             .update({ reactions })
             .eq('id', failId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+            supabaseLog(`❌ Erreur update compteur: ${updateError.message}`);
+            throw updateError;
+        }
+
+        supabaseLog(`✅ Compteur ${reactionType} mis à jour avec succès: ${newValue}`);
+    }
+
+    // Nouvelle méthode pour mettre à jour les points de courage
+    private async updateCouragePoints(failId: string, reactionType: string, delta: number): Promise<void> {
+        try {
+            // Récupérer l'auteur du fail
+            const { data: fail, error: failError } = await this.supabase
+                .from('fails')
+                .select('user_id')
+                .eq('id', failId)
+                .single();
+
+            if (failError || !fail) {
+                console.error('Impossible de récupérer le fail pour les points de courage:', failError);
+                return;
+            }
+
+            // Calculer les points à ajouter selon le type de réaction
+            let pointsToAdd = 0;
+            switch (reactionType) {
+                case 'courage':
+                    pointsToAdd = 5 * delta;
+                    break;
+                case 'empathy':
+                case 'support':
+                    pointsToAdd = 2 * delta;
+                    break;
+                case 'laugh':
+                    pointsToAdd = 1 * delta;
+                    break;
+            }
+
+            if (pointsToAdd === 0) return;
+
+            // Mettre à jour les points de courage dans le profil
+            const { data: profile, error: profileFetchError } = await this.supabase
+                .from('profiles')
+                .select('stats')
+                .eq('id', fail.user_id)
+                .single();
+
+            if (profileFetchError) {
+                console.error('Erreur récupération profil:', profileFetchError);
+                return;
+            }
+
+            const stats = profile.stats || { couragePoints: 0 };
+            stats.couragePoints = Math.max(0, (stats.couragePoints || 0) + pointsToAdd);
+
+            const { error: updateError } = await this.supabase
+                .from('profiles')
+                .update({ stats })
+                .eq('id', fail.user_id);
+
+            if (updateError) {
+                console.error('Erreur mise à jour points courage:', updateError);
+            } else {
+                supabaseLog(`Points de courage mis à jour: +${pointsToAdd} pour ${fail.user_id}`);
+            }
+
+        } catch (error) {
+            console.error('Erreur dans updateCouragePoints:', error);
+        }
+    }
+
+    // ✅ NOUVEAU : Méthode de debug pour analyser les points de courage en détail
+    async debugCouragePoints(userId: string): Promise<any> {
+        try {
+            console.log('🔍 DEBUG - Analyse détaillée des points de courage pour:', userId);
+
+            // 1. Points actuels dans le profil
+            const { data: profile } = await this.supabase
+                .from('profiles')
+                .select('stats, display_name')
+                .eq('id', userId)
+                .single();
+
+            const currentPoints = profile?.stats?.couragePoints || 0;
+            console.log(`📊 Points actuels dans le profil: ${currentPoints}`);
+
+            // 2. Récupérer tous les fails de l'utilisateur
+            const { data: userFails } = await this.supabase
+                .from('fails')
+                .select(`
+                    id, 
+                    title, 
+                    reactions,
+                    created_at
+                `)
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false });
+
+            console.log(`📝 Nombre de fails de l'utilisateur: ${userFails?.length || 0}`);
+
+            // 3. Calculer les points détaillés par fail et par type de réaction
+            let totalCalculatedPoints = 0;
+            const detailedBreakdown: any[] = [];
+
+            if (userFails) {
+                userFails.forEach((fail, index) => {
+                    const reactions = fail.reactions || {};
+                    const couragePoints = (reactions.courage || 0) * 5;
+                    const empathyPoints = (reactions.empathy || 0) * 2;
+                    const supportPoints = (reactions.support || 0) * 2;
+                    const laughPoints = (reactions.laugh || 0) * 1;
+                    const failTotal = couragePoints + empathyPoints + supportPoints + laughPoints;
+
+                    totalCalculatedPoints += failTotal;
+
+                    if (failTotal > 0) {
+                        detailedBreakdown.push({
+                            failTitle: fail.title.substring(0, 30) + '...',
+                            failDate: new Date(fail.created_at).toLocaleDateString('fr-FR'),
+                            reactions: {
+                                courage: `${reactions.courage || 0} (${couragePoints}pts)`,
+                                empathy: `${reactions.empathy || 0} (${empathyPoints}pts)`,
+                                support: `${reactions.support || 0} (${supportPoints}pts)`,
+                                laugh: `${reactions.laugh || 0} (${laughPoints}pts)`
+                            },
+                            total: failTotal
+                        });
+                    }
+                });
+            }
+
+            // 4. Points de la création de fails (bonus)
+            const failCreationPoints = (userFails?.length || 0) * 3; // 3 points par fail créé (modifié)
+
+            const debugInfo = {
+                utilisateur: profile?.display_name || 'Inconnu',
+                pointsActuelsEnBase: currentPoints,
+                pointsCalculesDepuisReactions: totalCalculatedPoints,
+                bonusCreationFails: failCreationPoints,
+                totalTheorique: totalCalculatedPoints + failCreationPoints,
+                difference: currentPoints - (totalCalculatedPoints + failCreationPoints),
+                nombreFails: userFails?.length || 0,
+                detailParFail: detailedBreakdown,
+                baremePoints: {
+                    courage: '5 points',
+                    empathy: '2 points',
+                    support: '2 points',
+                    laugh: '1 point',
+                    creationFail: '3 points' // Modifié pour correspondre
+                }
+            };
+
+            console.log('🎯 DEBUG - Analyse complète:', debugInfo);
+            return debugInfo;
+
+        } catch (error) {
+            console.error('Erreur dans debugCouragePoints:', error);
+            return null;
+        }
+    }
+
+    // ✅ NOUVEAU : Ajouter des points de courage pour la création d'un fail
+    private async addCouragePointsForFailCreation(userId: string): Promise<void> {
+        try {
+            const FAIL_CREATION_POINTS = 3; // 3 points pour créer un fail
+
+            // Récupérer le profil actuel
+            const { data: profile, error: profileError } = await this.supabase
+                .from('profiles')
+                .select('stats')
+                .eq('id', userId)
+                .single();
+
+            if (profileError) {
+                console.error('Erreur récupération profil pour fail creation:', profileError);
+                return;
+            }
+
+            const stats = profile.stats || { couragePoints: 0 };
+            stats.couragePoints = (stats.couragePoints || 0) + FAIL_CREATION_POINTS;
+
+            const { error: updateError } = await this.supabase
+                .from('profiles')
+                .update({ stats })
+                .eq('id', userId);
+
+            if (updateError) {
+                console.error('Erreur mise à jour points création fail:', updateError);
+            } else {
+                supabaseLog(`+${FAIL_CREATION_POINTS} points de courage pour création de fail (${userId})`);
+            }
+        } catch (error) {
+            console.error('Erreur dans addCouragePointsForFailCreation:', error);
+        }
+    }
+
+    // ✅ NOUVEAU : Méthode publique pour tester l'ajout de points (debug)
+    async testAddCouragePoints(userId: string, points: number = 10): Promise<void> {
+        try {
+            const { data: profile } = await this.supabase
+                .from('profiles')
+                .select('stats')
+                .eq('id', userId)
+                .single();
+
+            const stats = profile?.stats || { couragePoints: 0 };
+            stats.couragePoints = (stats.couragePoints || 0) + points;
+
+            await this.supabase
+                .from('profiles')
+                .update({ stats })
+                .eq('id', userId);
+
+            supabaseLog(`+${points} points de test ajoutés pour ${userId}`);
+            this.profileUpdated.next();
+        } catch (error) {
+            console.error('Erreur dans testAddCouragePoints:', error);
+        }
     }
 
     private async updateReactionCountsForChange(failId: string, oldReactionType: string, newReactionType: string): Promise<void> {

@@ -1,9 +1,8 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonButton, IonIcon, ViewWillEnter, ToastController } from '@ionic/angular/standalone';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
-import { BadgeService } from '../../services/badge.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -31,7 +30,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   constructor(
     private failService: FailService,
     private toastController: ToastController,
-    private badgeService: BadgeService
+    private cdr: ChangeDetectorRef
   ) { }
 
   async ngOnInit() {
@@ -54,180 +53,134 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   }
 
   async onCourage() {
-    // Si l'utilisateur a déjà réagi avec courage, ne rien faire
     if (this.userReactions.includes('courage')) {
       return;
     }
 
-    // Sauvegarder l'état actuel pour le rollback
-    const originalCount = this.fail.reactions.courage;
-    const originalReactions = [...this.userReactions];
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (hapticError) {
+      // Ignore les erreurs de haptic
+    }
 
     try {
-      // Haptics avec gestion d'erreur silencieuse
-      try {
-        await Haptics.impact({ style: ImpactStyle.Light });
-      } catch (hapticError) {
-        // Ignore les erreurs de haptic
-      }
-
-      // Mise à jour optimiste immédiate
-      this.userReactions.push('courage');
-      this.fail.reactions.courage++;
-
-      // Tenter l'ajout de la réaction
       await this.failService.addReaction(this.fail.id, 'courage');
 
-      // Vérifier les nouveaux badges seulement si la réaction a réussi
-      this.checkForNewBadges();
-    } catch (error) {
-      // Rollback complet en cas d'erreur
-      this.userReactions = originalReactions;
-      this.fail.reactions.courage = originalCount;
+      // Mise à jour optimiste immédiate
+      this.fail.reactions.courage = (this.fail.reactions.courage || 0) + 1;
+      this.cdr.detectChanges();
 
-      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      // Recharger les données du fail depuis la DB
+      await this.refreshFailData();
+    } catch (error) {
       failLog('Erreur lors de la réaction courage:', error);
     }
   }
 
   async onLaugh() {
-    // Si l'utilisateur a déjà réagi avec laugh, ne rien faire
     if (this.userReactions.includes('laugh')) {
       return;
     }
 
-    // Sauvegarder l'état actuel pour le rollback
-    const originalCount = this.fail.reactions.laugh;
-    const originalReactions = [...this.userReactions];
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (hapticError) {
+      // Ignore les erreurs de haptic
+    }
 
     try {
-      // Haptics avec gestion d'erreur silencieuse
-      try {
-        await Haptics.impact({ style: ImpactStyle.Light });
-      } catch (hapticError) {
-        // Ignore les erreurs de haptic
-      }
-
-      // Mise à jour optimiste immédiate
-      this.userReactions.push('laugh');
-      this.fail.reactions.laugh++;
-
-      // Tenter l'ajout de la réaction
       await this.failService.addReaction(this.fail.id, 'laugh');
 
-      // Vérifier les nouveaux badges seulement si la réaction a réussi
-      this.checkForNewBadges();
-    } catch (error) {
-      // Rollback complet en cas d'erreur
-      this.userReactions = originalReactions;
-      this.fail.reactions.laugh = originalCount;
+      // Mise à jour optimiste immédiate
+      this.fail.reactions.laugh = (this.fail.reactions.laugh || 0) + 1;
+      this.cdr.detectChanges();
 
-      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      // Recharger les données du fail depuis la DB
+      await this.refreshFailData();
+    } catch (error) {
       failLog('Erreur lors de la réaction laugh:', error);
     }
   }
 
   async onEmpathy() {
-    // Si l'utilisateur a déjà réagi avec empathy, ne rien faire
     if (this.userReactions.includes('empathy')) {
       return;
     }
 
-    // Sauvegarder l'état actuel pour le rollback
-    const originalCount = this.fail.reactions.empathy;
-    const originalReactions = [...this.userReactions];
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    } catch (hapticError) {
+      // Ignore les erreurs de haptic
+    }
 
     try {
-      // Haptics avec gestion d'erreur silencieuse
-      try {
-        await Haptics.impact({ style: ImpactStyle.Medium });
-      } catch (hapticError) {
-        // Ignore les erreurs de haptic
-      }
-
-      // Mise à jour optimiste immédiate
-      this.userReactions.push('empathy');
-      this.fail.reactions.empathy++;
-
-      // Tenter l'ajout de la réaction
       await this.failService.addReaction(this.fail.id, 'empathy');
 
-      // Vérifier les nouveaux badges seulement si la réaction a réussi
-      this.checkForNewBadges();
+      // Mise à jour optimiste immédiate
+      this.fail.reactions.empathy = (this.fail.reactions.empathy || 0) + 1;
+      this.cdr.detectChanges();
+
+      // Recharger les données du fail depuis la DB
+      await this.refreshFailData();
     } catch (error) {
-      // Rollback complet en cas d'erreur
-      this.userReactions = originalReactions;
-      this.fail.reactions.empathy = originalCount;
-
-      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
       failLog('Erreur lors de la réaction empathy:', error);
-
-      // Optionnel: Afficher un toast discret à l'utilisateur
-      // this.presentErrorToast('Impossible d\'ajouter la réaction pour le moment');
     }
   }
 
   async onSupport() {
-    // Si l'utilisateur a déjà réagi avec support, ne rien faire
     if (this.userReactions.includes('support')) {
       return;
     }
 
-    // Sauvegarder l'état actuel pour le rollback
-    const originalCount = this.fail.reactions.support;
-    const originalReactions = [...this.userReactions];
+    try {
+      await Haptics.impact({ style: ImpactStyle.Medium });
+    } catch (hapticError) {
+      // Ignore les erreurs de haptic
+    }
 
     try {
-      // Haptics avec gestion d'erreur silencieuse
-      try {
-        await Haptics.impact({ style: ImpactStyle.Medium });
-      } catch (hapticError) {
-        // Ignore les erreurs de haptic
-      }
-
-      // Mise à jour optimiste immédiate
-      this.userReactions.push('support');
-      this.fail.reactions.support++;
-
-      // Tenter l'ajout de la réaction
       await this.failService.addReaction(this.fail.id, 'support');
 
-      // Vérifier les nouveaux badges seulement si la réaction a réussi
-      this.checkForNewBadges();
-    } catch (error) {
-      // Rollback complet en cas d'erreur
-      this.userReactions = originalReactions;
-      this.fail.reactions.support = originalCount;
+      // Mise à jour optimiste immédiate
+      this.fail.reactions.support = (this.fail.reactions.support || 0) + 1;
+      this.cdr.detectChanges();
 
-      // Log l'erreur pour le debug mais n'affiche pas à l'utilisateur
+      // Recharger les données du fail depuis la DB
+      await this.refreshFailData();
+    } catch (error) {
       failLog('Erreur lors de la réaction support:', error);
-
-      // Optionnel: Afficher un toast discret à l'utilisateur
-      // this.presentErrorToast('Impossible d\'ajouter la réaction pour le moment');
     }
   }
 
-  private async checkForNewBadges(): Promise<void> {
+  /**
+   * Recharge les données du fail depuis la base de données
+   */
+  private async refreshFailData() {
     try {
-      // Ne plus déclencher de vérification ici car c'est déjà géré par l'EventBus
-      // L'EventBus écoute REACTION_GIVEN et déclenche automatiquement la vérification
-      // Évite les doublons et améliore les performances
-      console.log('🏆 Badge check delegated to EventBus system');
+      failLog(`🔄 Refreshing data for fail ${this.fail.id}...`);
+      failLog(`🔄 Current reactions:`, this.fail.reactions);
+
+      // Attendre un peu pour que la base de données soit à jour
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const updatedFail = await this.failService.getFailById(this.fail.id);
+      if (updatedFail) {
+        failLog(`✅ Updated reactions from DB:`, updatedFail.reactions);
+
+        // Mettre à jour les compteurs de réactions
+        this.fail.reactions = { ...updatedFail.reactions };
+
+        failLog(`✅ Local reactions after update:`, this.fail.reactions);
+
+        // Forcer la détection de changement
+        this.cdr.detectChanges();
+      }
+
+      // Recharger les réactions de l'utilisateur
+      await this.loadUserReaction();
     } catch (error) {
-      console.error('❌ Error checking badges:', error);
+      failLog('❌ Erreur lors du refresh des données du fail:', error);
     }
-  }
-
-  private async showBadgeUnlockedToast(badge: any): Promise<void> {
-    const toast = await this.toastController.create({
-      message: `� Badge déverrouillé : ${badge.name} !`,
-      duration: 4000,
-      color: 'success',
-      position: 'top',
-      cssClass: 'badge-unlock-toast'
-    });
-
-    await toast.present();
   }
 
   isReactionActive(reactionType: string): boolean {
@@ -235,13 +188,25 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   }
 
   getCategoryColor(category: FailCategory): string {
-    switch (category) {
-      case FailCategory.COURAGE: return 'var(--courage-color)';
-      case FailCategory.HUMOUR: return 'var(--humour-color)';
-      case FailCategory.ENTRAIDE: return 'var(--entraide-color)';
-      case FailCategory.PERSEVERANCE: return 'var(--perseverance-color)';
-      case FailCategory.SPECIAL: return 'var(--special-color)';
-      default: return 'var(--pastel-pink)';
-    }
+    const colors: { [key: string]: string } = {
+      [FailCategory.COURAGE]: 'primary',
+      [FailCategory.HUMOUR]: 'secondary',
+      [FailCategory.ENTRAIDE]: 'tertiary',
+      [FailCategory.PERSEVERANCE]: 'success',
+      [FailCategory.SPECIAL]: 'warning',
+      [FailCategory.TRAVAIL]: 'danger',
+      [FailCategory.SPORT]: 'medium',
+      [FailCategory.CUISINE]: 'dark',
+      [FailCategory.TRANSPORT]: 'light',
+      [FailCategory.TECHNOLOGIE]: 'secondary',
+      [FailCategory.RELATIONS]: 'primary',
+      [FailCategory.FINANCES]: 'tertiary',
+      [FailCategory.BRICOLAGE]: 'success',
+      [FailCategory.APPRENTISSAGE]: 'danger',
+      [FailCategory.SANTE]: 'warning',
+      [FailCategory.VOYAGE]: 'medium',
+      [FailCategory.COMMUNICATION]: 'dark'
+    };
+    return colors[category] || 'medium';
   }
 }

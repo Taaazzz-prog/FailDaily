@@ -1,0 +1,391 @@
+// Variables et couleurs
+:root {
+    --user-profile-primary: #6366f1;
+    --user-profile-accent: #f7a4a4;
+    --user-profile-success: #10b981;
+    --card-shadow: 0 4px 12px rgba(99, 102, 241, 0.08);
+}
+
+.user-profile-container {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+// Loading state
+.loading-container {
+    text-align: center;
+    padding: 3rem 1rem;
+
+    ion-spinner {
+        margin-bottom: 1rem;
+        --color: var(--user-profile-primary);
+    }
+
+    p {
+        color: var(--ion-color-medium);
+        font-style: italic;
+    }
+}
+
+// Error state
+.error-container {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: var(--card-shadow);
+
+    .error-icon {
+        font-size: 4rem;
+        color: var(--ion-color-medium);
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    h3 {
+        color: var(--user-profile-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    p {
+        margin-bottom: 2rem;
+        color: var(--ion-color-medium);
+    }
+}
+
+// En-tête du profil
+.profile-header {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--card-shadow);
+
+    .user-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+
+            img {
+                border-radius: 50%;
+            }
+        }
+
+        .user-info {
+            flex: 1;
+            min-width: 0;
+
+            h1 {
+                margin: 0 0 0.5rem 0;
+                font-size: 1.5rem;
+                color: var(--user-profile-primary);
+            }
+
+            .comfort-text {
+                margin: 0.25rem 0;
+                font-size: 0.85rem;
+
+                ion-icon {
+                    margin-right: 0.25rem;
+                    font-size: 0.9rem;
+                    vertical-align: middle;
+                }
+            }
+
+            .user-bio {
+                margin: 0.75rem 0 0 0;
+                font-size: 0.9rem;
+                color: var(--ion-color-dark);
+                line-height: 1.4;
+                background: rgba(var(--ion-color-light-rgb), 0.5);
+                padding: 0.75rem;
+                border-radius: 8px;
+                border-left: 3px solid var(--user-profile-primary);
+
+                ion-icon {
+                    margin-right: 0.5rem;
+                    color: var(--user-profile-primary);
+                    font-size: 1rem;
+                    vertical-align: middle;
+                }
+            }
+        }
+    }
+
+    .follow-actions {
+        text-align: center;
+        margin-bottom: 1.5rem;
+
+        .follow-btn {
+            min-width: 140px;
+            --border-radius: 20px;
+            font-weight: 600;
+
+            &[color="danger"] {
+                --background: #ef4444;
+                --color: white;
+
+                &:hover {
+                    --background: #dc2626;
+                }
+            }
+
+            ion-spinner {
+                --color: currentColor;
+            }
+        }
+    }
+
+    .follow-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+
+        .stat-item {
+            text-align: center;
+
+            .stat-number {
+                display: block;
+                font-size: 1.5rem;
+                font-weight: 700;
+                color: var(--user-profile-primary);
+                margin-bottom: 0.25rem;
+            }
+
+            .stat-label {
+                font-size: 0.85rem;
+                color: var(--ion-color-medium);
+                font-weight: 500;
+            }
+        }
+    }
+}
+
+// Section niveau
+.level-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--card-shadow);
+
+    h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: var(--user-profile-primary);
+        border-bottom: 2px solid var(--ion-color-light);
+        padding-bottom: 0.5rem;
+    }
+
+    .level-display {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+
+        .level-badge {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--user-profile-primary), #8b5cf6);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+
+            .level-icon {
+                font-size: 1.2rem;
+                margin-bottom: 2px;
+            }
+
+            .level-number {
+                font-size: 1rem;
+                font-weight: 700;
+            }
+        }
+
+        .level-info {
+            flex: 1;
+
+            p {
+                margin: 0.25rem 0;
+
+                &:first-child {
+                    font-weight: 600;
+                    color: var(--user-profile-primary);
+                }
+
+                &:last-child {
+                    font-size: 0.8rem;
+                    color: var(--ion-color-medium);
+                }
+            }
+
+            .level-progress {
+                margin: 0.5rem 0;
+                --progress-background: var(--user-profile-primary);
+                --background: rgba(var(--ion-color-light-rgb), 0.3);
+                height: 8px;
+                border-radius: 4px;
+            }
+        }
+    }
+}
+
+// Section stats
+.stats-section {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--card-shadow);
+
+    h3 {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        color: var(--user-profile-primary);
+        border-bottom: 2px solid var(--ion-color-light);
+        padding-bottom: 0.5rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--ion-color-light);
+
+            &.primary {
+                background: rgba(99, 102, 241, 0.05);
+                border-color: rgba(99, 102, 241, 0.2);
+            }
+
+            &.secondary {
+                background: rgba(16, 185, 129, 0.05);
+                border-color: rgba(16, 185, 129, 0.2);
+            }
+
+            .stat-icon {
+                width: 40px;
+                height: 40px;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--user-profile-primary);
+                color: white;
+
+                ion-icon {
+                    font-size: 1.2rem;
+                }
+            }
+
+            .stat-content {
+                .stat-number {
+                    display: block;
+                    font-size: 1.3rem;
+                    font-weight: 700;
+                    color: var(--user-profile-primary);
+                    margin-bottom: 0.25rem;
+                }
+
+                .stat-label {
+                    font-size: 0.8rem;
+                    color: var(--ion-color-medium);
+                    font-weight: 500;
+                }
+            }
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .user-profile-container {
+        padding: 0.5rem;
+    }
+
+    .profile-header {
+        .user-header {
+            .profile-avatar {
+                width: 70px;
+                height: 70px;
+            }
+
+            .user-info h1 {
+                font-size: 1.3rem;
+            }
+        }
+
+        .follow-stats {
+            gap: 1.5rem;
+
+            .stat-item .stat-number {
+                font-size: 1.3rem;
+            }
+        }
+    }
+
+    .stats-section .stats-grid {
+        gap: 0.75rem;
+
+        .stat-card {
+            padding: 0.75rem;
+
+            .stat-icon {
+                width: 35px;
+                height: 35px;
+
+                ion-icon {
+                    font-size: 1rem;
+                }
+            }
+
+            .stat-content .stat-number {
+                font-size: 1.1rem;
+            }
+        }
+    }
+}
+
+// Animations
+.profile-header,
+.level-section,
+.stats-section {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideInUp 0.6s ease forwards;
+
+    &:nth-child(1) {
+        animation-delay: 0.1s;
+    }
+
+    &:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    &:nth-child(3) {
+        animation-delay: 0.3s;
+    }
+}
+
+@keyframes slideInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

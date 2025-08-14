@@ -1,0 +1,142 @@
+<ion-header [translucent]="true">
+    <ion-toolbar>
+        <ion-buttons slot="start">
+            <ion-back-button defaultHref="/tabs/home"></ion-back-button>
+        </ion-buttons>
+        <ion-title class="handwriting">Profil</ion-title>
+    </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+
+    <!-- Rafraîchissement -->
+    <ion-refresher slot="fixed" (ionRefresh)="handleRefresh($event)">
+        <ion-refresher-content pullingIcon="chevron-down-circle-outline" pullingText="Tirer pour rafraîchir"
+            refreshingSpinner="circles" refreshingText="Actualisation...">
+        </ion-refresher-content>
+    </ion-refresher>
+
+    <div class="user-profile-container">
+        <!-- Loading state -->
+        @if (isLoading) {
+        <div class="loading-container">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p class="comfort-text">Chargement du profil...</p>
+        </div>
+        }
+
+        <!-- User profile content -->
+        @if (!isLoading && userProfile) {
+
+        <!-- En-tête utilisateur -->
+        <div class="profile-header imperfect-element">
+            <div class="user-header">
+                <ion-avatar class="profile-avatar">
+                    <img [src]="userProfile.avatar_url" [alt]="userProfile.display_name">
+                </ion-avatar>
+                <div class="user-info">
+                    <h1 class="handwriting">{{ userProfile.display_name }}</h1>
+                    <p class="comfort-text">
+                        <ion-icon name="calendar-outline"></ion-icon>
+                        Membre depuis {{ getJoinedDaysAgo() }} jour{{ getJoinedDaysAgo() > 1 ? 's' : '' }}
+                    </p>
+                    @if (userProfile.bio) {
+                    <p class="user-bio comfort-text">
+                        <ion-icon name="person-outline"></ion-icon>
+                        {{ userProfile.bio }}
+                    </p>
+                    }
+                </div>
+            </div>
+
+            <!-- Follow button -->
+            <div class="follow-actions">
+                <ion-button [fill]="isFollowing ? 'solid' : 'outline'" [color]="isFollowing ? 'danger' : 'primary'"
+                    class="imperfect-element follow-btn" (click)="toggleFollow()" [disabled]="isToggleFollowLoading">
+
+                    @if (isToggleFollowLoading) {
+                    <ion-spinner name="lines-small" slot="start"></ion-spinner>
+                    } @else {
+                    <ion-icon [name]="isFollowing ? 'heart' : 'heart-outline'" slot="start"></ion-icon>
+                    }
+
+                    {{ isFollowing ? 'Ne plus suivre' : 'Suivre' }}
+                </ion-button>
+            </div>
+
+            <!-- Stats de follow -->
+            <div class="follow-stats">
+                <div class="stat-item">
+                    <span class="stat-number handwriting">{{ userProfile.followersCount }}</span>
+                    <span class="stat-label comfort-text">Followers</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number handwriting">{{ userProfile.followingCount }}</span>
+                    <span class="stat-label comfort-text">Suivi(e)s</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Niveau et progression -->
+        <div class="level-section imperfect-element">
+            <h3 class="handwriting">Niveau de courage ! 💪</h3>
+            <div class="level-display">
+                <div class="level-badge">
+                    <ion-icon name="trophy" class="level-icon"></ion-icon>
+                    <span class="level-number handwriting">{{ getProgressLevel(userProfile.couragePoints).level
+                        }}</span>
+                </div>
+                <div class="level-info">
+                    <p class="comfort-text">{{ userProfile.couragePoints }} points de courage</p>
+                    <ion-progress-bar [value]="getProgressLevel(userProfile.couragePoints).progress"
+                        class="level-progress"></ion-progress-bar>
+                    <p class="comfort-text">{{ getProgressLevel(userProfile.couragePoints).nextLevel }} pour le niveau
+                        suivant
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistiques publiques -->
+        <div class="stats-section imperfect-element">
+            <h3 class="handwriting">Ses exploits ! 📊</h3>
+            <div class="stats-grid">
+                <div class="stat-card imperfect-element primary">
+                    <div class="stat-icon">
+                        <ion-icon name="document-text"></ion-icon>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number handwriting">{{ userProfile.totalFails }}</div>
+                        <div class="stat-label comfort-text">Fails publics</div>
+                    </div>
+                </div>
+
+                <div class="stat-card imperfect-element secondary">
+                    <div class="stat-icon">
+                        <ion-icon name="trophy"></ion-icon>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number handwriting">{{ userProfile.couragePoints }}</div>
+                        <div class="stat-label comfort-text">Points de courage</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        }
+
+        <!-- Erreur de chargement -->
+        @if (!isLoading && !userProfile) {
+        <div class="error-container imperfect-element">
+            <ion-icon name="person-outline" class="error-icon"></ion-icon>
+            <h3 class="handwriting">Profil introuvable</h3>
+            <p class="comfort-text">Ce profil n'existe pas ou n'est pas accessible.</p>
+            <ion-button fill="outline" class="imperfect-element" (click)="goBack()">
+                <ion-icon name="arrow-back" slot="start"></ion-icon>
+                Retour
+            </ion-button>
+        </div>
+        }
+    </div>
+
+</ion-content>

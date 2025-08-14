@@ -21,6 +21,37 @@
   .author-info {
     display: flex;
     align-items: center;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+
+    &.clickable-author {
+      cursor: pointer;
+      border-radius: 8px;
+      padding: 8px;
+      margin: -8px;
+
+      &:hover {
+        background-color: rgba(var(--ion-color-primary-rgb), 0.1);
+        opacity: 1;
+      }
+    }
+
+    &.anonymous-author {
+      cursor: default;
+      opacity: 0.8;
+
+      .author-name {
+        font-style: italic;
+        color: var(--ion-color-medium) !important;
+      }
+
+      .author-avatar {
+        opacity: 0.7;
+      }
+    }
+
+    &:not(.clickable-author):hover {
+      opacity: 0.8;
+    }
 
     .author-avatar {
       width: 40px;
@@ -185,5 +216,15 @@
     font-size: 0.9rem;
     margin: 0;
     font-style: italic;
+  }
+}
+
+// Classe générale pour les éléments cliquables
+.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: var(--ion-color-primary);
   }
 }
