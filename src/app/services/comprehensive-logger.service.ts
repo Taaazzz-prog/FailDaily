@@ -145,16 +145,16 @@ export class ComprehensiveLoggerService {
                 p_resource_id: entry.resourceId || null,
                 p_target_user_id: entry.targetUserId || null,
                 p_description: entry.description || null,
-                p_payload: entry.payload ? JSON.stringify(entry.payload) : null,
-                p_old_values: entry.oldValues ? JSON.stringify(entry.oldValues) : null,
-                p_new_values: entry.newValues ? JSON.stringify(entry.newValues) : null,
+                p_payload: entry.payload || null, // Garder l'objet tel quel, PostgreSQL le convertira
+                p_old_values: entry.oldValues || null,
+                p_new_values: entry.newValues || null,
                 p_ip_address: await this.getClientIP(),
                 p_user_agent: navigator.userAgent,
                 p_session_id: this.sessionId,
-                p_success: entry.success || true,
+                p_success: entry.success !== undefined ? entry.success : true,
+                p_error_code: null, // Nouveau paramètre
                 p_error_message: entry.errorMessage || null,
-                p_execution_time_ms: entry.executionTimeMs || null,
-                p_correlation_id: entry.correlationId || null
+                p_correlation_id: entry.correlationId || this.generateCorrelationId()
             });
 
             if (error) {

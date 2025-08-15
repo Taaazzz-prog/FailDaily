@@ -1,0 +1,71 @@
+description,name,id,requirement_type,requirement_value,created_at,category,icon,rarity
+Félicitations pour votre premier fail partagé !,Premier Pas,first-fail,fail_count,1,2025-08-08 16:22:31.212048+00,COURAGE,footsteps-outline,common
+Partager 5 fails,Apprenti,fail-master-5,fail_count,5,2025-08-08 16:22:31.212048+00,COURAGE,school-outline,common
+Partager 10 fails,Collectionneur,fail-master-10,fail_count,10,2025-08-08 16:22:31.212048+00,COURAGE,library-outline,common
+Recevoir 10 cœurs de courage,Cœur Brave,courage-hearts-10,reactions_received,10,2025-08-08 16:34:14.63981+00,COURAGE,heart-outline,common
+Recevoir 50 cœurs de courage,Cœur Courageux,courage-hearts-50,reactions_received,50,2025-08-08 16:34:14.63981+00,COURAGE,heart-outline,rare
+Recevoir 100 cœurs de courage,Héros du Courage,courage-hearts-100,reactions_received,100,2025-08-08 16:34:14.63981+00,COURAGE,medal-outline,epic
+Recevoir 500 cœurs de courage,Légende du Courage,courage-hearts-500,reactions_received,500,2025-08-08 16:34:14.63981+00,COURAGE,trophy-outline,legendary
+Partager 25 fails,Narrateur,fail-master-25,fail_count,25,2025-08-08 16:34:14.63981+00,COURAGE,book-outline,rare
+Partager 50 fails,Grand Collectionneur,fail-master-50,fail_count,50,2025-08-08 16:34:14.63981+00,COURAGE,albums-outline,rare
+Partager 100 fails,Maître des Fails,fail-master-100,fail_count,100,2025-08-08 16:34:14.63981+00,COURAGE,ribbon-outline,epic
+Partager 365 fails (un an !),Chroniqueur Légendaire,fail-master-365,fail_count,365,2025-08-08 16:34:14.63981+00,COURAGE,calendar-number-outline,legendary
+3 jours de partage consécutifs,Régulier,daily-streak-3,streak_days,3,2025-08-08 16:34:14.63981+00,PERSEVERANCE,checkmark-outline,common
+7 jours de partage consécutifs,Persévérant,daily-streak-7,streak_days,7,2025-08-08 16:34:14.63981+00,PERSEVERANCE,calendar-outline,common
+14 jours de partage consécutifs,Déterminé,daily-streak-14,streak_days,14,2025-08-08 16:34:14.63981+00,PERSEVERANCE,flame-outline,rare
+30 jours de partage consécutifs,Marathonien,daily-streak-30,streak_days,30,2025-08-08 16:34:14.63981+00,PERSEVERANCE,fitness-outline,rare
+60 jours de partage consécutifs,Titan de la Régularité,daily-streak-60,streak_days,60,2025-08-08 16:34:14.63981+00,PERSEVERANCE,barbell-outline,epic
+100 jours de partage consécutifs,Centurion,daily-streak-100,streak_days,100,2025-08-08 16:34:14.63981+00,PERSEVERANCE,shield-outline,epic
+365 jours de partage consécutifs,Immortel,daily-streak-365,streak_days,365,2025-08-08 16:34:14.63981+00,PERSEVERANCE,infinite-outline,legendary
+Reprendre après une pause de 30 jours,Roi du Comeback,comeback-king,comeback_count,1,2025-08-08 16:34:14.63981+00,PERSEVERANCE,refresh-outline,rare
+Maintenir 5 streaks de plus de 7 jours,Jamais Abandonner,never-give-up,long_streaks,5,2025-08-08 16:34:14.63981+00,PERSEVERANCE,flag-outline,epic
+Repartager après 10 échecs consécutifs,Volonté de Fer,iron-will,resilience_count,10,2025-08-08 16:34:14.63981+00,PERSEVERANCE,hammer-outline,legendary
+Un fail qui a fait rire 25 personnes,Comédien Amateur,funny-fail,laugh_reactions,25,2025-08-08 16:34:14.63981+00,HUMOUR,happy-outline,common
+Un fail qui a fait rire 50 personnes,Comédien,comedian,laugh_reactions,50,2025-08-08 16:34:14.63981+00,HUMOUR,theater-outline,rare
+Un fail qui a fait rire 100 personnes,Roi du Rire,humor-king,laugh_reactions,100,2025-08-08 16:34:14.63981+00,HUMOUR,sparkles-outline,epic
+Un fail qui a fait rire 500 personnes,Sensation Virale,viral-laugh,laugh_reactions,500,2025-08-08 16:34:14.63981+00,HUMOUR,trending-up-outline,legendary
+Recevoir 100 réactions de rire au total,Rigolo de Service,class-clown,total_laughs,100,2025-08-08 16:34:14.63981+00,HUMOUR,musical-note-outline,rare
+Recevoir 500 réactions de rire au total,Maître du Stand-Up,stand-up-master,total_laughs,500,2025-08-08 16:34:14.63981+00,HUMOUR,mic-outline,epic
+Recevoir 1000 réactions de rire au total,Légende du Rire,laughter-legend,total_laughs,1000,2025-08-08 16:34:14.63981+00,HUMOUR,star-outline,legendary
+"50 fails marqués comme ""drôles""",Remonteur de Moral,mood-lifter,funny_fails,50,2025-08-08 16:34:14.63981+00,HUMOUR,sunny-outline,epic
+Donner 50 réactions de soutien,Âme Bienveillante,supportive-soul,support_given,50,2025-08-08 16:34:14.63981+00,ENTRAIDE,heart-half-outline,common
+Donner 25 réactions d'empathie,Expert en Empathie,empathy-expert,empathy_given,25,2025-08-08 16:34:14.63981+00,ENTRAIDE,sad-outline,common
+Aider 10 membres de la communauté,Assistant Communautaire,community-helper,help_count,10,2025-08-08 16:34:14.63981+00,ENTRAIDE,people-outline,rare
+Aider 25 membres de la communauté,Ange Gardien,guardian-angel,help_count,25,2025-08-08 16:34:14.63981+00,ENTRAIDE,medical-outline,epic
+Commenter constructivement 100 fails,Mentor,mentor,helpful_comments,100,2025-08-08 16:34:14.63981+00,ENTRAIDE,chatbox-outline,rare
+Commenter constructivement 250 fails,Conseiller Sage,wise-counselor,helpful_comments,250,2025-08-08 16:34:14.63981+00,ENTRAIDE,library-outline,epic
+Être actif pendant 6 mois consécutifs,Pilier de la Communauté,community-pillar,active_months,6,2025-08-08 16:34:14.63981+00,ENTRAIDE,home-outline,legendary
+Donner 1000 réactions positives au total,Bonnes Vibrations,good-vibes,positive_reactions,1000,2025-08-08 16:34:14.63981+00,ENTRAIDE,thumbs-up-outline,epic
+Aider 100 personnes avec des conseils,Coach de Vie,life-coach,advice_given,100,2025-08-08 16:34:14.63981+00,ENTRAIDE,fitness-outline,legendary
+Se relever après un fail difficile,Rebond,bounce-back,bounce_back_count,1,2025-08-08 16:34:14.63981+00,RESILIENCE,arrow-up-outline,common
+Partager 5 fails de résilience,Apprenti Résilient,resilience-rookie,resilience_fails,5,2025-08-08 16:34:14.63981+00,RESILIENCE,leaf-outline,common
+Partager 20 fails de résilience,Champion de Résilience,resilience-champion,resilience_fails,20,2025-08-08 16:34:14.63981+00,RESILIENCE,refresh-outline,rare
+Renaître de 10 échecs majeurs,Phénix,phoenix,major_comebacks,10,2025-08-08 16:34:14.63981+00,RESILIENCE,flame-outline,epic
+Maintenir un état d'esprit positif 100 jours,Incassable,unbreakable,positive_days,100,2025-08-08 16:34:14.63981+00,RESILIENCE,diamond-outline,epic
+Surmonter 50 défis personnels,Survivant,survivor,challenges_overcome,50,2025-08-08 16:34:14.63981+00,RESILIENCE,shield-checkmark-outline,legendary
+Inspirer 100 autres utilisateurs,Source d'Inspiration,inspiration,inspired_users,100,2025-08-08 16:34:14.63981+00,RESILIENCE,bulb-outline,legendary
+Membre des 1000 premiers utilisateurs,Pionnier,early-adopter,user_rank,1000,2025-08-08 16:34:14.63981+00,SPECIAL,flag-outline,legendary
+Participer à la phase de test,Testeur Bêta,beta-tester,beta_participation,1,2025-08-08 16:34:14.63981+00,SPECIAL,construct-outline,epic
+Être présent lors de l'anniversaire de l'app,Anniversaire FailDaily,birthday-badge,anniversary_participation,1,2025-08-08 16:34:14.63981+00,SPECIAL,gift-outline,rare
+Partager un fail le 1er janvier,Résolution du Nouvel An,new-year-resolution,new_year_fail,1,2025-08-08 16:34:14.63981+00,SPECIAL,calendar-outline,rare
+Partager un fail après minuit,Guerrier de Minuit,midnight-warrior,midnight_fail,1,2025-08-08 16:34:14.63981+00,SPECIAL,moon-outline,common
+Partager 50 fails le weekend,Guerrier du Weekend,weekend-warrior,weekend_fails,50,2025-08-08 16:34:14.63981+00,SPECIAL,bicycle-outline,rare
+Partager pendant les vacances,Esprit des Fêtes,holiday-spirit,holiday_fails,5,2025-08-08 16:34:14.63981+00,SPECIAL,snow-outline,rare
+Partager des fails de 10 pays différents,Globe-Trotter,globetrotter,countries_count,10,2025-08-08 16:34:14.63981+00,SPECIAL,airplane-outline,legendary
+Interagir avec 50 utilisateurs différents,Sociable,socializer,unique_interactions,50,2025-08-08 16:34:14.63981+00,ENTRAIDE,people-circle-outline,rare
+Créer 25 discussions populaires,Lanceur de Débats,discussion-starter,popular_discussions,25,2025-08-08 16:34:14.63981+00,ENTRAIDE,chatbubbles-outline,epic
+Lancer 5 tendances dans la communauté,Créateur de Tendances,trend-setter,trends_created,5,2025-08-08 16:34:14.63981+00,SPECIAL,trending-up-outline,legendary
+Se connecter 100 jours non-consécutifs,Membre Actif,active-member,login_days,100,2025-08-08 16:34:14.63981+00,PERSEVERANCE,person-outline,rare
+Utiliser toutes les fonctionnalités de l'app,Utilisateur Expert,power-user,features_used,10,2025-08-08 16:34:14.63981+00,SPECIAL,settings-outline,epic
+Recevoir votre première réaction,Première Réaction,first-reaction,first_reaction,1,2025-08-08 16:43:44.161677+00,COURAGE,heart-outline,common
+Poster 5 fails,Apprenti Courage,fails-5,fail_count,5,2025-08-10 13:58:59.391599+00,COURAGE,ribbon-outline,common
+Poster 10 fails,Courageux,fails-10,fail_count,10,2025-08-10 13:58:59.391599+00,COURAGE,trophy-outline,rare
+Poster 25 fails,Maître du Courage,fails-25,fail_count,25,2025-08-10 13:58:59.391599+00,COURAGE,star-outline,epic
+Poster 50 fails,Vétéran du Courage,fails-50,fail_count,50,2025-08-10 13:58:59.391599+00,COURAGE,shield-outline,epic
+Poster 100 fails,Légende du Courage,fails-100,fail_count,100,2025-08-10 13:58:59.391599+00,COURAGE,diamond-outline,legendary
+Donner 10 réactions,Supporteur,reactions-10,reaction_given,10,2025-08-10 13:58:59.391599+00,ENTRAIDE,people-outline,common
+Donner 25 réactions,Supporteur Actif,reactions-25,reaction_given,25,2025-08-10 13:58:59.391599+00,ENTRAIDE,heart-half-outline,common
+Donner 50 réactions,Grand Supporteur,reactions-50,reaction_given,50,2025-08-10 13:58:59.391599+00,ENTRAIDE,heart,rare
+Donner 100 réactions,Super Supporteur,reactions-100,reaction_given,100,2025-08-10 13:58:59.391599+00,ENTRAIDE,heart-circle-outline,epic
+Donner 250 réactions,Maître du Support,reactions-250,reaction_given,250,2025-08-10 13:58:59.391599+00,ENTRAIDE,heart-half-outline,legendary
+Poster un fail dans chaque catégorie,Touche-à-tout,all-categories,categories_used,5,2025-08-10 13:58:59.391599+00,SPECIAL,apps-outline,epic

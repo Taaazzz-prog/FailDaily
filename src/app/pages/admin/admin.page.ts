@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { AdminService } from '../../services/admin.service';
 import { DebugService } from '../../services/debug.service';
 import { SupabaseService } from '../../services/supabase.service';
+import { ComprehensiveLoggerService } from '../../services/comprehensive-logger.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
@@ -37,13 +38,25 @@ export class AdminPage implements OnInit, OnDestroy {
         dailyBonusPoints: 10
     };
 
-    // Logs data
-    systemLogs: any[] = [];
-    reactionLogs: any[] = [];
-    filteredLogs: any[] = [];
-    logSearchTerm = '';
-    selectedLogType = 'all';
-    selectedLogPeriod = '24h';
+    // Logs data - NOUVEAU SYSTÈME COMPLET
+    comprehensiveLogs: any[] = [];
+    selectedLogForDetails: any = null;
+    logFilters = {
+        activityType: '',
+        level: '',
+        period: '24h',
+        userId: ''
+    };
+    logsStats = {
+        totalToday: 0,
+        errorsToday: 0,
+        activeUsers: 0,
+        avgResponseTime: 0
+    };
+    isRealTimeLogsEnabled = false;
+    isLoadingLogs = false;
+    logsPage = 0;
+    logsPageSize = 20;
 
     // User management
     allUsers: any[] = [];
@@ -99,6 +112,7 @@ export class AdminPage implements OnInit, OnDestroy {
         private adminService: AdminService,
         private debugService: DebugService,
         private supabaseService: SupabaseService,
+        private comprehensiveLoggerService: ComprehensiveLoggerService,
         private alertController: AlertController,
         private toastController: ToastController,
         private cdr: ChangeDetectorRef
@@ -128,7 +142,8 @@ export class AdminPage implements OnInit, OnDestroy {
                 await this.loadAllUsers();
                 break;
             case 'logs':
-                await this.loadSpecificLogs();
+                await this.loadComprehensiveLogs();
+                await this.loadLogsStatistics();
                 break;
             case 'realtime':
                 await this.loadRealTimeData();
@@ -141,7 +156,8 @@ export class AdminPage implements OnInit, OnDestroy {
         await this.loadPointsConfiguration();
         await this.loadAllUsers();
         if (this.selectedSegment === 'logs') {
-            await this.loadSpecificLogs();
+            await this.loadComprehensiveLogs();
+            await this.loadLogsStatistics();
         }
         if (this.selectedSegment === 'realtime') {
             await this.loadRealTimeData();
@@ -398,65 +414,343 @@ export class AdminPage implements OnInit, OnDestroy {
         await alert.present();
     }
 
-    // ===== LOGS METHODS =====
-    async loadSpecificLogs() {
-        this.loading = true;
+    // ===== NOUVEAU SYSTÈME DE LOGS COMPLET =====
+    
+    /**
+     * Charge les logs via le nouveau système complet
+     */
+    async loadComprehensiveLogs() {
+        this.isLoadingLogs = true;
         try {
-            const limit = 50;
-            this.filteredLogs = await this.adminService.generateSpecificLogs(
-                this.selectedLogType,
-                this.selectedLogPeriod,
-                limit
+            const filters = this.buildLogFilters();
+            console.log('🔍 Chargement des logs avec filtres:', filters);
+            
+            // Utilisation de la vraie méthode avec 3 paramètres
+            const activityType = filters.activity_type || 'all';
+            const periodHours = this.getPeriodInHours(this.logFilters.period);
+            
+            this.comprehensiveLogs = await this.supabaseService.getActivityLogsByType(
+                activityType,
+                periodHours,
+                this.logsPageSize
             );
+            
+            console.log(`📊 ${this.comprehensiveLogs.length} logs chargés`);
         } catch (error) {
-            console.error('Error loading specific logs:', error);
-            this.filteredLogs = [];
+            console.error('❌ Erreur lors du chargement des logs complets:', error);
+            this.comprehensiveLogs = [];
+            this.showErrorToast('Erreur lors du chargement des logs');
         }
-        this.loading = false;
+        this.isLoadingLogs = false;
     }
 
-    async searchInLogs() {
-        if (!this.logSearchTerm.trim()) {
-            await this.loadSpecificLogs();
-            return;
-        }
-
+    /**
+     * Charge les statistiques des logs (version simplifiée)
+     */
+    async loadLogsStatistics() {
         try {
-            this.filteredLogs = await this.adminService.searchLogs(
-                this.logSearchTerm,
-                this.selectedLogType,
-                this.selectedLogPeriod,
-                30
-            );
+            // Chargement des statistiques basées sur les logs actuels
+            const todayLogs = await this.supabaseService.getActivityLogsByType('all', 24, 1000);
+            
+            this.logsStats = {
+                totalToday: todayLogs.length,
+                errorsToday: todayLogs.filter((log: any) => log.level === 'error').length,
+                activeUsers: new Set(todayLogs.map((log: any) => log.user_id)).size,
+                avgResponseTime: todayLogs.reduce((acc: number, log: any) => 
+                    acc + (log.duration_ms || 0), 0) / Math.max(todayLogs.length, 1)
+            };
+            
+            console.log('📈 Stats logs chargées:', this.logsStats);
         } catch (error) {
-            console.error('Error searching logs:', error);
+            console.error('❌ Erreur stats logs:', error);
+            // Valeurs par défaut
+            this.logsStats = {
+                totalToday: 0,
+                errorsToday: 0,
+                activeUsers: 0,
+                avgResponseTime: 0
+            };
         }
     }
 
-    async exportLogs() {
+    /**
+     * Convertit la période en heures pour l'API
+     */
+    private getPeriodInHours(period: string): number {
+        switch (period) {
+            case '1h': return 1;
+            case '24h': return 24;
+            case '7d': return 24 * 7;
+            case '30d': return 24 * 30;
+            default: return 24;
+        }
+    }
+
+    /**
+     * Applique les filtres avancés
+     */
+    async applyLogFilters() {
+        this.logsPage = 0; // Reset pagination
+        await this.loadComprehensiveLogs();
+    }
+
+    /**
+     * Construit l'objet filtres pour PostgreSQL
+     */
+    private buildLogFilters() {
+        const filters: any = {};
+        
+        if (this.logFilters.activityType) {
+            filters.activity_type = this.logFilters.activityType;
+        }
+        
+        if (this.logFilters.level) {
+            filters.level = this.logFilters.level;
+        }
+        
+        if (this.logFilters.userId) {
+            filters.user_id = this.logFilters.userId;
+        }
+        
+        // Gestion des périodes
+        const now = new Date();
+        switch (this.logFilters.period) {
+            case '1h':
+                filters.start_date = new Date(now.getTime() - 60 * 60 * 1000);
+                break;
+            case '24h':
+                filters.start_date = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                break;
+            case '7d':
+                filters.start_date = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                break;
+            case '30d':
+                filters.start_date = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                break;
+        }
+        
+        filters.end_date = now;
+        
+        return filters;
+    }
+
+    /**
+     * Active/désactive les logs temps réel
+     */
+    toggleRealTimeLogs() {
+        this.isRealTimeLogsEnabled = !this.isRealTimeLogsEnabled;
+        
+        if (this.isRealTimeLogsEnabled) {
+            this.startRealTimeLogs();
+        } else {
+            this.stopRealTimeLogs();
+        }
+    }
+
+    private realTimeLogsSubscription?: Subscription;
+
+    private startRealTimeLogs() {
+        console.log('🔴 Activation logs temps réel');
+        
+        // Rafraîchissement toutes les 10 secondes
+        this.realTimeLogsSubscription = interval(10000).subscribe(async () => {
+            await this.loadComprehensiveLogs();
+            await this.loadLogsStatistics();
+        });
+        
+        this.showSuccessToast('Logs temps réel activés');
+    }
+
+    private stopRealTimeLogs() {
+        console.log('⏹️ Arrêt logs temps réel');
+        
+        if (this.realTimeLogsSubscription) {
+            this.realTimeLogsSubscription.unsubscribe();
+            this.realTimeLogsSubscription = undefined;
+        }
+        
+        this.showInfoToast('Logs temps réel désactivés');
+    }
+
+    /**
+     * Charge plus de logs (pagination)
+     */
+    async loadMoreLogs() {
+        if (this.isLoadingLogs) return;
+        
+        this.logsPage++;
+        const currentCount = this.comprehensiveLogs.length;
+        
+        await this.loadComprehensiveLogs();
+        
+        // Si aucun nouveau log, on remet la page précédente
+        if (this.comprehensiveLogs.length === currentCount) {
+            this.logsPage = Math.max(0, this.logsPage - 1);
+        }
+    }
+
+    /**
+     * Rafraîchit les logs
+     */
+    async refreshComprehensiveLogs() {
+        this.logsPage = 0;
+        await this.loadComprehensiveLogs();
+        await this.loadLogsStatistics();
+        this.showSuccessToast('Logs rafraîchis');
+    }
+
+    /**
+     * Exporte les logs complets
+     */
+    async exportComprehensiveLogs() {
         try {
-            const allLogs = await this.adminService.exportAllLogs();
+            // Utilisation de la vraie signature (3 paramètres)
+            const allLogs = await this.supabaseService.getActivityLogsByType(
+                'all',
+                24 * 30, // 30 jours en heures
+                1000
+            );
+            
             const dataStr = JSON.stringify(allLogs, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = `admin-logs-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `comprehensive-logs-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
 
-            const toast = await this.toastController.create({
-                message: 'Logs exportés avec succès!',
-                duration: 2000,
-                color: 'success'
-            });
-            toast.present();
+            this.showSuccessToast('Logs exportés avec succès!');
         } catch (error) {
-            console.error('Error exporting logs:', error);
+            console.error('❌ Erreur export logs:', error);
+            this.showErrorToast('Erreur lors de l\'export');
         }
+    }
+
+    /**
+     * Affiche les détails d'un log
+     */
+    async viewLogDetails(log: any) {
+        this.selectedLogForDetails = log;
+    }
+
+    /**
+     * Ferme les détails du log
+     */
+    closeLogDetails() {
+        this.selectedLogForDetails = null;
+    }
+
+    /**
+     * Formate les métadonnées pour l'affichage
+     */
+    formatMetadata(metadata: any): string {
+        try {
+            return JSON.stringify(metadata, null, 2);
+        } catch (error) {
+            return String(metadata);
+        }
+    }
+
+    /**
+     * Retourne l'icône selon le type d'activité
+     */
+    getLogActivityIcon(activityType: string): string {
+        switch (activityType?.toLowerCase()) {
+            case 'auth':
+                return 'key-outline';
+            case 'user_action':
+                return 'hand-left-outline';
+            case 'admin':
+                return 'shield-outline';
+            case 'security':
+                return 'alert-outline';
+            case 'error':
+                return 'bug-outline';
+            case 'performance':
+                return 'speedometer-outline';
+            default:
+                return 'information-outline';
+        }
+    }
+
+    /**
+     * Affiche l'historique complet d'un utilisateur
+     */
+    async viewUserLogs(userId: string) {
+        try {
+            // Pour l'instant, utilisons les logs généraux filtrés par utilisateur
+            const userLogs = await this.supabaseService.getActivityLogsByType('all', 24 * 7, 100);
+            const filteredUserLogs = userLogs.filter((log: any) => log.user_id === userId);
+            
+            const alert = await this.alertController.create({
+                header: `Historique Utilisateur`,
+                message: `
+                    <div style="text-align: left; max-height: 400px; overflow-y: auto;">
+                        ${filteredUserLogs.map((log: any) => `
+                            <div style="border-bottom: 1px solid #ccc; padding: 5px 0;">
+                                <strong>${log.activity_type}</strong> - ${log.level}<br>
+                                ${log.description}<br>
+                                <small>${new Date(log.created_at).toLocaleString()}</small>
+                            </div>
+                        `).join('')}
+                    </div>
+                `,
+                buttons: ['Fermer']
+            });
+            await alert.present();
+        } catch (error) {
+            console.error('❌ Erreur historique utilisateur:', error);
+            this.showErrorToast('Erreur lors du chargement de l\'historique');
+        }
+    }
+
+    /**
+     * Retourne la couleur selon le niveau de log
+     */
+    getLogLevelColor(level: string): string {
+        switch (level?.toLowerCase()) {
+            case 'critical':
+            case 'error':
+                return 'danger';
+            case 'warning':
+                return 'warning';
+            case 'info':
+                return 'primary';
+            default:
+                return 'medium';
+        }
+    }
+
+    // Méthodes utilitaires pour les toasts
+    private async showSuccessToast(message: string) {
+        const toast = await this.toastController.create({
+            message,
+            duration: 2000,
+            color: 'success'
+        });
+        toast.present();
+    }
+
+    private async showErrorToast(message: string) {
+        const toast = await this.toastController.create({
+            message,
+            duration: 3000,
+            color: 'danger'
+        });
+        toast.present();
+    }
+
+    private async showInfoToast(message: string) {
+        const toast = await this.toastController.create({
+            message,
+            duration: 2000,
+            color: 'medium'
+        });
+        toast.present();
     }
 
     // ===== USER MANAGEMENT =====

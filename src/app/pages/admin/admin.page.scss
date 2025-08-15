@@ -23,6 +23,115 @@ ion-segment {
     }
 }
 
+// Styles pour les cartes de statistiques de logs
+.stats-card {
+    margin: 4px;
+    transition: transform 0.2s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+    }
+
+    ion-card-content {
+        padding: 16px !important;
+        
+        h2 {
+            margin: 8px 0;
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+        
+        p {
+            margin: 0;
+            font-size: 0.85em;
+            color: var(--ion-color-medium);
+        }
+        
+        ion-icon {
+            margin-bottom: 8px;
+        }
+    }
+}
+
+// Conteneur des logs avec défilement
+.logs-table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid var(--ion-color-light-shade);
+    border-radius: 8px;
+    
+    ion-list {
+        background: transparent;
+        
+        ion-item {
+            --border-color: var(--ion-color-light-shade);
+            margin: 4px 0;
+            
+            &:hover {
+                --background: var(--ion-color-light-tint);
+            }
+            
+            ion-avatar {
+                width: 40px;
+                height: 40px;
+                
+                ion-icon {
+                    font-size: 24px;
+                    margin: auto;
+                }
+            }
+            
+            ion-label {
+                h2 {
+                    font-weight: 600;
+                    margin-bottom: 4px;
+                    
+                    ion-badge {
+                        margin-left: 8px;
+                        font-size: 0.7em;
+                    }
+                }
+                
+                h3 {
+                    color: var(--ion-color-dark);
+                    font-weight: 500;
+                }
+                
+                p {
+                    font-size: 0.8em;
+                    color: var(--ion-color-medium);
+                    margin: 2px 0;
+                    
+                    ion-icon {
+                        font-size: 14px;
+                        margin-right: 4px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// État vide des logs
+.empty-logs {
+    padding: 40px 20px;
+    
+    ion-icon {
+        margin-bottom: 16px;
+        opacity: 0.6;
+    }
+    
+    h3 {
+        color: var(--ion-color-medium);
+        font-weight: 500;
+    }
+    
+    p {
+        color: var(--ion-color-medium);
+        font-size: 0.9em;
+    }
+}
+
 .system-status {
     text-align: center;
     margin: 16px 0;

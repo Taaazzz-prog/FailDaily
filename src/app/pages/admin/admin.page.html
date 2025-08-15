@@ -518,84 +518,196 @@
     </ion-card>
     }
 
-    <!-- LOGS SECTION -->
+    <!-- LOGS SECTION - NOUVEAU SYSTÈME ULTRA-COMPLET -->
     @if (selectedSegment === 'logs') {
     <ion-card>
         <ion-card-header>
             <ion-card-title>
-                🐛 Logs Système
+                � Système de Logs Ultra-Complet
                 <ion-buttons slot="end">
-                    <ion-button (click)="exportLogs()">
+                    <ion-button (click)="toggleRealTimeLogs()" [color]="isRealTimeLogsEnabled ? 'success' : 'medium'">
+                        <ion-icon [name]="isRealTimeLogsEnabled ? 'radio' : 'radio-outline'"></ion-icon>
+                    </ion-button>
+                    <ion-button (click)="exportComprehensiveLogs()">
                         <ion-icon name="download-outline"></ion-icon>
+                    </ion-button>
+                    <ion-button (click)="refreshComprehensiveLogs()">
+                        <ion-icon name="refresh-outline"></ion-icon>
                     </ion-button>
                 </ion-buttons>
             </ion-card-title>
+            <ion-card-subtitle>
+                Système PostgreSQL avec granularité ultra-fine
+            </ion-card-subtitle>
         </ion-card-header>
         <ion-card-content>
-            <!-- Recherche dans les logs -->
-            <ion-searchbar placeholder="Rechercher dans les logs..." [(ngModel)]="logSearchTerm"
-                (ionInput)="searchInLogs()">
-            </ion-searchbar>
-
-            <!-- Filtres pour les logs -->
-            <ion-grid>
+            <!-- Filtres Avancés -->
+            <ion-grid class="ion-margin-bottom">
                 <ion-row>
-                    <ion-col size="6">
-                        <ion-select [(ngModel)]="selectedLogType" (ionChange)="loadSpecificLogs()">
-                            <ion-select-option value="all">Tous les logs</ion-select-option>
-                            <ion-select-option value="connexions">Connexions</ion-select-option>
-                            <ion-select-option value="fails">Création de comptes</ion-select-option>
-                            <ion-select-option value="reactions">Réactions</ion-select-option>
-                            <ion-select-option value="erreurs">Erreurs</ion-select-option>
-                            <ion-select-option value="admin">Actions Admin</ion-select-option>
-                        </ion-select>
+                    <ion-col size="12" size-md="3">
+                        <ion-item>
+                            <ion-label position="stacked">Type d'Activité</ion-label>
+                            <ion-select [(ngModel)]="logFilters.activityType" (selectionChange)="applyLogFilters()">
+                                <ion-select-option value="">Tous</ion-select-option>
+                                <ion-select-option value="auth">Authentification</ion-select-option>
+                                <ion-select-option value="user_action">Actions Utilisateur</ion-select-option>
+                                <ion-select-option value="admin">Administration</ion-select-option>
+                                <ion-select-option value="security">Sécurité</ion-select-option>
+                                <ion-select-option value="performance">Performance</ion-select-option>
+                                <ion-select-option value="error">Erreurs</ion-select-option>
+                            </ion-select>
+                        </ion-item>
                     </ion-col>
-                    <ion-col size="6">
-                        <ion-select [(ngModel)]="selectedLogPeriod" (ionChange)="loadSpecificLogs()">
-                            <ion-select-option value="1h">Dernière heure</ion-select-option>
-                            <ion-select-option value="24h">Dernières 24h</ion-select-option>
-                            <ion-select-option value="7d">7 derniers jours</ion-select-option>
-                            <ion-select-option value="30d">30 derniers jours</ion-select-option>
-                            <ion-select-option value="all">Tout l'historique</ion-select-option>
-                        </ion-select>
+                    <ion-col size="12" size-md="3">
+                        <ion-item>
+                            <ion-label position="stacked">Niveau</ion-label>
+                            <ion-select [(ngModel)]="logFilters.level" (selectionChange)="applyLogFilters()">
+                                <ion-select-option value="">Tous</ion-select-option>
+                                <ion-select-option value="info">Info</ion-select-option>
+                                <ion-select-option value="warning">Warning</ion-select-option>
+                                <ion-select-option value="error">Erreur</ion-select-option>
+                                <ion-select-option value="critical">Critique</ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                    </ion-col>
+                    <ion-col size="12" size-md="3">
+                        <ion-item>
+                            <ion-label position="stacked">Période</ion-label>
+                            <ion-select [(ngModel)]="logFilters.period" (selectionChange)="applyLogFilters()">
+                                <ion-select-option value="1h">Dernière heure</ion-select-option>
+                                <ion-select-option value="24h">Dernières 24h</ion-select-option>
+                                <ion-select-option value="7d">7 derniers jours</ion-select-option>
+                                <ion-select-option value="30d">30 derniers jours</ion-select-option>
+                                <ion-select-option value="custom">Personnalisé</ion-select-option>
+                            </ion-select>
+                        </ion-item>
+                    </ion-col>
+                    <ion-col size="12" size-md="3">
+                        <ion-item>
+                            <ion-label position="stacked">Utilisateur</ion-label>
+                            <ion-input [(ngModel)]="logFilters.userId" placeholder="ID ou email" (ionInput)="applyLogFilters()"></ion-input>
+                        </ion-item>
                     </ion-col>
                 </ion-row>
             </ion-grid>
-            <!-- Logs dynamiques avec recherche -->
-            <h4>📋 Logs Filtrés ({{ filteredLogs.length }})</h4>
-            <ion-list>
-                <ion-item *ngFor="let log of filteredLogs | slice:0:30">
-                    <ion-icon
-                        [name]="log.level === 'error' ? 'close-circle' : log.level === 'warning' ? 'warning' : 'information-circle'"
-                        [color]="log.level === 'error' ? 'danger' : log.level === 'warning' ? 'warning' : 'primary'"
-                        slot="start">
-                    </ion-icon>
-                    <ion-label>
-                        <h3>{{ log.message }}</h3>
-                        <p><strong>{{ log.category }}</strong> - {{ formatTimestamp(log.timestamp) }}</p>
-                        @if (log.user_name) {
-                        <p><small>Par: {{ log.user_name }} ({{ log.user_email }})</small></p>
-                        }
-                        @if (log.details && log.showDetails) {
-                        <p><small>{{ log.details | json }}</small></p>
-                        }
-                    </ion-label>
-                    <ion-button fill="clear" size="small" slot="end" (click)="log.showDetails = !log.showDetails">
-                        <ion-icon [name]="log.showDetails ? 'chevron-up' : 'chevron-down'"></ion-icon>
-                    </ion-button>
-                    <ion-badge
-                        [color]="log.level === 'error' ? 'danger' : log.level === 'warning' ? 'warning' : 'medium'"
-                        slot="end">
-                        {{ log.level }}
-                    </ion-badge>
-                </ion-item>
-            </ion-list>
 
-            @if (filteredLogs.length === 0) {
-            <div class="no-data">
-                <p>Aucun log trouvé pour ces critères</p>
+            <!-- Statistiques en Temps Réel -->
+            <ion-grid class="ion-margin-bottom">
+                <ion-row>
+                    <ion-col size="6" size-md="3">
+                        <ion-card class="stats-card">
+                            <ion-card-content class="ion-text-center">
+                                <ion-icon name="pulse-outline" size="large" color="success"></ion-icon>
+                                <h2>{{ logsStats.totalToday | number }}</h2>
+                                <p>Actions Aujourd'hui</p>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                    <ion-col size="6" size-md="3">
+                        <ion-card class="stats-card">
+                            <ion-card-content class="ion-text-center">
+                                <ion-icon name="warning-outline" size="large" color="warning"></ion-icon>
+                                <h2>{{ logsStats.errorsToday | number }}</h2>
+                                <p>Erreurs Aujourd'hui</p>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                    <ion-col size="6" size-md="3">
+                        <ion-card class="stats-card">
+                            <ion-card-content class="ion-text-center">
+                                <ion-icon name="people-outline" size="large" color="primary"></ion-icon>
+                                <h2>{{ logsStats.activeUsers | number }}</h2>
+                                <p>Utilisateurs Actifs</p>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                    <ion-col size="6" size-md="3">
+                        <ion-card class="stats-card">
+                            <ion-card-content class="ion-text-center">
+                                <ion-icon name="speedometer-outline" size="large" color="tertiary"></ion-icon>
+                                <h2>{{ logsStats.avgResponseTime | number:'1.0-2' }}ms</h2>
+                                <p>Temps Moyen</p>
+                            </ion-card-content>
+                        </ion-card>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
+
+            <!-- Table des Logs Comprehensive -->
+            <div class="logs-table-container">
+                @if (comprehensiveLogs.length > 0) {
+                <ion-list>
+                    @for (log of comprehensiveLogs; track log.id) {
+                    <ion-item-sliding>
+                        <ion-item>
+                            <ion-avatar slot="start">
+                                @switch (log.activity_type) {
+                                    @case ('auth') { <ion-icon name="key-outline" color="primary"></ion-icon> }
+                                    @case ('user_action') { <ion-icon name="hand-left-outline" color="tertiary"></ion-icon> }
+                                    @case ('admin') { <ion-icon name="shield-outline" color="warning"></ion-icon> }
+                                    @case ('security') { <ion-icon name="alert-outline" color="danger"></ion-icon> }
+                                    @case ('error') { <ion-icon name="bug-outline" color="danger"></ion-icon> }
+                                    @default { <ion-icon name="information-outline" color="medium"></ion-icon> }
+                                }
+                            </ion-avatar>
+                            <ion-label>
+                                <h2>
+                                    {{ log.activity_type | titlecase }} 
+                                    <ion-badge [color]="getLogLevelColor(log.level)">{{ log.level }}</ion-badge>
+                                </h2>
+                                <h3>{{ log.description }}</h3>
+                                <p>
+                                    <strong>Utilisateur:</strong> {{ log.user_email || 'Système' }} |
+                                    <strong>IP:</strong> {{ log.ip_address }} |
+                                    <strong>Agent:</strong> {{ log.user_agent?.substring(0, 50) }}...
+                                </p>
+                                <p>
+                                    <ion-icon name="time-outline"></ion-icon>
+                                    {{ log.created_at | date:'dd/MM/yyyy HH:mm:ss' }}
+                                    @if (log.duration_ms) {
+                                        | <ion-icon name="speedometer-outline"></ion-icon> {{ log.duration_ms }}ms
+                                    }
+                                </p>
+                            </ion-label>
+                        </ion-item>
+                        
+                        <ion-item-options slot="end">
+                            <ion-item-option color="primary" (click)="viewLogDetails(log)">
+                                <ion-icon name="eye-outline"></ion-icon>
+                                Détails
+                            </ion-item-option>
+                            @if (log.user_id) {
+                            <ion-item-option color="tertiary" (click)="viewUserLogs(log.user_id)">
+                                <ion-icon name="person-outline"></ion-icon>
+                                Historique
+                            </ion-item-option>
+                            }
+                        </ion-item-options>
+                    </ion-item-sliding>
+                    }
+                </ion-list>
+                } @else {
+                <div class="empty-logs ion-text-center ion-padding">
+                    <ion-icon name="document-outline" size="large" color="medium"></ion-icon>
+                    <h3>Aucun log trouvé</h3>
+                    <p>Aucune activité ne correspond aux filtres sélectionnés.</p>
+                </div>
+                }
             </div>
-            }
+
+            <!-- Pagination -->
+            <ion-grid>
+                <ion-row>
+                    <ion-col class="ion-text-center">
+                        <ion-button fill="outline" (click)="loadMoreLogs()" [disabled]="isLoadingLogs">
+                            @if (isLoadingLogs) {
+                                <ion-spinner name="crescent" slot="start"></ion-spinner>
+                            }
+                            Charger plus
+                        </ion-button>
+                    </ion-col>
+                </ion-row>
+            </ion-grid>
         </ion-card-content>
     </ion-card>
     }
@@ -1405,5 +1517,111 @@
             </ion-card>
         </div>
     </div>
+    }
+
+    <!-- MODAL DÉTAILS LOG -->
+    @if (selectedLogForDetails) {
+    <ion-modal [isOpen]="!!selectedLogForDetails" (didDismiss)="closeLogDetails()">
+        <ng-template>
+            <ion-header>
+                <ion-toolbar color="primary">
+                    <ion-title>
+                        <ion-icon [name]="getLogActivityIcon(selectedLogForDetails.activity_type)" 
+                                 [color]="getLogLevelColor(selectedLogForDetails.level)"></ion-icon>
+                        Détails du Log
+                    </ion-title>
+                    <ion-buttons slot="end">
+                        <ion-button (click)="closeLogDetails()">
+                            <ion-icon name="close"></ion-icon>
+                        </ion-button>
+                    </ion-buttons>
+                </ion-toolbar>
+            </ion-header>
+            <ion-content class="ion-padding">
+                <ion-card>
+                    <ion-card-header>
+                        <ion-card-title>
+                            {{ selectedLogForDetails.activity_type | titlecase }}
+                            <ion-badge [color]="getLogLevelColor(selectedLogForDetails.level)" slot="end">
+                                {{ selectedLogForDetails.level }}
+                            </ion-badge>
+                        </ion-card-title>
+                        <ion-card-subtitle>
+                            {{ selectedLogForDetails.description }}
+                        </ion-card-subtitle>
+                    </ion-card-header>
+                    <ion-card-content>
+                        <ion-list>
+                            <ion-item>
+                                <ion-icon name="person-outline" slot="start"></ion-icon>
+                                <ion-label>
+                                    <h3>Utilisateur</h3>
+                                    <p>{{ selectedLogForDetails.user_email || 'Système' }}</p>
+                                    @if (selectedLogForDetails.user_id) {
+                                    <p><small>ID: {{ selectedLogForDetails.user_id }}</small></p>
+                                    }
+                                </ion-label>
+                            </ion-item>
+                            
+                            <ion-item>
+                                <ion-icon name="time-outline" slot="start"></ion-icon>
+                                <ion-label>
+                                    <h3>Timestamp</h3>
+                                    <p>{{ selectedLogForDetails.created_at | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+                                    <p><small>{{ getTimeAgo(selectedLogForDetails.created_at) }}</small></p>
+                                </ion-label>
+                            </ion-item>
+                            
+                            <ion-item>
+                                <ion-icon name="globe-outline" slot="start"></ion-icon>
+                                <ion-label>
+                                    <h3>Adresse IP</h3>
+                                    <p>{{ selectedLogForDetails.ip_address || 'Non disponible' }}</p>
+                                </ion-label>
+                            </ion-item>
+                            
+                            @if (selectedLogForDetails.user_agent) {
+                            <ion-item>
+                                <ion-icon name="phone-portrait-outline" slot="start"></ion-icon>
+                                <ion-label>
+                                    <h3>User Agent</h3>
+                                    <p style="word-break: break-all; font-size: 0.8em;">
+                                        {{ selectedLogForDetails.user_agent }}
+                                    </p>
+                                </ion-label>
+                            </ion-item>
+                            }
+                            
+                            @if (selectedLogForDetails.duration_ms) {
+                            <ion-item>
+                                <ion-icon name="speedometer-outline" slot="start"></ion-icon>
+                                <ion-label>
+                                    <h3>Temps d'exécution</h3>
+                                    <p>{{ selectedLogForDetails.duration_ms }} millisecondes</p>
+                                </ion-label>
+                            </ion-item>
+                            }
+                            
+                            @if (selectedLogForDetails.metadata) {
+                            <ion-item>
+                                <ion-icon name="document-outline" slot="start"></ion-icon>
+                                <ion-label>
+                                    <h3>Métadonnées</h3>
+                                    <pre style="font-size: 0.8em; background: var(--ion-color-light); padding: 8px; border-radius: 4px; overflow-x: auto;">{{ formatMetadata(selectedLogForDetails.metadata) }}</pre>
+                                </ion-label>
+                            </ion-item>
+                            }
+                        </ion-list>
+                        
+                        <ion-button expand="block" color="tertiary" (click)="viewUserLogs(selectedLogForDetails.user_id)"
+                                   [disabled]="!selectedLogForDetails.user_id">
+                            <ion-icon name="person-outline" slot="start"></ion-icon>
+                            Voir l'historique complet de cet utilisateur
+                        </ion-button>
+                    </ion-card-content>
+                </ion-card>
+            </ion-content>
+        </ng-template>
+    </ion-modal>
     }
 </ion-content>
