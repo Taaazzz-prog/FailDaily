@@ -1,0 +1,25 @@
+{
+  "p_event_type": "auth_register_success",
+  "p_event_category": "auth",
+  "p_action": "register_success",
+  "p_title": "Inscription réussie",
+  "p_user_id": null,
+  "p_resource_type": null,
+  "p_resource_id": null,
+  "p_target_user_id": null,
+  "p_description": "Action d'authentification: register_success",
+  "p_payload": {
+    "email": "test@example.com",
+    "displayName": "TestUser123",
+    "registrationMethod": "email"
+  },
+  "p_old_values": null,
+  "p_new_values": null,
+  "p_ip_address": "127.0.0.1",
+  "p_user_agent": "TestUserAgent/1.0",
+  "p_session_id": "test-session-123",
+  "p_success": true,
+  "p_error_code": null,
+  "p_error_message": null,
+  "p_correlation_id": null
+}
