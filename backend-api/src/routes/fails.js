@@ -1,0 +1,48 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const path = require('path');
+const { createFail, getFails, getFailById, deleteFail } = require('../controllers/failController');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
+
+// Configuration multer pour l'upload d'images
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'fail-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  // Accepter seulement les images
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Seules les images sont autorisées'), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: parseInt(process.env.UPLOAD_MAX_SIZE) || 5 * 1024 * 1024 // 5MB par défaut
+  }
+});
+
+// POST /api/fails - Créer un fail
+router.post('/', authenticateToken, upload.single('image'), createFail);
+
+// GET /api/fails - Récupérer les fails (avec pagination et filtres)
+router.get('/', optionalAuth, getFails);
+
+// GET /api/fails/:id - Récupérer un fail spécifique
+router.get('/:id', optionalAuth, getFailById);
+
+// DELETE /api/fails/:id - Supprimer un fail
+router.delete('/:id', authenticateToken, deleteFail);
+
+module.exports = router;
