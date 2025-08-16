@@ -4,7 +4,7 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { User } from '../models/user.model';
-import { HttpAuthService } from './http-auth.service';
+import { MysqlService } from './mysql.service';
 
 /**
  * Service de transition entre Supabase et MySQL
@@ -18,16 +18,16 @@ export class NewAuthService {
   public currentUser$ = this.currentUserSubject.asObservable();
 
   constructor(
-    private httpAuthService: HttpAuthService,
+    private mysqlService: MysqlService,
     private http: HttpClient
   ) {
     console.log('🔄 NewAuthService: Service de transition Supabase → MySQL initialisé');
-    this.initializeFromHttpAuth();
+    this.initializeFromMysqlService();
   }
 
-  private initializeFromHttpAuth(): void {
-    // Synchroniser avec le service HTTP principal
-    this.httpAuthService.currentUser$.subscribe(user => {
+  private initializeFromMysqlService(): void {
+    // Synchroniser avec le service MySQL principal
+    this.mysqlService.currentUser$.subscribe(user => {
       this.currentUserSubject.next(user);
     });
   }
@@ -35,13 +35,19 @@ export class NewAuthService {
   // Méthodes de compatibilité avec l'ancien AuthService Supabase
   async signUp(email: string, password: string, displayName: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const result = await this.httpAuthService.register({
-        email,
-        password,
-        displayName
-      });
+      const result = await this.mysqlService.signUp(email, password, displayName);
 
-      return result;
+      if (result.data?.user) {
+        return {
+          success: true,
+          user: result.data.user
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Erreur lors de l\'inscription'
+        };
+      }
     } catch (error: any) {
       return {
         success: false,
@@ -52,12 +58,19 @@ export class NewAuthService {
 
   async signIn(email: string, password: string): Promise<{ success: boolean; user?: User; error?: string }> {
     try {
-      const result = await this.httpAuthService.login({
-        email,
-        password
-      });
+      const result = await this.mysqlService.signIn(email, password);
 
-      return result;
+      if (result.data?.user) {
+        return {
+          success: true,
+          user: result.data.user
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Erreur lors de la connexion'
+        };
+      }
     } catch (error: any) {
       return {
         success: false,
@@ -67,19 +80,19 @@ export class NewAuthService {
   }
 
   async signOut(): Promise<void> {
-    await this.httpAuthService.logout();
+    await this.mysqlService.signOut();
   }
 
   getCurrentUser(): User | null {
-    return this.httpAuthService.getCurrentUser();
+    return this.mysqlService.getCurrentUserSync();
   }
 
   getCurrentUserSync(): User | null {
-    return this.httpAuthService.getCurrentUserSync();
+    return this.mysqlService.getCurrentUserSync();
   }
 
   isAuthenticated(): boolean {
-    return this.httpAuthService.isAuthenticated();
+    return this.mysqlService.getCurrentUserSync() !== null;
   }
 
   // Observable pour la compatibilité
@@ -163,8 +176,12 @@ export class NewAuthService {
 
   private async checkUserExists(email: string): Promise<boolean> {
     try {
-      const response: any = await this.http.get(`${environment.api.baseUrl}/auth/check-user`, {
-        params: { email }
+      // Utiliser l'endpoint de vérification d'email de l'API MySQL
+      const response: any = await this.http.get(`${environment.api.baseUrl}/auth/check-email`, {
+        params: { email },
+        headers: new HttpHeaders({
+          'Content-Type': 'application/json'
+        })
       }).toPromise();
 
       return response.exists === true;
@@ -176,7 +193,12 @@ export class NewAuthService {
 
   private async createMigratedUser(userData: any): Promise<void> {
     try {
-      await this.http.post(`${environment.api.baseUrl}/auth/migrate-user`, userData).toPromise();
+      // Utiliser l'inscription normale mais avec des données de migration
+      await this.mysqlService.signUp(
+        userData.email, 
+        'migration-password-' + Math.random().toString(36).substring(7), // Mot de passe temporaire
+        userData.displayName
+      );
       console.log('✅ Utilisateur migré avec succès');
     } catch (error) {
       console.error('❌ Erreur création utilisateur migré:', error);
@@ -207,8 +229,9 @@ export class NewAuthService {
   // Méthodes de diagnostic
   async testMysqlConnection(): Promise<boolean> {
     try {
-      const response: any = await this.http.get(`${environment.api.baseUrl}/health`).toPromise();
-      return response.success === true;
+      // Tester via une méthode existante du MysqlService
+      const currentUser = await this.mysqlService.getCurrentUser();
+      return true; // Si pas d'erreur, la connexion fonctionne
     } catch (error) {
       console.error('❌ Test connexion MySQL échoué:', error);
       return false;
@@ -217,11 +240,19 @@ export class NewAuthService {
 
   async getMigrationStatus(): Promise<any> {
     try {
-      const response = await this.http.get(`${environment.api.baseUrl}/migration/status`).toPromise();
-      return response;
+      return {
+        migrated: this.isUsingMysql() && !this.isUsingSupabase(),
+        authMode: this.getAuthenticationMode(),
+        hasSupabaseData: this.isUsingSupabase(),
+        hasMysqlData: this.isUsingMysql()
+      };
     } catch (error) {
       console.error('❌ Erreur récupération statut migration:', error);
-      return { migrated: false, error: error };
+      return { 
+        migrated: false, 
+        error: error,
+        authMode: 'none'
+      };
     }
   }
 

@@ -235,9 +235,42 @@ const logout = async (req, res) => {
   }
 };
 
+// Vérifier si un email existe
+const checkEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+
+    if (!email) {
+      return res.status(400).json({
+        error: 'Email requis',
+        code: 'MISSING_EMAIL'
+      });
+    }
+
+    // Vérifier si l'email existe
+    const existingUsers = await executeQuery(
+      'SELECT id FROM users WHERE email = ?',
+      [email.toLowerCase()]
+    );
+
+    res.json({
+      exists: existingUsers.length > 0,
+      email: email.toLowerCase()
+    });
+
+  } catch (error) {
+    console.error('Erreur vérification email:', error);
+    res.status(500).json({
+      error: 'Erreur interne du serveur',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   verifyToken,
-  logout
+  logout,
+  checkEmail
 };
