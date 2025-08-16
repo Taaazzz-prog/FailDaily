@@ -303,7 +303,7 @@ export class AdminService {
     async updateUserAccount(userId: string, updates: any, reason?: string): Promise<void> {
         try {
             const adminId = await this.getCurrentAdminId();
-            await this.MysqlService.updateUserAccount(adminId, userId, updates, reason);
+            await this.MysqlService.updateUserAccount(userId, updates);
             await this.logSystemEvent('info', 'Compte utilisateur modifié', { userId, updates, reason });
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error updating user account', error);
@@ -363,8 +363,8 @@ export class AdminService {
                         // Fallback avec les données minimales
                         finalActiveUsers = [{
                             id: currentUser.id,
-                            display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
-                            username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                            display_name: currentUser.displayName || 'Utilisateur actuel',
+                            username: currentUser.email?.split('@')[0] || 'user',
                             email: currentUser.email
                         }];
                     }
@@ -372,8 +372,8 @@ export class AdminService {
                     // En cas d'erreur, utiliser les données de base
                     finalActiveUsers = [{
                         id: currentUser.id,
-                        display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
-                        username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                        display_name: currentUser.displayName || 'Utilisateur actuel',
+                        username: currentUser.email?.split('@')[0] || currentUser.email?.split('@')[0],
                         email: currentUser.email
                     }];
                 }
@@ -397,15 +397,15 @@ export class AdminService {
                     const currentUserProfile = await this.MysqlService.getProfile(currentUser.id);
                     fallbackActiveUsers = currentUserProfile ? [currentUserProfile] : [{
                         id: currentUser.id,
-                        display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
-                        username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                        display_name: currentUser.displayName || 'Utilisateur actuel',
+                        username: currentUser.email?.split('@')[0] || currentUser.email?.split('@')[0],
                         email: currentUser.email
                     }];
                 } catch (profileError) {
                     fallbackActiveUsers = [{
                         id: currentUser.id,
-                        display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
-                        username: currentUser.user_metadata?.['username'] || currentUser.email?.split('@')[0],
+                        display_name: currentUser.displayName || 'Utilisateur actuel',
+                        username: currentUser.email?.split('@')[0] || currentUser.email?.split('@')[0],
                         email: currentUser.email
                     }];
                 }

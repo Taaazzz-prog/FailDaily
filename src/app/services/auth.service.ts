@@ -139,10 +139,10 @@ export class AuthService {
 
       // ✅ CORRECTION : Maintenant que mysqlService persiste les sessions, vérification plus simple
       console.log('🔐 AuthService: Vérification de la session mysqlService...');
-      const { data: { session }, error } = await this.mysqlService.client.auth.getSession();
+      const currentUser = await this.mysqlService.getCurrentUser();
 
-      if (error) {
-        console.error('🔐 AuthService: Erreur lors de la récupération de session:', error);
+      if (!currentUser) {
+        console.error('🔐 AuthService: Pas de session active');
         // Si erreur de session ET pas de cache, déconnecter
         if (!cachedUser) {
           this.setCurrentUser(null);
@@ -151,30 +151,30 @@ export class AuthService {
         return;
       }
 
-      if (session?.user) {
-        console.log('🔐 AuthService: Session mysqlService trouvée pour:', session.user.email);
+      if (currentUser) {
+        console.log('🔐 AuthService: Session mysqlService trouvée pour:', currentUser.email);
 
         try {
-          let profile = await this.mysqlService.getProfile(session.user.id);
+          let profile = await this.mysqlService.getProfile(currentUser.id);
           console.log('🔐 AuthService: Profile chargé:', profile ? 'trouvé' : 'non trouvé');
 
           // Si pas de profil, en créer un
           if (!profile) {
             console.log('🔐 AuthService: Création du profil');
-            profile = await this.mysqlService.createProfile(session.user);
+            profile = await this.mysqlService.createProfile(currentUser);
           }
 
           // Créer l'objet User
           const user: User = {
-            id: session.user.id,
-            email: session.user.email!,
-            displayName: profile?.display_name || 'Utilisateur',
+            id: currentUser.id,
+            email: currentUser.email!,
+            displayName: profile?.display_name || currentUser.displayName || 'Utilisateur',
             avatar: profile?.avatar_url || DEFAULT_AVATAR,
-            joinDate: new Date(profile?.created_at || session.user.created_at),
+            joinDate: new Date(profile?.created_at || currentUser.joinDate),
             totalFails: profile?.stats?.totalFails || 0,
             couragePoints: profile?.stats?.couragePoints || 0,
             badges: profile?.stats?.badges || [],
-            role: (session.user['role'] as UserRole) || (session.user.user_metadata?.['role'] as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users ou user_metadata
+            role: currentUser.role || UserRole.USER, // ✅ Rôle depuis currentUser
             emailConfirmed: profile?.email_confirmed || false,
             registrationCompleted: profile?.registration_completed || false,
             legalConsent: profile?.legal_consent ? {
@@ -215,11 +215,11 @@ export class AuthService {
           console.error('🔐 AuthService: Erreur chargement profil:', profileError);
           // En cas d'erreur de profil, créer un utilisateur basique
           const basicUser: User = {
-            id: session.user.id,
-            email: session.user.email!,
-            displayName: session.user.user_metadata?.['display_name'] || 'Utilisateur',
+            id: currentUser.id,
+            email: currentUser.email!,
+            displayName: currentUser.displayName || 'Utilisateur',
             avatar: DEFAULT_AVATAR,
-            joinDate: new Date(session.user.created_at),
+            joinDate: new Date(currentUser.joinDate),
             totalFails: 0,
             couragePoints: 0,
             badges: [],

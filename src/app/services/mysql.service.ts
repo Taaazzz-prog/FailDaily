@@ -1549,6 +1549,129 @@ export class MysqlService {
     }
   }
 
+  // ===================================
+  // FOLLOW SYSTEM METHODS
+  // ===================================
+
+  async followUser(followerId: string, followingId: string): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.baseUrl}/follows`,
+        { follower_id: followerId, following_id: followingId },
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.followUser error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async unfollowUser(followerId: string, followingId: string): Promise<any> {
+    try {
+      const response = await this.http.delete(
+        `${this.baseUrl}/follows/${followerId}/${followingId}`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.unfollowUser error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getFollowers(userId: string): Promise<any> {
+    try {
+      const response = await this.http.get(
+        `${this.baseUrl}/users/${userId}/followers`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getFollowers error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getFollowing(userId: string): Promise<any> {
+    try {
+      const response = await this.http.get(
+        `${this.baseUrl}/users/${userId}/following`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getFollowing error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getFollowersCount(userId: string): Promise<any> {
+    try {
+      const response = await this.http.get(
+        `${this.baseUrl}/users/${userId}/followers/count`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getFollowersCount error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getFollowingCount(userId: string): Promise<any> {
+    try {
+      const response = await this.http.get(
+        `${this.baseUrl}/users/${userId}/following/count`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getFollowingCount error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async isFollowing(followerId: string, followingId: string): Promise<any> {
+    try {
+      const response = await this.http.get(
+        `${this.baseUrl}/follows/${followerId}/${followingId}`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.isFollowing error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getUsersByIds(userIds: string[]): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.baseUrl}/users/batch`,
+        { user_ids: userIds },
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getUsersByIds error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getUserFailsCount(userId: string): Promise<any> {
+    try {
+      const response = await this.http.get(
+        `${this.baseUrl}/users/${userId}/fails/count`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getUserFailsCount error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
   // Méthode pour compatibilité avec l'ancien système
   async getSupabaseClient(): Promise<any> {
     return this.getClient();
