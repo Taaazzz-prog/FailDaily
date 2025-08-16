@@ -138,7 +138,7 @@ const getFails = async (req, res) => {
     // Pagination
     const offset = (page - 1) * limit;
     query += ' LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), offset);
+    params.push(parseInt(limit), parseInt(offset));
 
     const fails = await executeQuery(query, params);
 

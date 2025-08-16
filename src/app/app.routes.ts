@@ -36,11 +36,6 @@ export const routes: Routes = [
         canActivate: [AuthGuard]
       },
       {
-        path: 'badge-migration',
-        loadComponent: () => import('./pages/badge-migration/badge-migration.page').then(m => m.BadgeMigrationPage),
-        canActivate: [AuthGuard]
-      },
-      {
         path: 'privacy-settings',
         loadComponent: () => import('./pages/privacy-settings/privacy-settings.page').then(m => {
           console.log('Chargement du composant PrivacySettings...', !!m.PrivacySettingsPage);

@@ -1,0 +1,198 @@
+{
+  "timestamp": "2025-08-16T16:01:30.133Z",
+  "duration": 12862,
+  "summary": {
+    "total": 9,
+    "passed": 1,
+    "failed": 8,
+    "successRate": 11
+  },
+  "tests": [
+    {
+      "name": "1.1 - Connexion Base de Données",
+      "category": "Database",
+      "success": true,
+      "duration": 103,
+      "details": {
+        "connection": true,
+        "tablesCount": 19,
+        "usersCount": 2,
+        "errors": []
+      }
+    },
+    {
+      "name": "1.2 - Structure Base de Données",
+      "category": "Database",
+      "success": false,
+      "duration": 125,
+      "details": {
+        "tables": {},
+        "constraints": {},
+        "indexes": {},
+        "errors": [
+          "users: Erreur de syntaxe près de '??' à la ligne 1",
+          "profiles: Erreur de syntaxe près de '??' à la ligne 1",
+          "fails: Erreur de syntaxe près de '??' à la ligne 1",
+          "badge_definitions: Erreur de syntaxe près de '??' à la ligne 1",
+          "user_badges: Erreur de syntaxe près de '??' à la ligne 1",
+          "reactions: Erreur de syntaxe près de '??' à la ligne 1",
+          "system_logs: Erreur de syntaxe près de '??' à la ligne 1"
+        ]
+      }
+    },
+    {
+      "name": "2.1 - Inscription Utilisateur",
+      "category": "Authentication",
+      "success": false,
+      "duration": 375,
+      "details": {
+        "emailUniqueness": false,
+        "displayNameUniqueness": false,
+        "ageVerificationUnder13": false,
+        "ageVerification13to16": false,
+        "ageVerificationAdult": false,
+        "parentalConsentRequired": false,
+        "termsValidation": false,
+        "validRegistrationAdult": false,
+        "validRegistrationMinor": false,
+        "responseFormat": false,
+        "errors": [
+          "Âge < 13 ans devrait être rejeté: 404",
+          "CGU devrait être obligatoire: 404",
+          "Inscription adulte valide échouée: 404 - Erreur inconnue"
+        ]
+      }
+    },
+    {
+      "name": "2.2 - Connexion Utilisateur",
+      "category": "Authentication",
+      "success": false,
+      "duration": 398,
+      "details": {
+        "userCreated": false,
+        "validLogin": false,
+        "invalidPassword": false,
+        "invalidEmail": false,
+        "missingFields": false,
+        "tokenFormat": false,
+        "errors": [
+          "Impossible de créer utilisateur de test"
+        ]
+      }
+    },
+    {
+      "name": "2.3 - Vérification JWT",
+      "category": "Authentication",
+      "success": false,
+      "duration": 625,
+      "details": {
+        "userCreated": false,
+        "tokenReceived": false,
+        "tokenVerification": false,
+        "invalidToken": false,
+        "missingToken": false,
+        "expiredToken": false,
+        "middleware": false,
+        "errors": [
+          "Impossible d'obtenir un token valide"
+        ]
+      }
+    },
+    {
+      "name": "2.4 - Protection Accès Non Authentifié",
+      "category": "Security",
+      "success": false,
+      "duration": 441,
+      "details": {
+        "protectedEndpoints": 4,
+        "blockedEndpoints": 1,
+        "endpointResults": [
+          {
+            "name": "GET /api/fails",
+            "method": "GET",
+            "url": "http://localhost:3001/api/fails",
+            "expectedStatus": 401,
+            "actualStatus": 500,
+            "blocked": false
+          },
+          {
+            "name": "POST /api/fails",
+            "method": "POST",
+            "url": "http://localhost:3001/api/fails",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "GET /api/fails/:id",
+            "method": "GET",
+            "url": "http://localhost:3001/api/fails/123",
+            "expectedStatus": 401,
+            "actualStatus": 404,
+            "blocked": false
+          }
+        ],
+        "errors": [
+          "GET /api/fails - ÉCHEC: attendu 401, reçu 500",
+          "GET /api/fails/:id - ÉCHEC: attendu 401, reçu 404",
+          "Erreur réseau: Failed to parse URL from http://localhost:3001undefined/123"
+        ]
+      }
+    },
+    {
+      "name": "3.1 - Création de Fails",
+      "category": "Fails",
+      "success": false,
+      "duration": 519,
+      "details": {
+        "userCreated": false,
+        "tokenObtained": false,
+        "validFailCreation": false,
+        "missingTitle": false,
+        "publicFail": false,
+        "privateFail": false,
+        "categoryValidation": false,
+        "responseFormat": false,
+        "errors": [
+          "Impossible de créer utilisateur de test"
+        ]
+      }
+    },
+    {
+      "name": "3.2 - Récupération de Fails",
+      "category": "Fails",
+      "success": false,
+      "duration": 572,
+      "details": {
+        "userCreated": false,
+        "failsCreated": 0,
+        "getAllFails": false,
+        "getFailById": false,
+        "publicOnlyFilter": false,
+        "pagination": false,
+        "categoryFilter": false,
+        "unauthorizedAccess": false,
+        "errors": [
+          "Impossible de créer utilisateur de test"
+        ]
+      }
+    },
+    {
+      "name": "4.1 - Intégration Complète",
+      "category": "Integration",
+      "success": false,
+      "duration": 627,
+      "details": {
+        "userRegistration": false,
+        "userLogin": false,
+        "failCreation": false,
+        "failRetrieval": false,
+        "userStats": false,
+        "endToEndFlow": false,
+        "errors": [
+          "Inscription échouée: Erreur interne du serveur"
+        ]
+      }
+    }
+  ]
+}

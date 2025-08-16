@@ -56,8 +56,8 @@ const register = async (req, res) => {
     // Transaction : créer utilisateur + profil
     const queries = [
       {
-        query: `INSERT INTO users (id, email, password_hash, role, is_active, created_at) 
-                VALUES (?, ?, ?, 'user', 1, NOW())`,
+        query: `INSERT INTO users (id, email, password_hash, role, account_status, created_at) 
+                VALUES (?, ?, ?, 'user', 'active', NOW())`,
         params: [userId, email.toLowerCase(), hashedPassword]
       },
       {
