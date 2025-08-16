@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { AuthService } from './auth.service';
 import { Follow, FollowStats, UserProfile } from '../models/follow.model';
 import { BehaviorSubject, Observable, firstValueFrom } from 'rxjs';
@@ -13,7 +13,7 @@ export class FollowService {
     public following$ = this.followingSubject.asObservable();
 
     constructor(
-        private supabaseService: SupabaseService,
+        private MysqlService: MysqlService,
         private authService: AuthService,
         private logger: ComprehensiveLoggerService
     ) {
@@ -31,7 +31,7 @@ export class FollowService {
         }
 
         try {
-            const { data, error } = await this.supabaseService.client
+            const { data, error } = await this.MysqlService.client
                 .from('follows')
                 .insert({
                     follower_id: currentUser.id,
@@ -63,7 +63,7 @@ export class FollowService {
         }
 
         try {
-            const { error } = await this.supabaseService.client
+            const { error } = await this.MysqlService.client
                 .from('follows')
                 .delete()
                 .match({
@@ -101,7 +101,7 @@ export class FollowService {
 
         try {
             // Nombre de followers
-            const { count: followersCount, error: followersError } = await this.supabaseService.client
+            const { count: followersCount, error: followersError } = await this.MysqlService.client
                 .from('follows')
                 .select('*', { count: 'exact', head: true })
                 .eq('following_id', userId);
@@ -109,7 +109,7 @@ export class FollowService {
             if (followersError) throw followersError;
 
             // Nombre de following
-            const { count: followingCount, error: followingError } = await this.supabaseService.client
+            const { count: followingCount, error: followingError } = await this.MysqlService.client
                 .from('follows')
                 .select('*', { count: 'exact', head: true })
                 .eq('follower_id', userId);
@@ -119,7 +119,7 @@ export class FollowService {
             // Vérifier si l'utilisateur actuel suit cette personne
             let isFollowing = false;
             if (currentUser && currentUser.id !== userId) {
-                const { data, error: isFollowingError } = await this.supabaseService.client
+                const { data, error: isFollowingError } = await this.MysqlService.client
                     .from('follows')
                     .select('id')
                     .match({
@@ -155,7 +155,7 @@ export class FollowService {
     async getUserProfile(userId: string): Promise<UserProfile | null> {
         try {
             // Récupérer les infos de base du profil
-            const { data: profile, error: profileError } = await this.supabaseService.client
+            const { data: profile, error: profileError } = await this.MysqlService.client
                 .from('profiles')
                 .select(`
           id,
@@ -173,7 +173,7 @@ export class FollowService {
             }
 
             // Compter les fails publics de l'utilisateur
-            const { count: totalFails, error: failsError } = await this.supabaseService.client
+            const { count: totalFails, error: failsError } = await this.MysqlService.client
                 .from('fails')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', userId)
@@ -216,7 +216,7 @@ export class FollowService {
         if (!currentUser) return;
 
         try {
-            const { data, error } = await this.supabaseService.client
+            const { data, error } = await this.MysqlService.client
                 .from('follows')
                 .select('following_id')
                 .eq('follower_id', currentUser.id);
@@ -240,7 +240,7 @@ export class FollowService {
         if (!targetUserId) return [];
 
         try {
-            const { data, error } = await this.supabaseService.client
+            const { data, error } = await this.MysqlService.client
                 .from('follows')
                 .select(`
           following_id,
@@ -281,7 +281,7 @@ export class FollowService {
         if (!targetUserId) return [];
 
         try {
-            const { data, error } = await this.supabaseService.client
+            const { data, error } = await this.MysqlService.client
                 .from('follows')
                 .select(`
           follower_id,

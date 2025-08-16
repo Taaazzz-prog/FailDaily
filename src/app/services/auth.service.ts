@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, from, catchError, switchMap } from 'rxjs';
 import { User } from '../models/user.model';
 import { UserRole } from '../models/user-role.model';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { EventBusService, AppEvents } from './event-bus.service';
 import { DebugService } from './debug.service';
 import { DEFAULT_AVATAR } from '../utils/avatar-constants';
@@ -35,7 +35,7 @@ export class AuthService {
   private lastProcessedUserId: string | null = null;
 
   constructor(
-    private supabase: SupabaseService,
+    private mysqlService: MysqlService,
     private eventBus: EventBusService,
     private debugService: DebugService,
     private logger: ComprehensiveLoggerService
@@ -137,9 +137,9 @@ export class AuthService {
         this.currentUserSubject.next(cachedUser);
       }
 
-      // ✅ CORRECTION : Maintenant que Supabase persiste les sessions, vérification plus simple
-      console.log('🔐 AuthService: Vérification de la session Supabase...');
-      const { data: { session }, error } = await this.supabase.client.auth.getSession();
+      // ✅ CORRECTION : Maintenant que mysqlService persiste les sessions, vérification plus simple
+      console.log('🔐 AuthService: Vérification de la session mysqlService...');
+      const { data: { session }, error } = await this.mysqlService.client.auth.getSession();
 
       if (error) {
         console.error('🔐 AuthService: Erreur lors de la récupération de session:', error);
@@ -152,16 +152,16 @@ export class AuthService {
       }
 
       if (session?.user) {
-        console.log('🔐 AuthService: Session Supabase trouvée pour:', session.user.email);
+        console.log('🔐 AuthService: Session mysqlService trouvée pour:', session.user.email);
 
         try {
-          let profile = await this.supabase.getProfile(session.user.id);
+          let profile = await this.mysqlService.getProfile(session.user.id);
           console.log('🔐 AuthService: Profile chargé:', profile ? 'trouvé' : 'non trouvé');
 
           // Si pas de profil, en créer un
           if (!profile) {
             console.log('🔐 AuthService: Création du profil');
-            profile = await this.supabase.createProfile(session.user);
+            profile = await this.mysqlService.createProfile(session.user);
           }
 
           // Créer l'objet User
@@ -209,7 +209,7 @@ export class AuthService {
             }
           };
 
-          console.log('🔐 AuthService: Utilisateur défini avec session Supabase');
+          console.log('🔐 AuthService: Utilisateur défini avec session mysqlService');
           this.setCurrentUser(user);
         } catch (profileError) {
           console.error('🔐 AuthService: Erreur chargement profil:', profileError);
@@ -232,9 +232,9 @@ export class AuthService {
           this.setCurrentUser(basicUser);
         }
       } else {
-        // ✅ Pas de session Supabase - garder le cache si disponible sinon déconnecter
+        // ✅ Pas de session mysqlService - garder le cache si disponible sinon déconnecter
         if (cachedUser) {
-          console.log('🔐 AuthService: Pas de session Supabase mais cache valide - maintenir la connexion');
+          console.log('🔐 AuthService: Pas de session mysqlService mais cache valide - maintenir la connexion');
         } else {
           console.log('🔐 AuthService: Aucune session - déconnexion');
           this.setCurrentUser(null);
@@ -243,37 +243,37 @@ export class AuthService {
 
       this.sessionInitialized = true;
 
-      console.log('🔐 AuthService: Configuration de l\'écoute des changements Supabase');
-      // Écouter les changements d'authentification Supabase
-      this.supabase.currentUser$.subscribe(async (supabaseUser: any) => {
-        console.log('🔐 AuthService: Changement utilisateur Supabase:', supabaseUser?.id || 'null');
+      console.log('🔐 AuthService: Configuration de l\'écoute des changements mysqlService');
+      // Écouter les changements d'authentification mysqlService
+      this.mysqlService.currentUser$.subscribe(async (mysqlServiceUser: any) => {
+        console.log('🔐 AuthService: Changement utilisateur mysqlService:', mysqlServiceUser?.id || 'null');
 
-        if (!supabaseUser) {
+        if (!mysqlServiceUser) {
           // ✅ SIMPLIFICATION : Avec persistSession=true, les déconnexions sont plus fiables
-          console.log('🔐 AuthService: Déconnexion Supabase détectée');
+          console.log('🔐 AuthService: Déconnexion mysqlService détectée');
           this.setCurrentUser(null);
           return;
         }
 
         // Si nouvel utilisateur connecté, charger son profil
-        if (supabaseUser.id !== this.currentUserSubject.value?.id) {
+        if (mysqlServiceUser.id !== this.currentUserSubject.value?.id) {
           console.log('🔐 AuthService: Nouvel utilisateur connecté - chargement du profil');
           try {
-            let profile = await this.supabase.getProfile(supabaseUser.id);
+            let profile = await this.mysqlService.getProfile(mysqlServiceUser.id);
             if (!profile) {
-              profile = await this.supabase.createProfile(supabaseUser);
+              profile = await this.mysqlService.createProfile(mysqlServiceUser);
             }
 
             const user: User = {
-              id: supabaseUser.id,
-              email: supabaseUser.email!,
+              id: mysqlServiceUser.id,
+              email: mysqlServiceUser.email!,
               displayName: profile?.display_name || 'Utilisateur',
               avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
-              joinDate: new Date(profile?.created_at || supabaseUser.created_at),
+              joinDate: new Date(profile?.created_at || mysqlServiceUser.created_at),
               totalFails: profile?.stats?.totalFails || 0,
               couragePoints: profile?.stats?.couragePoints || 0,
               badges: profile?.stats?.badges || [],
-              role: (supabaseUser.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
+              role: (mysqlServiceUser.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
               emailConfirmed: profile?.email_confirmed || false,
               registrationCompleted: profile?.registration_completed || false,
               legalConsent: profile?.legal_consent ? {
@@ -332,8 +332,8 @@ export class AuthService {
     console.log('🔐 AuthService: Login attempt for:', credentials.email);
 
     try {
-      // Authentification Supabase - retour immédiat
-      const result = await this.supabase.signIn(credentials.email, credentials.password);
+      // Authentification mysqlService - retour immédiat
+      const result = await this.mysqlService.signIn(credentials.email, credentials.password);
 
       if (result?.user) {
         console.log('✅ AuthService: User authenticated successfully');
@@ -345,11 +345,11 @@ export class AuthService {
         }, true);
 
         // Récupérer immédiatement le profil utilisateur
-        let profile = await this.supabase.getProfile(result.user.id);
+        let profile = await this.mysqlService.getProfile(result.user.id);
 
         if (!profile) {
           console.log('� AuthService: No profile found, creating one');
-          profile = await this.supabase.createProfile(result.user);
+          profile = await this.mysqlService.createProfile(result.user);
         }
 
         // Créer l'objet utilisateur complet
@@ -455,7 +455,7 @@ export class AuthService {
         };
       }
 
-      const isAvailable = await this.supabase.checkDisplayNameAvailable(displayName.trim());
+      const isAvailable = await this.mysqlService.checkDisplayNameAvailable(displayName.trim());
 
       if (isAvailable) {
         return {
@@ -463,7 +463,7 @@ export class AuthService {
           message: '✅ Ce pseudo est disponible'
         };
       } else {
-        const suggestedName = await this.supabase.generateUniqueDisplayName(displayName.trim());
+        const suggestedName = await this.mysqlService.generateUniqueDisplayName(displayName.trim());
         return {
           isAvailable: false,
           suggestedName,
@@ -483,13 +483,13 @@ export class AuthService {
     console.log('🔐 AuthService: Registration attempt for:', data.email);
 
     // ✅ ÉTAPE 1: Vérifier et générer un display_name unique AVANT de créer le compte
-    return from(this.supabase.generateUniqueDisplayName(data.displayName))
+    return from(this.mysqlService.generateUniqueDisplayName(data.displayName))
       .pipe(
         switchMap(async (uniqueDisplayName) => {
           console.log('✅ AuthService: Unique display_name generated:', uniqueDisplayName);
 
           // ✅ ÉTAPE 2: Créer le compte avec le nom unique
-          const result = await this.supabase.signUp(data.email, data.password, uniqueDisplayName);
+          const result = await this.mysqlService.signUp(data.email, data.password, uniqueDisplayName);
 
           if (result?.user) {
             console.log('✅ AuthService: User registered successfully with unique name');
@@ -503,7 +503,7 @@ export class AuthService {
 
             // ✅ ÉTAPE 3: Créer le profil (qui utilisera automatiquement le nom unique des metadata)
             try {
-              const profile = await this.supabase.createProfile(result.user);
+              const profile = await this.mysqlService.createProfile(result.user);
               console.log('✅ AuthService: Profile created with display_name:', profile?.display_name);
 
               // Retourner l'utilisateur avec le display_name unique confirmé
@@ -574,12 +574,12 @@ export class AuthService {
     console.log('🔐 AuthService: User found for completion:', currentUser.email, currentUser.id);
 
     try {
-      console.log('🔐 AuthService: Calling supabase.completeRegistration...');
-      await this.supabase.completeRegistration(currentUser.id, legalConsent, ageVerification);
+      console.log('🔐 AuthService: Calling mysqlService.completeRegistration...');
+      await this.mysqlService.completeRegistration(currentUser.id, legalConsent, ageVerification);
 
       // Recharger le profil complet
       console.log('🔐 AuthService: Reloading complete profile...');
-      const profile = await this.supabase.getProfile(currentUser.id);
+      const profile = await this.mysqlService.getProfile(currentUser.id);
       const updatedUser: User = {
         ...currentUser,
         legalConsent: {
@@ -625,7 +625,7 @@ export class AuthService {
         }, true);
       }
 
-      await this.supabase.signOut();
+      await this.mysqlService.signOut();
       this.clearCachedUser(); // ✅ Nettoyer le cache lors de la déconnexion
       this.currentUserSubject.next(null);
       console.log('🔐 AuthService: Utilisateur déconnecté et cache nettoyé');
@@ -650,11 +650,11 @@ export class AuthService {
         throw new Error('Utilisateur non authentifié');
       }
 
-      // Mettre à jour le profil dans Supabase
-      await this.supabase.updateProfile(currentUser.id, profileData);
+      // Mettre à jour le profil dans mysqlService
+      await this.mysqlService.updateProfile(currentUser.id, profileData);
 
       // Récupérer le profil mis à jour
-      const updatedProfile = await this.supabase.getProfile(currentUser.id);
+      const updatedProfile = await this.mysqlService.getProfile(currentUser.id);
 
       let updatedUser: User = currentUser;
       if (updatedProfile) {
@@ -690,7 +690,7 @@ export class AuthService {
 
   async resetPassword(email: string): Promise<void> {
     try {
-      await this.supabase.resetPassword(email);
+      await this.mysqlService.resetPassword(email);
     } catch (error) {
       console.error('Reset password error:', error);
       throw error;
@@ -699,7 +699,7 @@ export class AuthService {
 
   // ✅ NOUVEAU : Méthode publique pour vérifier l'unicité des noms
   async checkDisplayNameAvailable(displayName: string, excludeUserId?: string): Promise<boolean> {
-    return this.supabase.checkDisplayNameAvailable(displayName, excludeUserId);
+    return this.mysqlService.checkDisplayNameAvailable(displayName, excludeUserId);
   }
 
   // ===== GESTION DES RÔLES =====
@@ -713,7 +713,7 @@ export class AuthService {
       throw new Error('Accès non autorisé - Admin requis');
     }
 
-    return this.supabase.getAllUsers();
+    return this.mysqlService.getAllUsers();
   }
 
   /**
@@ -730,7 +730,7 @@ export class AuthService {
       throw new Error('Un administrateur ne peut pas modifier son propre rôle');
     }
 
-    return this.supabase.updateUserRole(userId, newRole);
+    return this.mysqlService.updateUserRole(userId, newRole);
   }
 
   /**
@@ -747,7 +747,7 @@ export class AuthService {
       throw new Error('Un administrateur ne peut pas se bannir lui-même');
     }
 
-    return this.supabase.banUser(userId);
+    return this.mysqlService.banUser(userId);
   }
 }
 

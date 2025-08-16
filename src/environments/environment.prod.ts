@@ -28,9 +28,9 @@ export const environment = {
    * - APIs REST Node.js/Express
    */
   database: {
-    host: process.env['DB_HOST'] || 'localhost',
-    port: parseInt(process.env['DB_PORT'] || '3306'),
-    name: process.env['DB_NAME'] || 'faildaily_prod',
+    host: 'localhost',
+    port: 3306,
+    name: 'faildaily_prod',
     charset: 'utf8mb4'
   },
 
@@ -42,12 +42,12 @@ export const environment = {
    * MySQL gère la base de données, Firebase gère les notifications.
    */
   firebase: {
-    apiKey: process.env['FIREBASE_API_KEY'] || "AIzaSyB5dGWJ3tZcUm5kO8rN6vX2pL4qR9wA3sE",
-    authDomain: process.env['FIREBASE_AUTH_DOMAIN'] || "faildaily-prod.firebaseapp.com",
-    projectId: process.env['FIREBASE_PROJECT_ID'] || "faildaily-prod",
-    storageBucket: process.env['FIREBASE_STORAGE_BUCKET'] || "faildaily-prod.appspot.com",
-    messagingSenderId: process.env['FIREBASE_MESSAGING_SENDER_ID'] || "123456789012",
-    appId: process.env['FIREBASE_APP_ID'] || "1:123456789012:web:abcd1234efgh5678ijklmn"
+    apiKey: "AIzaSyB5dGWJ3tZcUm5kO8rN6vX2pL4qR9wA3sE",
+    authDomain: "faildaily-prod.firebaseapp.com",
+    projectId: "faildaily-prod",
+    storageBucket: "faildaily-prod.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcd1234efgh5678ijklmn"
   },
 
   /*
@@ -57,9 +57,9 @@ export const environment = {
    * Configuration pour l'API Node.js/Express avec MySQL:
    */
   api: {
-    baseUrl: process.env['API_BASE_URL'] || 'https://api.faildaily.com/api',
-    moderationUrl: process.env['OPENAI_API_URL'] || 'https://api.openai.com/v1',
-    moderationKey: process.env['OPENAI_API_KEY'] || '',
+    baseUrl: 'https://api.faildaily.com/api',
+    moderationUrl: 'https://api.openai.com/v1',
+    moderationKey: '',
     uploadMaxSize: 3 * 1024 * 1024, // 3MB max en production
     imageQuality: 75, // Qualité optimisée pour la production
     timeout: 30000,
@@ -82,7 +82,7 @@ export const environment = {
    * =====================================
    */
   storage: {
-    baseUrl: process.env['STORAGE_BASE_URL'] || 'https://storage.faildaily.com',
+    baseUrl: 'https://storage.faildaily.com',
     uploadsPath: '/uploads',
     maxFileSize: 3 * 1024 * 1024, // 3MB en production
     allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp'],
@@ -94,7 +94,7 @@ export const environment = {
    * ===============================
    */
   notifications: {
-    vapidKey: process.env['VAPID_PUBLIC_KEY'] || '',
+    vapidKey: '',
     enablePush: true,
     enableInApp: true,
     debugMode: false, // Debug désactivé en production

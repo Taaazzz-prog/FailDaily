@@ -2,10 +2,10 @@
 // SERVICE DE LOGGING ULTRA-COMPLET FAILDAILY
 // ========================================
 // Ce service capture TOUTES les actions utilisateur avec une intégration parfaite
-// avec le système de logs PostgreSQL pour un debugging ultra-précis
+// avec le système de logs MySQL pour un debugging ultra-précis
 
 import { Injectable } from '@angular/core';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 export interface LogEntry {
@@ -83,7 +83,7 @@ export class ComprehensiveLoggerService {
         enableUserBehaviorTracking: true
     };
 
-    constructor(private supabase: SupabaseService) {
+    constructor(private mysqlService: MysqlService) {
         this.initializeLogger();
         this.setupEventListeners();
         this.startPeriodicFlush();
@@ -135,7 +135,7 @@ export class ComprehensiveLoggerService {
     private async logToDatabaseAdvanced(entry: LogEntry): Promise<string | null> {
         try {
             // Appeler directement la fonction PostgreSQL
-            const { data, error } = await this.supabase.client.rpc('log_comprehensive_activity', {
+            const { data, error } = await this.mysqlService.client.rpc('log_comprehensive_activity', {
                 p_event_type: entry.eventType,
                 p_event_category: entry.eventCategory,
                 p_action: entry.action,
@@ -383,7 +383,7 @@ export class ComprehensiveLoggerService {
         };
 
         // Enregistrer la session en base
-        const { data, error } = await this.supabase.client
+        const { data, error } = await this.mysqlService.client
             .from('user_sessions')
             .insert([{
                 user_id: userId,
@@ -413,7 +413,7 @@ export class ComprehensiveLoggerService {
 
         // Mettre à jour la session en base
         if (this.currentSession.id) {
-            await this.supabase.client
+            await this.mysqlService.client
                 .from('user_sessions')
                 .update({
                     session_end: sessionEnd.toISOString(),
@@ -442,7 +442,7 @@ export class ComprehensiveLoggerService {
         const targetUserId = userId || this.getCurrentUserId();
         if (!targetUserId) return [];
 
-        const { data, error } = await this.supabase.client
+        const { data, error } = await this.mysqlService.client
             .rpc('get_user_complete_history', {
                 p_user_id: targetUserId,
                 p_limit: limit
@@ -463,7 +463,7 @@ export class ComprehensiveLoggerService {
         const targetUserId = userId || this.getCurrentUserId();
         if (!targetUserId) return null;
 
-        const { data, error } = await this.supabase.client
+        const { data, error } = await this.mysqlService.client
             .rpc('get_user_activity_stats', {
                 p_user_id: targetUserId
             });
@@ -483,7 +483,7 @@ export class ComprehensiveLoggerService {
         const targetUserId = userId || this.getCurrentUserId();
         if (!targetUserId) return [];
 
-        const { data, error } = await this.supabase.client
+        const { data, error } = await this.mysqlService.client
             .from('usage_metrics')
             .select('*')
             .eq('user_id', targetUserId)
@@ -502,24 +502,24 @@ export class ComprehensiveLoggerService {
      * Rechercher dans les logs
      */
     async searchLogs(query: string, category?: string, startDate?: Date, endDate?: Date): Promise<LogEntry[]> {
-        let supabaseQuery = this.supabase.client
+        let mysqlServiceQuery = this.mysqlService.client
             .from('activity_logs')
             .select('*')
             .ilike('title', `%${query}%`);
 
         if (category) {
-            supabaseQuery = supabaseQuery.eq('event_category', category);
+            mysqlServiceQuery = mysqlServiceQuery.eq('event_category', category);
         }
 
         if (startDate) {
-            supabaseQuery = supabaseQuery.gte('created_at', startDate.toISOString());
+            mysqlServiceQuery = mysqlServiceQuery.gte('created_at', startDate.toISOString());
         }
 
         if (endDate) {
-            supabaseQuery = supabaseQuery.lte('created_at', endDate.toISOString());
+            mysqlServiceQuery = mysqlServiceQuery.lte('created_at', endDate.toISOString());
         }
 
-        const { data, error } = await supabaseQuery
+        const { data, error } = await mysqlServiceQuery
             .order('created_at', { ascending: false })
             .limit(1000);
 
@@ -537,7 +537,7 @@ export class ComprehensiveLoggerService {
 
     private async logToDatabase(entry: LogEntry): Promise<string | null> {
         try {
-            const { data, error } = await this.supabase.client
+            const { data, error } = await this.mysqlService.client
                 .rpc('log_comprehensive_activity', {
                     p_event_type: entry.eventType,
                     p_event_category: entry.eventCategory,
@@ -675,7 +675,7 @@ export class ComprehensiveLoggerService {
     }
 
     private getCurrentUserId(): string | null {
-        const user = this.supabase.getCurrentUserSync();
+        const user = this.mysqlService.getCurrentUserSync();
         return user?.id || null;
     }
 

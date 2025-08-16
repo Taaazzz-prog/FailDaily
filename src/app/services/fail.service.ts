@@ -202,7 +202,7 @@ export class FailService {
 
     try {
       const result = await this.mysqlService.addReaction(failId, reactionType);
-      console.log('FailService: supabaseService.addReaction completed successfully');
+      console.log('FailService: mysqlService.addReaction completed successfully');
 
       // Émettre un événement pour notifier la réaction
       console.log('FailService: Emitting REACTION_GIVEN event');

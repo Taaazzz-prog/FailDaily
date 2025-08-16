@@ -339,7 +339,7 @@ ${result.errors.length > 0 ? '\nErreurs:\n' + result.errors.join('\n') : ''}
  */
 export class BadgeMigration {
   
-  constructor(private supabaseService: any) {}
+  constructor(private mysqlService: any) {}
 
   /**
    * Migre tous les badges hardcodés vers la base de données

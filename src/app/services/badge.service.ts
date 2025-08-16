@@ -134,15 +134,15 @@ export class BadgeService {
 
         // Mapper les badges de la BDD vers le format Badge
         return dbBadges.map(dbBadge => ({
-          id: dbBadge.id || dbBadge.badge_id,
-          name: dbBadge.name || dbBadge.badge_name,
-          description: dbBadge.description || dbBadge.badge_description,
-          icon: dbBadge.icon || dbBadge.badge_icon || 'trophy-outline',
-          category: dbBadge.category || dbBadge.badge_category || BadgeCategory.SPECIAL,
-          rarity: dbBadge.rarity || dbBadge.badge_rarity || 'common',
+          id: String(dbBadge.id),
+          name: dbBadge.name,
+          description: dbBadge.description,
+          icon: dbBadge.icon || 'trophy-outline',
+          category: dbBadge.category || BadgeCategory.SPECIAL,
+          rarity: 'common' as const, // Valeur par défaut
           // Ajouter les infos de requirement pour le nouveau système
-          requirementType: dbBadge.requirement_type,
-          requirementValue: dbBadge.requirement_value
+          requirementType: dbBadge.requirements?.type,
+          requirementValue: dbBadge.requirements?.value
         } as Badge));
       }
 

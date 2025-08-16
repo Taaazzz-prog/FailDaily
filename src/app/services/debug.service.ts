@@ -85,7 +85,7 @@ export class DebugService {
 
     private extractServiceFromMessage(message: string): string {
         if (message.includes('AuthService')) return 'AuthService';
-        if (message.includes('SupabaseService')) return 'SupabaseService';
+        if (message.includes('MysqlService')) return 'MysqlService';
         if (message.includes('BadgeService')) return 'BadgeService';
         if (message.includes('FailService')) return 'FailService';
         if (message.includes('PushService')) return 'PushService';

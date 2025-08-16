@@ -6,7 +6,7 @@ import {
     IonCardHeader, IonCardTitle, IonCardContent, IonItem, IonLabel,
     IonSpinner, IonIcon, IonBadge, IonList, IonButtons, IonBackButton
 } from '@ionic/angular/standalone';
-import { SupabaseService } from '../../services/supabase.service';
+import { MysqlService } from '../../services/mysql.service';
 import { BadgeMigration, BadgeMigrationHelper } from '../../utils/badge-migration';
 
 interface MigrationDetail {
@@ -40,7 +40,7 @@ export class BadgeMigrationPage implements OnInit {
     migrationResult: MigrationResult | null = null;
     hasRun = false;
 
-    constructor(private supabaseService: SupabaseService) { }
+    constructor(private MysqlService: MysqlService) { }
 
     ngOnInit() {
         console.log('🔧 Badge Migration Page initialized');
@@ -53,7 +53,7 @@ export class BadgeMigrationPage implements OnInit {
         try {
             console.log('🚀 Démarrage de la migration des badges...');
 
-            const migration = new BadgeMigration(this.supabaseService);
+            const migration = new BadgeMigration(this.MysqlService);
             this.migrationResult = await migration.migrateBadges();
 
             // Afficher le rapport dans la console
@@ -92,7 +92,7 @@ export class BadgeMigrationPage implements OnInit {
         // Test spécial pour vérifier le badge reactions-25 pour bruno@taazzz.be
         try {
             console.log('🎯 Test spécial du badge reactions-25 pour bruno@taazzz.be...');
-            const migration = new BadgeMigration(this.supabaseService);
+            const migration = new BadgeMigration(this.MysqlService);
             await migration.checkReactions25Badge();
         } catch (error) {
             console.error('❌ Erreur lors du test:', error);

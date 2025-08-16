@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { DebugService } from './debug.service';
 
 @Injectable({
@@ -7,7 +7,7 @@ import { DebugService } from './debug.service';
 })
 export class AdminService {
     constructor(
-        private supabaseService: SupabaseService,
+        private MysqlService: MysqlService,
         private debugService: DebugService
     ) { }
 
@@ -16,7 +16,7 @@ export class AdminService {
         this.debugService.addLog('info', 'AdminService', 'Getting dashboard stats...');
 
         try {
-            const stats = await this.supabaseService.getDashboardStats();
+            const stats = await this.MysqlService.getDashboardStats();
 
             this.debugService.addLog('info', 'AdminService', 'Dashboard stats loaded', stats);
             return stats;
@@ -28,7 +28,7 @@ export class AdminService {
 
     private async getTodayActivity(): Promise<number> {
         try {
-            const logs = await this.supabaseService.getSystemLogsTable(50);
+            const logs = await this.MysqlService.getSystemLogsTable(50);
             const today = new Date().toISOString().split('T')[0];
 
             const todayLogs = logs.filter(log =>
@@ -44,7 +44,7 @@ export class AdminService {
 
     private async getSystemStatus(): Promise<'healthy' | 'warning' | 'error'> {
         try {
-            const usersCount = await this.supabaseService.getTableCount('profiles');
+            const usersCount = await this.MysqlService.getTableCount('profiles');
 
             if (usersCount === 0) {
                 return 'error';
@@ -63,7 +63,7 @@ export class AdminService {
 
     private async getRecentSystemErrors(): Promise<number> {
         try {
-            const logs = await this.supabaseService.getSystemLogsTable(100);
+            const logs = await this.MysqlService.getSystemLogsTable(100);
             const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
             const recentErrorLogs = logs.filter(log =>
@@ -79,7 +79,7 @@ export class AdminService {
     // POINTS CONFIGURATION
     async getPointsConfiguration() {
         try {
-            return await this.supabaseService.getPointsConfiguration();
+            return await this.MysqlService.getPointsConfiguration();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting points config', error);
             throw error;
@@ -90,7 +90,7 @@ export class AdminService {
         this.debugService.addLog('info', 'AdminService', 'Updating points configuration', config);
 
         try {
-            await this.supabaseService.updatePointsConfiguration(config);
+            await this.MysqlService.updatePointsConfiguration(config);
             await this.logSystemEvent('info', 'Points configuration updated', config);
 
             this.debugService.addLog('info', 'AdminService', 'Points configuration updated successfully');
@@ -103,7 +103,7 @@ export class AdminService {
     // SYSTEM LOGS
     async logSystemEvent(level: 'info' | 'warning' | 'error' | 'debug', message: string, details?: any, userId?: string, action?: string) {
         try {
-            await this.supabaseService.insertSystemLog(level, message, details, userId, action);
+            await this.MysqlService.insertSystemLog(level, message, details, userId, action);
         } catch (error) {
             console.error('Failed to log system event:', error);
         }
@@ -111,7 +111,7 @@ export class AdminService {
 
     async getSystemLogs(limit: number = 100) {
         try {
-            return await this.supabaseService.getSystemLogs(limit);
+            return await this.MysqlService.getSystemLogs(limit);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting system logs', error);
             throw error;
@@ -121,7 +121,7 @@ export class AdminService {
     // USER MANAGEMENT
     async getAllUsers() {
         try {
-            return await this.supabaseService.getAllProfiles();
+            return await this.MysqlService.getAllProfiles();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting all users', error);
             throw error;
@@ -130,7 +130,7 @@ export class AdminService {
 
     async getUserActivities(userId?: string, limit: number = 50) {
         try {
-            return await this.supabaseService.getUserActivities(userId, limit);
+            return await this.MysqlService.getUserActivities(userId, limit);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting user activities', error);
             throw error;
@@ -140,7 +140,7 @@ export class AdminService {
     // DATABASE INTEGRITY
     async analyzeDatabaseIntegrity() {
         try {
-            return await this.supabaseService.analyzeDatabaseIntegrity();
+            return await this.MysqlService.analyzeDatabaseIntegrity();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error analyzing database integrity', error);
             throw error;
@@ -171,7 +171,7 @@ export class AdminService {
 
     async getReactionLogs(limit: number = 100) {
         try {
-            const logs = await this.supabaseService.getReactionLogsTable(limit);
+            const logs = await this.MysqlService.getReactionLogsTable(limit);
             return logs;
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting reaction logs', error);
@@ -183,7 +183,7 @@ export class AdminService {
     async getUserActivities(searchTerm?: string, filterBy?: string, dateFilter?: string) {
         try {
             // Simplified implementation
-            const logs = await this.supabaseService.getSystemLogsTable(200);
+            const logs = await this.MysqlService.getSystemLogsTable(200);
 
             let filteredLogs = logs;
 
@@ -244,7 +244,7 @@ export class AdminService {
     private async getRecentReactions(limit: number = 10) {
         try {
             // Simplified - get from system logs
-            const logs = await this.supabaseService.getSystemLogsTable(50);
+            const logs = await this.MysqlService.getSystemLogsTable(50);
             return logs.filter(log => log.message && log.message.includes('Reaction')).slice(0, limit);
         } catch (error) {
             return [];
@@ -253,7 +253,7 @@ export class AdminService {
 
     private async getRecentFails(limit: number = 10) {
         try {
-            const logs = await this.supabaseService.getSystemLogsTable(50);
+            const logs = await this.MysqlService.getSystemLogsTable(50);
             return logs.filter(log => log.message && log.message.includes('Fail')).slice(0, limit);
         } catch (error) {
             return [];
@@ -262,7 +262,7 @@ export class AdminService {
 
     private async getActiveUsers(limit: number = 10) {
         try {
-            const logs = await this.supabaseService.getSystemLogsTable(50);
+            const logs = await this.MysqlService.getSystemLogsTable(50);
             const uniqueUsers = [...new Set(logs.map(log => log.user_id).filter(Boolean))];
             return uniqueUsers.slice(0, limit);
         } catch (error) {
@@ -295,9 +295,9 @@ export class AdminService {
 
     private async getDatabaseStats() {
         const [usersCount, failsCount, reactionsCount] = await Promise.all([
-            this.supabaseService.getTableCount('profiles'),
-            this.supabaseService.getTableCount('fails'),
-            this.supabaseService.getTableCount('user_reactions')
+            this.MysqlService.getTableCount('profiles'),
+            this.MysqlService.getTableCount('fails'),
+            this.MysqlService.getTableCount('user_reactions')
         ]);
 
         return {

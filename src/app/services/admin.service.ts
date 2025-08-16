@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { DebugService } from './debug.service';
 
 @Injectable({
@@ -7,7 +7,7 @@ import { DebugService } from './debug.service';
 })
 export class AdminService {
     constructor(
-        private supabaseService: SupabaseService,
+        private MysqlService: MysqlService,
         private debugService: DebugService
     ) { }
 
@@ -16,7 +16,7 @@ export class AdminService {
         this.debugService.addLog('info', 'AdminService', 'Getting dashboard stats...');
 
         try {
-            const stats = await this.supabaseService.getDashboardStats();
+            const stats = await this.MysqlService.getDashboardStats();
 
             this.debugService.addLog('info', 'AdminService', 'Dashboard stats loaded', stats);
             return stats;
@@ -29,7 +29,7 @@ export class AdminService {
     // POINTS CONFIGURATION
     async getPointsConfiguration() {
         try {
-            return await this.supabaseService.getPointsConfiguration();
+            return await this.MysqlService.getPointsConfiguration();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting points config', error);
             throw error;
@@ -40,7 +40,7 @@ export class AdminService {
         this.debugService.addLog('info', 'AdminService', 'Updating points configuration', config);
 
         try {
-            await this.supabaseService.updatePointsConfiguration(config);
+            await this.MysqlService.updatePointsConfiguration(config);
             await this.logSystemEvent('info', 'Points configuration updated', config);
 
             this.debugService.addLog('info', 'AdminService', 'Points configuration updated successfully');
@@ -55,7 +55,7 @@ export class AdminService {
         this.debugService.addLog('info', 'AdminService', 'Restoring essential configurations...');
 
         try {
-            await this.supabaseService.restoreEssentialConfigurations();
+            await this.MysqlService.restoreEssentialConfigurations();
             await this.logSystemEvent('info', 'Essential configurations restored after database reset');
 
             this.debugService.addLog('info', 'AdminService', 'Essential configurations restored successfully');
@@ -68,7 +68,7 @@ export class AdminService {
     // SYSTEM LOGS
     async logSystemEvent(level: 'info' | 'warning' | 'error' | 'debug', message: string, details?: any, userId?: string, action?: string) {
         try {
-            await this.supabaseService.insertSystemLog(level, message, details, userId, action);
+            await this.MysqlService.insertSystemLog(level, message, details, userId, action);
         } catch (error) {
             console.error('Failed to log system event:', error);
         }
@@ -76,7 +76,7 @@ export class AdminService {
 
     async getSystemLogs(limit: number = 100) {
         try {
-            return await this.supabaseService.getSystemLogs(limit);
+            return await this.MysqlService.getSystemLogs(limit);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting system logs', error);
             throw error;
@@ -86,7 +86,7 @@ export class AdminService {
     // USER MANAGEMENT
     async getAllUsers() {
         try {
-            return await this.supabaseService.getAllProfiles();
+            return await this.MysqlService.getAllProfiles();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting all users', error);
             throw error;
@@ -95,7 +95,7 @@ export class AdminService {
 
     async getUserActivities(userId?: string, limit: number = 50) {
         try {
-            return await this.supabaseService.getUserActivities(userId, limit);
+            return await this.MysqlService.getUserActivities(userId, limit);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting user activities', error);
             throw error;
@@ -105,7 +105,7 @@ export class AdminService {
     // DATABASE INTEGRITY
     async analyzeDatabaseIntegrity() {
         try {
-            return await this.supabaseService.analyzeDatabaseIntegrity();
+            return await this.MysqlService.analyzeDatabaseIntegrity();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error analyzing database integrity', error);
             throw error;
@@ -115,7 +115,7 @@ export class AdminService {
     async analyzeSpecificFail(failId: string) {
         this.debugService.addLog('info', 'AdminService', 'Analyzing specific fail', { failId });
         try {
-            return await this.supabaseService.analyzeSpecificFail(failId);
+            return await this.MysqlService.analyzeSpecificFail(failId);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error analyzing specific fail', error);
             throw error;
@@ -125,7 +125,7 @@ export class AdminService {
     async fixFailReactionCounts(failId: string) {
         this.debugService.addLog('info', 'AdminService', 'Fixing fail reaction counts', { failId });
         try {
-            return await this.supabaseService.fixFailReactionCounts(failId);
+            return await this.MysqlService.fixFailReactionCounts(failId);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error fixing fail reaction counts', error);
             throw error;
@@ -141,7 +141,7 @@ export class AdminService {
             // Corriger les compteurs invalides
             if (analysisResults.invalidCounts && analysisResults.invalidCounts.length > 0) {
                 for (const invalidCount of analysisResults.invalidCounts) {
-                    await this.supabaseService.fixInvalidReactionCounts(invalidCount.fail_id);
+                    await this.MysqlService.fixInvalidReactionCounts(invalidCount.fail_id);
                     fixedCount++;
                     this.debugService.addLog('info', 'AdminService', `Fixed reaction counts for fail ${invalidCount.fail_id}`);
                 }
@@ -150,7 +150,7 @@ export class AdminService {
             // Supprimer les réactions orphelines
             if (analysisResults.orphanedReactions && analysisResults.orphanedReactions.length > 0) {
                 for (const orphanedReaction of analysisResults.orphanedReactions) {
-                    await this.supabaseService.deleteOrphanedReaction(orphanedReaction.reaction_id);
+                    await this.MysqlService.deleteOrphanedReaction(orphanedReaction.reaction_id);
                     fixedCount++;
                     this.debugService.addLog('info', 'AdminService', `Deleted orphaned reaction ${orphanedReaction.reaction_id}`);
                 }
@@ -189,7 +189,7 @@ export class AdminService {
 
     async getReactionLogs(limit: number = 100) {
         try {
-            return await this.supabaseService.getReactionLogsTable(limit);
+            return await this.MysqlService.getReactionLogsTable(limit);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting reaction logs', error);
             throw error;
@@ -244,7 +244,7 @@ export class AdminService {
             const periodHours = this.getPeriodHours(period);
 
             // Utiliser la nouvelle fonction SQL qui retourne les vraies données
-            const logs = await this.supabaseService.getActivityLogsByType(logType, periodHours, limit);
+            const logs = await this.MysqlService.getActivityLogsByType(logType, periodHours, limit);
 
             // Convertir les données pour l'interface
             return logs.map((log: any) => ({
@@ -281,7 +281,7 @@ export class AdminService {
     async deleteUserReaction(reactionId: string, reason?: string): Promise<void> {
         try {
             const adminId = await this.getCurrentAdminId();
-            await this.supabaseService.deleteUserReaction(adminId, reactionId, reason);
+            await this.MysqlService.deleteUserReaction(adminId, reactionId, reason);
             await this.logSystemEvent('info', 'Réaction utilisateur supprimée', { reactionId, reason });
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error deleting user reaction', error);
@@ -292,7 +292,7 @@ export class AdminService {
     async deleteUserFail(failId: string, reason?: string): Promise<void> {
         try {
             const adminId = await this.getCurrentAdminId();
-            await this.supabaseService.deleteUserFail(adminId, failId, reason);
+            await this.MysqlService.deleteUserFail(adminId, failId, reason);
             await this.logSystemEvent('info', 'Fail utilisateur supprimé', { failId, reason });
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error deleting user fail', error);
@@ -303,7 +303,7 @@ export class AdminService {
     async updateUserAccount(userId: string, updates: any, reason?: string): Promise<void> {
         try {
             const adminId = await this.getCurrentAdminId();
-            await this.supabaseService.updateUserAccount(adminId, userId, updates, reason);
+            await this.MysqlService.updateUserAccount(adminId, userId, updates, reason);
             await this.logSystemEvent('info', 'Compte utilisateur modifié', { userId, updates, reason });
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error updating user account', error);
@@ -313,7 +313,7 @@ export class AdminService {
 
     async getUserManagementLogs(userId?: string): Promise<any[]> {
         try {
-            return await this.supabaseService.getUserManagementLogs(undefined, userId);
+            return await this.MysqlService.getUserManagementLogs(undefined, userId);
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting user management logs', error);
             return [];
@@ -322,7 +322,7 @@ export class AdminService {
 
     private async getCurrentAdminId(): Promise<string> {
         // Récupérer l'ID de l'admin connecté
-        const currentUser = await this.supabaseService.getCurrentUser();
+        const currentUser = await this.MysqlService.getCurrentUser();
         return currentUser?.id || 'admin-temp-id';
     }
 
@@ -333,7 +333,7 @@ export class AdminService {
             const activeUsers = await this.getActiveUsers();
 
             // 2. Récupérer les événements récents (dernière heure)
-            const recentEvents = await this.supabaseService.getActivityLogsByType('all', 1, 50);
+            const recentEvents = await this.MysqlService.getActivityLogsByType('all', 1, 50);
 
             // 3. Filtrer les événements vraiment récents (derniers 30 min)
             const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
@@ -342,7 +342,7 @@ export class AdminService {
             );
 
             // 4. Si pas d'utilisateurs actifs détectés mais qu'on sait qu'il y en a un connecté
-            const currentUser = await this.supabaseService.getCurrentUser();
+            const currentUser = await this.MysqlService.getCurrentUser();
             const finalActiveCount = activeUsers.length > 0 ? activeUsers.length : (currentUser ? 1 : 0);
 
             console.log('🔴 Real-time monitoring:', {
@@ -356,7 +356,7 @@ export class AdminService {
             let finalActiveUsers = activeUsers;
             if (activeUsers.length === 0 && currentUser) {
                 try {
-                    const currentUserProfile = await this.supabaseService.getProfile(currentUser.id);
+                    const currentUserProfile = await this.MysqlService.getProfile(currentUser.id);
                     if (currentUserProfile) {
                         finalActiveUsers = [currentUserProfile];
                     } else {
@@ -389,12 +389,12 @@ export class AdminService {
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting real-time events', error);
             // Fallback: Au minimum détecter l'utilisateur actuel s'il existe
-            const currentUser = await this.supabaseService.getCurrentUser();
+            const currentUser = await this.MysqlService.getCurrentUser();
             let fallbackActiveUsers: any[] = [];
 
             if (currentUser) {
                 try {
-                    const currentUserProfile = await this.supabaseService.getProfile(currentUser.id);
+                    const currentUserProfile = await this.MysqlService.getProfile(currentUser.id);
                     fallbackActiveUsers = currentUserProfile ? [currentUserProfile] : [{
                         id: currentUser.id,
                         display_name: currentUser.user_metadata?.['display_name'] || 'Utilisateur actuel',
@@ -423,7 +423,7 @@ export class AdminService {
     private async getActiveUsers(): Promise<any[]> {
         try {
             // Récupérer les connexions récentes (dernière heure = 1, pas 0.5)
-            const recentLogins = await this.supabaseService.getActivityLogsByType('connexions', 1, 100);
+            const recentLogins = await this.MysqlService.getActivityLogsByType('connexions', 1, 100);
 
             // Extraire les IDs utilisateurs uniques
             const activeUserIds = [...new Set(recentLogins.map(log => log.user_id).filter(Boolean))];
@@ -432,7 +432,7 @@ export class AdminService {
             const activeUsers = await Promise.all(
                 activeUserIds.map(async (userId) => {
                     try {
-                        return await this.supabaseService.getProfile(userId);
+                        return await this.MysqlService.getProfile(userId);
                     } catch {
                         return null;
                     }
@@ -451,7 +451,7 @@ export class AdminService {
     async searchLogs(searchTerm: string, logType: string = 'all', period: string = '24h', limit: number = 50): Promise<any[]> {
         try {
             const periodHours = this.getPeriodHours(period);
-            const logs = await this.supabaseService.getActivityLogsByType(logType, periodHours, limit * 2); // Récupérer plus pour filtrer
+            const logs = await this.MysqlService.getActivityLogsByType(logType, periodHours, limit * 2); // Récupérer plus pour filtrer
 
             // Filtrer par terme de recherche
             const filteredLogs = logs.filter((log: any) => {
