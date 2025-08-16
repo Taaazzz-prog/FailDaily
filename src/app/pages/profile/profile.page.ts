@@ -14,7 +14,7 @@ import {
     documentOutline, shieldCheckmark, chevronForward, settingsOutline,
     lockClosed, chevronDownCircleOutline, personOutline
 } from 'ionicons/icons';
-import { NewAuthService } from '../../services/new-auth.service';
+import { HttpAuthService } from '../../services/http-auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
 import { MysqlService } from '../../services/mysql.service';
@@ -145,7 +145,7 @@ export class ProfilePage implements OnInit, OnDestroy {
     currentEncouragementMessage: string = '';
 
     constructor(
-        private authService: NewAuthService,
+        private authService: HttpAuthService,
         private failService: FailService,
         private badgeService: BadgeService,
         private mysqlService: MysqlService,
@@ -360,7 +360,7 @@ export class ProfilePage implements OnInit, OnDestroy {
     }
 
     async confirmLogout() {
-        await this.authService.signOut();
+        await this.authService.logout();
         this.router.navigate(['/auth/login']);
         this.isAlertOpen = false;
     }

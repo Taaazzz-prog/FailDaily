@@ -7,7 +7,6 @@ import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MysqlService } from '../../services/mysql.service';
-import { NewAuthService } from '../../services/new-auth.service';
 
 @Component({
   selector: 'app-fail-card',

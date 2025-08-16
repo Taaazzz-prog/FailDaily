@@ -76,7 +76,7 @@ export async function retryOnMobile<T>(
 }
 
 /**
- * Wrapper pour les opérations Supabase auth sur mobile ET web
+ * Wrapper pour les opérations auth sur mobile ET web
  * Gère maintenant les NavigatorLockAcquireTimeoutError sur toutes les plateformes
  */
 export async function safeAuthOperation<T>(operation: () => Promise<T>): Promise<T> {

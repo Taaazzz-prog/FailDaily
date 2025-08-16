@@ -7,7 +7,7 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
-import { NewAuthService } from './app/services/new-auth.service';
+import { HttpAuthService } from './app/services/http-auth.service';
 import { MysqlService } from './app/services/mysql.service';
 import { FollowService } from './app/services/follow.service';
 import { LoggingSetupService } from './app/services/logging-setup.service';
@@ -23,7 +23,7 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(),
     importProvidersFrom(BrowserModule),
-    NewAuthService,
+    HttpAuthService,
     MysqlService,
     FollowService,
     LoggingSetupService, // Service pour configurer le logging

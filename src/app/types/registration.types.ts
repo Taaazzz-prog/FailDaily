@@ -19,11 +19,6 @@ export interface User {
   // Champs spécifiques MySQL
   emailVerified: boolean;
   emailVerifiedAt?: Date;
-  
-  // Migration Supabase
-  supabaseId?: string;
-  migratedFromSupabase?: boolean;
-  migratedAt?: Date;
 }
 
 export interface UserBadge {
@@ -145,80 +140,6 @@ export interface RegistrationResult {
   errors?: RegistrationValidationError[];
   requiresEmailVerification?: boolean;
   requiresAgeVerification?: boolean;
-}
-
-// ============== TYPES DE MIGRATION ==============
-
-export interface MigrationData {
-  fromSupabase: boolean;
-  toMysql: boolean;
-  migrationInProgress: boolean;
-  step: MigrationStep;
-  progress: number;
-  message: string;
-  error?: string;
-  startedAt?: Date;
-  completedAt?: Date;
-}
-
-export type MigrationStep = 
-  | 'idle' 
-  | 'detecting' 
-  | 'backing_up' 
-  | 'exporting' 
-  | 'migrating' 
-  | 'validating' 
-  | 'cleanup' 
-  | 'completed' 
-  | 'error';
-
-export interface SupabaseUserData {
-  id: string;
-  email: string;
-  user_metadata: {
-    displayName?: string;
-    birthDate?: string;
-    avatarUrl?: string;
-  };
-  app_metadata: any;
-  created_at: string;
-  updated_at: string;
-  last_sign_in_at?: string;
-  email_confirmed_at?: string;
-}
-
-export interface MigrationMapping {
-  supabaseField: string;
-  mysqlField: string;
-  transformer?: (value: any) => any;
-  required?: boolean;
-  defaultValue?: any;
-}
-
-export interface MigrationResult {
-  success: boolean;
-  migratedUsers: number;
-  skippedUsers: number;
-  errors: MigrationError[];
-  duration: number;
-  details: MigrationDetail[];
-}
-
-export interface MigrationError {
-  userId?: string;
-  email?: string;
-  error: string;
-  step: MigrationStep;
-  timestamp: Date;
-  recoverable: boolean;
-}
-
-export interface MigrationDetail {
-  userId: string;
-  email: string;
-  status: 'migrated' | 'skipped' | 'error';
-  reason?: string;
-  mysqlId?: number;
 }
 
 // ============== TYPES D'AUTHENTIFICATION ==============
@@ -347,8 +268,6 @@ export type RegistrationEventType =
   | 'email_verified'
   | 'password_reset_requested'
   | 'password_reset_completed'
-  | 'migration_started'
-  | 'migration_completed'
   | 'login_attempt'
   | 'login_success'
   | 'login_failed';
@@ -452,18 +371,6 @@ export const REGISTRATION_STEPS = {
   TERMS_CONDITIONS: 4
 } as const;
 
-export const MIGRATION_STEPS = {
-  IDLE: 'idle',
-  DETECTING: 'detecting',
-  BACKING_UP: 'backing_up',
-  EXPORTING: 'exporting',
-  MIGRATING: 'migrating',
-  VALIDATING: 'validating',
-  CLEANUP: 'cleanup',
-  COMPLETED: 'completed',
-  ERROR: 'error'
-} as const;
-
 export const REGISTRATION_EVENTS = {
   STARTED: 'registration_started',
   COMPLETED: 'registration_completed',
@@ -472,8 +379,6 @@ export const REGISTRATION_EVENTS = {
   EMAIL_VERIFIED: 'email_verified',
   PASSWORD_RESET_REQUESTED: 'password_reset_requested',
   PASSWORD_RESET_COMPLETED: 'password_reset_completed',
-  MIGRATION_STARTED: 'migration_started',
-  MIGRATION_COMPLETED: 'migration_completed',
   LOGIN_ATTEMPT: 'login_attempt',
   LOGIN_SUCCESS: 'login_success',
   LOGIN_FAILED: 'login_failed'
@@ -496,28 +401,11 @@ export function isRegistrationData(obj: any): obj is RegistrationData {
     typeof obj.agreeToTerms === 'boolean';
 }
 
-export function isMigrationData(obj: any): obj is MigrationData {
-  return obj && 
-    typeof obj.fromSupabase === 'boolean' && 
-    typeof obj.toMysql === 'boolean' && 
-    typeof obj.step === 'string';
-}
-
-export function isSupabaseUserData(obj: any): obj is SupabaseUserData {
-  return obj && 
-    typeof obj.id === 'string' && 
-    typeof obj.email === 'string' && 
-    typeof obj.created_at === 'string';
-}
-
 // ============== EXPORTS PAR DÉFAUT ==============
 
 export default {
   REGISTRATION_STEPS,
-  MIGRATION_STEPS,
   REGISTRATION_EVENTS,
   isUser,
-  isRegistrationData,
-  isMigrationData,
-  isSupabaseUserData
+  isRegistrationData
 };

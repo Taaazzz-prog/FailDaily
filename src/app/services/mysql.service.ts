@@ -54,7 +54,7 @@ export interface UserStats {
 export class MysqlService {
   private apiUrl = environment.api.baseUrl || 'http://localhost:3001/api';
   
-  // States management - équivalent SupabaseService
+  // States management - équivalent service de base de données
   private currentUser: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(null);
   public user$: Observable<User | null> = this.currentUser.asObservable();
   public currentUser$: Observable<User | null> = this.currentUser.asObservable();
@@ -1513,7 +1513,7 @@ export class MysqlService {
 
   // ====== MÉTHODES COMPLÉMENTAIRES ÉQUIVALENTES ======
 
-  // Équivalent getSupabaseClient()
+  // Équivalent getClient()
   getClient(): any {
     return {
       // Retourner un objet avec les méthodes principales pour compatibilité
@@ -1844,7 +1844,7 @@ export class MysqlService {
   }
 
   // Méthode pour compatibilité avec l'ancien système
-  async getSupabaseClient(): Promise<any> {
+  async getMysqlClient(): Promise<any> {
     return this.getClient();
   }
 }

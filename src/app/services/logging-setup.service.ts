@@ -15,7 +15,7 @@ export class LoggingSetupService {
     }
 
     private initializeLogging() {
-        // Injection du logger dans le service Supabase pour éviter les dépendances circulaires
+        // Injection du logger dans le service MySQL pour éviter les dépendances circulaires
         this.MysqlService.setLogger(this.logger);
         console.log('🔧 LoggingSetupService: Logger configuré pour tous les services');
     }
