@@ -371,7 +371,7 @@ export class HttpAuthService {
     );
   }
 
-  // Méthode de compatibilité avec l'ancien service Supabase
+  // Méthode de compatibilité avec l'ancien service
   getCurrentUserObservable(): Observable<User | null> {
     return this.currentUser$;
   }

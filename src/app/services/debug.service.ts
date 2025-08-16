@@ -36,12 +36,12 @@ export class DebugService {
 
         console.error = (...args: any[]) => {
             const message = args.join(' ');
-            // ✅ Filtrer les erreurs NavigatorLock de Supabase (non critiques)
+            // ✅ Filtrer les erreurs NavigatorLock de l'ancien système (non critiques)
             if (this.ignoreNavigatorLockErrors &&
                 (message.includes('NavigatorLockAcquireTimeoutError') ||
-                    message.includes('lock:faildaily-supabase-auth') ||
+                    message.includes('lock:faildaily-mysql-auth') ||
                     message.includes('Acquiring an exclusive Navigator LockManager lock'))) {
-                // Erreur NavigatorLock ignorée - SDK Supabase interne
+                // Erreur NavigatorLock ignorée - SDK MySQL interne
                 return;
             }
             this.addLog('error', 'Console', message, args.length > 1 ? args : args[0]);

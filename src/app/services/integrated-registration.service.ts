@@ -108,17 +108,17 @@ export class IntegratedRegistrationService {
    */
   private async analyzeEnvironment(): Promise<any> {
     const analysis = {
-      hasSupabaseData: false,
+      hasLegacyData: false,
       hasSavedRegistration: false,
       mysqlAvailable: false,
       userLoggedIn: false,
       migrationPossible: false,
-      currentUser: null
+      currentUser: null as any
     };
 
     try {
-      // Vérifier données Supabase
-      analysis.hasSupabaseData = this.transitionService.isSupabaseDetected();
+      // Vérifier données legacy
+      analysis.hasLegacyData = this.transitionService.isSupabaseDetected();
 
       // Vérifier inscription sauvegardée
       const savedData = this.registrationService.getRegistrationData();
@@ -132,7 +132,7 @@ export class IntegratedRegistrationService {
       analysis.userLoggedIn = !!analysis.currentUser;
 
       // Vérifier possibilité de migration
-      analysis.migrationPossible = analysis.hasSupabaseData && analysis.mysqlAvailable && !analysis.userLoggedIn;
+      analysis.migrationPossible = analysis.hasLegacyData && analysis.mysqlAvailable && !analysis.userLoggedIn;
 
       console.log('🔍 Analyse environnement:', analysis);
       return analysis;

@@ -462,7 +462,7 @@ export class BadgeService {
   }
 
   private getUserStats(userId: string): Promise<any> {
-    // Récupérer les statistiques utilisateur depuis Supabase
+    // Récupérer les statistiques utilisateur depuis MySQL
     return this.mysqlService.getUserStats(userId);
   }
 

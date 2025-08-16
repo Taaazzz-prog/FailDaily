@@ -134,20 +134,20 @@ export class ComprehensiveLoggerService {
      */
     private async logToDatabaseAdvanced(entry: LogEntry): Promise<string | null> {
         try {
-            // Appeler directement la fonction PostgreSQL
-            const { data, error } = await this.mysqlService.client.rpc('log_comprehensive_activity', {
-                p_event_type: entry.eventType,
-                p_event_category: entry.eventCategory,
-                p_action: entry.action,
-                p_title: entry.title,
-                p_user_id: entry.userId || null,
-                p_resource_type: entry.resourceType || null,
-                p_resource_id: entry.resourceId || null,
-                p_target_user_id: entry.targetUserId || null,
-                p_description: entry.description || null,
-                p_payload: entry.payload || null, // Garder l'objet tel quel, PostgreSQL le convertira
-                p_old_values: entry.oldValues || null,
-                p_new_values: entry.newValues || null,
+            // Appeler l'API MySQL
+            const { data, error } = await this.mysqlService.logComprehensiveActivity({
+                event_type: entry.eventType,
+                event_category: entry.eventCategory,
+                action: entry.action,
+                title: entry.title,
+                user_id: entry.userId || null,
+                resource_type: entry.resourceType || null,
+                resource_id: entry.resourceId || null,
+                target_user_id: entry.targetUserId || null,
+                description: entry.description || null,
+                payload: entry.payload || null,
+                old_values: entry.oldValues || null,
+                new_values: entry.newValues || null,
                 p_ip_address: await this.getClientIP(),
                 p_user_agent: navigator.userAgent,
                 p_session_id: this.sessionId,
@@ -383,20 +383,16 @@ export class ComprehensiveLoggerService {
         };
 
         // Enregistrer la session en base
-        const { data, error } = await this.mysqlService.client
-            .from('user_sessions')
-            .insert([{
-                user_id: userId,
-                session_start: this.currentSession.sessionStart.toISOString(),
-                ip_address: this.currentSession.ipAddress,
-                user_agent: this.currentSession.userAgent,
-                device_fingerprint: JSON.stringify(deviceInfo),
-                is_mobile: deviceInfo.isMobile,
-                browser: deviceInfo.browser,
-                os: deviceInfo.os
-            }])
-            .select()
-            .single();
+        const { data, error } = await this.mysqlService.insertUserSession({
+            user_id: userId,
+            session_start: this.currentSession.sessionStart.toISOString(),
+            ip_address: this.currentSession.ipAddress,
+            user_agent: this.currentSession.userAgent,
+            device_fingerprint: JSON.stringify(deviceInfo),
+            is_mobile: deviceInfo.isMobile,
+            browser: deviceInfo.browser,
+            os: deviceInfo.os
+        });
 
         if (data) {
             this.currentSession.id = data.id;
@@ -413,14 +409,11 @@ export class ComprehensiveLoggerService {
 
         // Mettre à jour la session en base
         if (this.currentSession.id) {
-            await this.mysqlService.client
-                .from('user_sessions')
-                .update({
-                    session_end: sessionEnd.toISOString(),
-                    duration_minutes: durationMinutes,
-                    logout_type: 'manual'
-                })
-                .eq('id', this.currentSession.id);
+            await this.mysqlService.updateUserSession(this.currentSession.id, {
+                session_end: sessionEnd.toISOString(),
+                duration_minutes: durationMinutes,
+                logout_type: 'manual'
+            });
         }
 
         await this.logAuth('session_end', 'Session utilisateur terminée', {
@@ -442,11 +435,10 @@ export class ComprehensiveLoggerService {
         const targetUserId = userId || this.getCurrentUserId();
         if (!targetUserId) return [];
 
-        const { data, error } = await this.mysqlService.client
-            .rpc('get_user_complete_history', {
-                p_user_id: targetUserId,
-                p_limit: limit
-            });
+        const { data, error } = await this.mysqlService.getUserCompleteHistory({
+            user_id: targetUserId,
+            limit: limit
+        });
 
         if (error) {
             await this.logError(new Error(error.message), 'getUserHistory');
@@ -463,10 +455,9 @@ export class ComprehensiveLoggerService {
         const targetUserId = userId || this.getCurrentUserId();
         if (!targetUserId) return null;
 
-        const { data, error } = await this.mysqlService.client
-            .rpc('get_user_activity_stats', {
-                p_user_id: targetUserId
-            });
+        const { data, error } = await this.mysqlService.getUserActivityStats({
+            user_id: targetUserId
+        });
 
         if (error) {
             await this.logError(new Error(error.message), 'getUserStats');
@@ -483,12 +474,10 @@ export class ComprehensiveLoggerService {
         const targetUserId = userId || this.getCurrentUserId();
         if (!targetUserId) return [];
 
-        const { data, error } = await this.mysqlService.client
-            .from('usage_metrics')
-            .select('*')
-            .eq('user_id', targetUserId)
-            .gte('metric_date', new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString())
-            .order('metric_date', { ascending: false });
+        const { data, error } = await this.mysqlService.getUsageMetrics({
+            user_id: targetUserId,
+            days: days
+        });
 
         if (error) {
             await this.logError(new Error(error.message), 'getUsageMetrics');
@@ -502,26 +491,12 @@ export class ComprehensiveLoggerService {
      * Rechercher dans les logs
      */
     async searchLogs(query: string, category?: string, startDate?: Date, endDate?: Date): Promise<LogEntry[]> {
-        let mysqlServiceQuery = this.mysqlService.client
-            .from('activity_logs')
-            .select('*')
-            .ilike('title', `%${query}%`);
-
-        if (category) {
-            mysqlServiceQuery = mysqlServiceQuery.eq('event_category', category);
-        }
-
-        if (startDate) {
-            mysqlServiceQuery = mysqlServiceQuery.gte('created_at', startDate.toISOString());
-        }
-
-        if (endDate) {
-            mysqlServiceQuery = mysqlServiceQuery.lte('created_at', endDate.toISOString());
-        }
-
-        const { data, error } = await mysqlServiceQuery
-            .order('created_at', { ascending: false })
-            .limit(1000);
+        const { data, error } = await this.mysqlService.getActivityLogs({
+            query: query,
+            category: category,
+            start_date: startDate?.toISOString(),
+            end_date: endDate?.toISOString()
+        });
 
         if (error) {
             await this.logError(new Error(error.message), 'searchLogs');
@@ -537,28 +512,27 @@ export class ComprehensiveLoggerService {
 
     private async logToDatabase(entry: LogEntry): Promise<string | null> {
         try {
-            const { data, error } = await this.mysqlService.client
-                .rpc('log_comprehensive_activity', {
-                    p_event_type: entry.eventType,
-                    p_event_category: entry.eventCategory,
-                    p_action: entry.action,
-                    p_title: entry.title,
-                    p_user_id: entry.userId,
-                    p_resource_type: entry.resourceType,
-                    p_resource_id: entry.resourceId,
-                    p_target_user_id: entry.targetUserId,
-                    p_description: entry.description,
-                    p_payload: entry.payload ? JSON.stringify(entry.payload) : null,
-                    p_old_values: entry.oldValues ? JSON.stringify(entry.oldValues) : null,
-                    p_new_values: entry.newValues ? JSON.stringify(entry.newValues) : null,
-                    p_ip_address: await this.getUserIP(),
-                    p_user_agent: navigator.userAgent,
-                    p_session_id: this.sessionId,
-                    p_success: entry.success,
-                    p_error_message: entry.errorMessage,
-                    p_execution_time_ms: entry.executionTimeMs,
-                    p_correlation_id: entry.correlationId
-                });
+            const { data, error } = await this.mysqlService.logComprehensiveActivity({
+                event_type: entry.eventType,
+                event_category: entry.eventCategory,
+                action: entry.action,
+                title: entry.title,
+                user_id: entry.userId,
+                resource_type: entry.resourceType,
+                resource_id: entry.resourceId,
+                target_user_id: entry.targetUserId,
+                description: entry.description,
+                payload: entry.payload ? JSON.stringify(entry.payload) : null,
+                old_values: entry.oldValues ? JSON.stringify(entry.oldValues) : null,
+                new_values: entry.newValues ? JSON.stringify(entry.newValues) : null,
+                ip_address: await this.getUserIP(),
+                user_agent: navigator.userAgent,
+                session_id: this.sessionId,
+                success: entry.success,
+                error_message: entry.errorMessage,
+                execution_time_ms: entry.executionTimeMs,
+                correlation_id: entry.correlationId
+            });
 
             if (error) {
                 console.error('Erreur lors de l\'insertion du log:', error);

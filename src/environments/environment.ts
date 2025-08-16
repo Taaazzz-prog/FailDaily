@@ -43,7 +43,7 @@ export const environment = {
     refreshThreshold: 300 // Refresh 5 minutes avant expiration
   },
 
-  // Configuration du storage local (remplace Supabase Storage)
+  // Configuration du storage local (système moderne)
   storage: {
     baseUrl: 'http://localhost:3001/storage',
     uploadsPath: '/uploads',

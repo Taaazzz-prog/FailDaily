@@ -399,7 +399,7 @@ export class HttpFailService {
     }
   }
 
-  // Méthodes de compatibilité avec l'ancien service Supabase
+  // Méthodes de compatibilité avec l'ancien service
   getCurrentUserFails(): Observable<Fail[]> {
     return this.fails$;
   }

@@ -63,7 +63,7 @@ export class ConsentService {
                 }
             });
 
-            // TODO: Sauvegarder en base de données via Supabase
+            // TODO: Sauvegarder en base de données via MySQL
             // Pour l'instant, on utilise le localStorage
             localStorage.setItem(`user_consent_${userId}`, 'accepted');
             localStorage.setItem(`user_consent_details_${userId}`, JSON.stringify(consentRecord));

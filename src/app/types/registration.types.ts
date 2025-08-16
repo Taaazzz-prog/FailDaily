@@ -26,6 +26,18 @@ export interface User {
   migratedAt?: Date;
 }
 
+export interface UserBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: string;
+  unlockedDate: Date;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  requirementType?: string;
+  requirementValue?: string;
+}
+
 export interface UserProfile extends User {
   // Informations étendues
   bio?: string;

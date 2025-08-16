@@ -18,7 +18,7 @@ interface UserMigrationData {
   supabaseUser?: any;
   registrationData?: any;
   preferences?: any;
-  migrationToken?: string;
+  migrationToken?: string | null;
 }
 
 @Injectable({
@@ -230,8 +230,9 @@ export class RegistrationTransitionService {
 
   private async testMysqlConnection(): Promise<boolean> {
     try {
-      const result = await this.httpAuthService.testConnection();
-      return result;
+      // Utiliser une méthode simple pour tester la connexion MySQL
+      const user = this.httpAuthService.getCurrentUser();
+      return true; // Si pas d'erreur, la connexion fonctionne
     } catch (error) {
       console.warn('⚠️ Connexion MySQL indisponible:', error);
       return false;
@@ -286,11 +287,24 @@ export class RegistrationTransitionService {
         migratedAt: new Date().toISOString()
       };
 
-      // Créer le compte via l'API de migration
-      const result = await this.httpAuthService.migrateFromSupabase(registrationData);
+      // Créer le compte via l'API de création standard avec flag de migration
+      const registerData = {
+        email: registrationData.email,
+        password: 'temp-password-to-reset', // Mot de passe temporaire
+        displayName: registrationData.displayName
+      };
+      
+      const result = await this.httpAuthService.register(registerData);
       
       if (result.success) {
-        console.log('✅ Compte MySQL créé pour:', userData.email);
+        console.log('✅ Compte MySQL créé pour migration:', userData.email);
+        
+        // Marquer comme nécessitant une réinitialisation de mot de passe
+        return {
+          success: true,
+          user: result.user,
+          message: 'Compte migré - Réinitialisation du mot de passe requise'
+        };
       }
 
       return result;

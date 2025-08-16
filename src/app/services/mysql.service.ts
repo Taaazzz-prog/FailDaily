@@ -1659,6 +1659,177 @@ export class MysqlService {
     }
   }
 
+  // ===================================
+  // COMPREHENSIVE LOGGING METHODS
+  // ===================================
+
+  async logComprehensiveActivity(logEntry: any): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.apiUrl}/logs/comprehensive`,
+        logEntry,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.logComprehensiveActivity error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getComprehensiveLogs(filters?: any): Promise<any> {
+    try {
+      const params = filters ? { params: filters } : {};
+      const response = await this.http.get(
+        `${this.apiUrl}/logs/comprehensive`,
+        { headers: this.getAuthHeaders(), ...params }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getComprehensiveLogs error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async updateLogEntry(logId: string, updates: any): Promise<any> {
+    try {
+      const response = await this.http.put(
+        `${this.apiUrl}/logs/comprehensive/${logId}`,
+        updates,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.updateLogEntry error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async deleteLogEntry(logId: string): Promise<any> {
+    try {
+      const response = await this.http.delete(
+        `${this.apiUrl}/logs/comprehensive/${logId}`,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.deleteLogEntry error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async insertUserSession(session: any): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.apiUrl}/sessions`,
+        session,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.insertUserSession error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getUserSessions(filters?: any): Promise<any> {
+    try {
+      const params = filters ? { params: filters } : {};
+      const response = await this.http.get(
+        `${this.apiUrl}/sessions`,
+        { headers: this.getAuthHeaders(), ...params }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getUserSessions error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async updateUserSession(sessionId: string, updates: any): Promise<any> {
+    try {
+      const response = await this.http.put(
+        `${this.apiUrl}/sessions/${sessionId}`,
+        updates,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.updateUserSession error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getUsageMetrics(filters?: any): Promise<any> {
+    try {
+      const params = filters ? { params: filters } : {};
+      const response = await this.http.get(
+        `${this.apiUrl}/metrics/usage`,
+        { headers: this.getAuthHeaders(), ...params }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getUsageMetrics error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async insertUsageMetric(metric: any): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.apiUrl}/metrics/usage`,
+        metric,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.insertUsageMetric error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getUserCompleteHistory(params: any): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.apiUrl}/users/complete-history`,
+        params,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getUserCompleteHistory error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getUserActivityStats(params: any): Promise<any> {
+    try {
+      const response = await this.http.post(
+        `${this.apiUrl}/users/activity-stats`,
+        params,
+        { headers: this.getAuthHeaders() }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getUserActivityStats error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
+  async getActivityLogs(filters?: any): Promise<any> {
+    try {
+      const params = filters ? { params: filters } : {};
+      const response = await this.http.get(
+        `${this.apiUrl}/logs/activity`,
+        { headers: this.getAuthHeaders(), ...params }
+      ).toPromise();
+      return { data: response, error: null };
+    } catch (error: any) {
+      console.error('❌ MysqlService.getActivityLogs error:', error);
+      return { data: null, error: error.error || error };
+    }
+  }
+
   async getUserFailsCount(userId: string): Promise<any> {
     try {
       const response = await this.http.get(

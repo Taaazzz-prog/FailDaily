@@ -612,4 +612,375 @@ export class AdminMysqlService {
             throw error;
         }
     }
+
+    // ===== MÉTHODES RÉCUPÉRÉES DE L'ANCIEN SERVICE =====
+
+    // MÉTHODES D'ACTIVITÉ ET STATUS
+    async getTodayActivity(): Promise<number> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/activity/today`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.count || 0;
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting today activity', error);
+            return 0;
+        }
+    }
+
+    async getSystemStatus(): Promise<'healthy' | 'warning' | 'error'> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/system/status`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.status || 'error';
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting system status', error);
+            return 'error';
+        }
+    }
+
+    async getRecentSystemErrors(): Promise<number> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/system/errors/recent`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.errorCount || 0;
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting recent system errors', error);
+            return 0;
+        }
+    }
+
+    // REACTION LOGS
+    async logReactionEvent(userId: string, failId: string, reactionType: string, pointsAwarded: number): Promise<void> {
+        try {
+            const logData = {
+                userId,
+                failId,
+                reactionType,
+                pointsAwarded,
+                timestamp: new Date().toISOString()
+            };
+
+            await this.http.post(`${this.apiUrl}/admin/reactions/log`, logData, {
+                headers: this.getAuthHeaders()
+            }).toPromise();
+
+            this.debugService.addLog('info', 'AdminMysqlService', `Reaction ${reactionType} logged`, logData);
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error logging reaction event', error);
+            throw error;
+        }
+    }
+
+    async getReactionLogs(limit: number = 100): Promise<any[]> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/reactions/logs?limit=${limit}`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.logs || [];
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting reaction logs', error);
+            throw error;
+        }
+    }
+
+    // REAL-TIME DATA
+    async getRealTimeData(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/realtime`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response || { reactions: [], fails: [], users: [] };
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting real-time data', error);
+            throw error;
+        }
+    }
+
+    async getRecentReactions(limit: number = 10): Promise<any[]> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/reactions/recent?limit=${limit}`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.reactions || [];
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting recent reactions', error);
+            return [];
+        }
+    }
+
+    async getRecentFails(limit: number = 10): Promise<any[]> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/fails/recent?limit=${limit}`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.fails || [];
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting recent fails', error);
+            return [];
+        }
+    }
+
+    async getActiveUsers(limit: number = 10): Promise<any[]> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/users/active?limit=${limit}`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.users || [];
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting active users', error);
+            return [];
+        }
+    }
+
+    // DATABASE ANALYSIS - VERSION COMPLÈTE
+    async analyzeDatabaseIntegrity(): Promise<any> {
+        this.debugService.addLog('info', 'AdminMysqlService', 'Starting comprehensive database integrity analysis...');
+
+        try {
+            // Récupérer toutes les données d'analyse en parallèle
+            const [stats, integrity, performance, inconsistencies] = await Promise.all([
+                this.getDatabaseStats(),
+                this.checkDataIntegrity(),
+                this.checkPerformanceMetrics(),
+                this.findDataInconsistencies()
+            ]);
+
+            const analysis: any = {
+                stats,
+                integrity,
+                performance,
+                inconsistencies,
+                recommendations: [],
+                analysis_date: new Date().toISOString(),
+                analysis_duration: 0
+            };
+
+            // Générer les recommandations basées sur l'analyse
+            analysis.recommendations = this.generateRecommendations(analysis);
+
+            // Calculer un score de santé global
+            analysis.health_score = this.calculateHealthScore(analysis);
+
+            this.debugService.addLog('info', 'AdminMysqlService', 'Comprehensive database analysis completed', {
+                health_score: analysis.health_score,
+                recommendations_count: analysis.recommendations.length,
+                inconsistencies_count: analysis.inconsistencies.length
+            });
+
+            return analysis;
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error analyzing database integrity', error);
+            throw error;
+        }
+    }
+
+    async getDatabaseStats(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/database/stats`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.stats || {};
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting database stats', error);
+            return {};
+        }
+    }
+
+    async checkDataIntegrity(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/database/integrity`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.integrity || {};
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error checking data integrity', error);
+            return {};
+        }
+    }
+
+    async checkPerformanceMetrics(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/database/performance`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.performance || {};
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error checking performance metrics', error);
+            return {};
+        }
+    }
+
+    async findDataInconsistencies(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/database/inconsistencies`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.inconsistencies || [];
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error finding data inconsistencies', error);
+            return [];
+        }
+    }
+
+    // USER DETAILS
+    async getUserReactionDetails(userId: string, failId: string): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/users/${userId}/reactions/${failId}`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response || {};
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting user reaction details', error);
+            throw error;
+        }
+    }
+
+    // EXPORT FUNCTIONS
+    async exportAllLogs(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/export/logs`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            this.debugService.addLog('info', 'AdminMysqlService', 'Logs exported successfully');
+            return response;
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error exporting logs', error);
+            throw error;
+        }
+    }
+
+    async exportDatabaseData(): Promise<any> {
+        try {
+            const response = await this.http.get(`${this.apiUrl}/admin/export/database`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            this.debugService.addLog('info', 'AdminMysqlService', 'Database data exported successfully');
+            return response;
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error exporting database data', error);
+            throw error;
+        }
+    }
+
+    // USER ACTIVITIES AVEC RECHERCHE
+    async getUserActivitiesAdvanced(searchTerm?: string, filterBy?: string, dateFilter?: string): Promise<any[]> {
+        try {
+            const params = new URLSearchParams();
+            if (searchTerm) params.append('search', searchTerm);
+            if (filterBy && filterBy !== 'all') params.append('filter', filterBy);
+            if (dateFilter && dateFilter !== 'all') params.append('date', dateFilter);
+
+            const response = await this.http.get(`${this.apiUrl}/admin/users/activities?${params.toString()}`, {
+                headers: this.getAuthHeaders()
+            }).toPromise() as any;
+
+            return response.activities || [];
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminMysqlService', 'Error getting user activities', error);
+            throw error;
+        }
+    }
+
+    // MÉTHODE UTILITAIRE POUR FILTRAGE PAR DATE
+    private getDateFilter(filter: string): string {
+        const now = new Date();
+        switch (filter) {
+            case 'today':
+                return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+            case 'week':
+                const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                return weekAgo.toISOString();
+            case 'month':
+                const monthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+                return monthAgo.toISOString();
+            default:
+                return new Date(0).toISOString();
+        }
+    }
+
+    // GÉNÉRATION DE RECOMMANDATIONS POUR L'ANALYSE DE BASE DE DONNÉES
+    private generateRecommendations(analysis: any): string[] {
+        const recommendations = [];
+
+        if (analysis.stats && analysis.stats.system_logs_count > 10000) {
+            recommendations.push('Archiver les anciens logs système');
+        }
+
+        if (analysis.stats && analysis.stats.users_count === 0) {
+            recommendations.push('Base de données vide - créer des données de test');
+        }
+
+        if (analysis.performance && analysis.performance.slow_queries > 5) {
+            recommendations.push('Optimiser les requêtes lentes détectées');
+        }
+
+        if (analysis.integrity && analysis.integrity.orphaned_records > 0) {
+            recommendations.push('Nettoyer les enregistrements orphelins');
+        }
+
+        if (analysis.stats && analysis.stats.disk_usage > 80) {
+            recommendations.push('Libérer de l\'espace disque - usage critique');
+        }
+
+        if (analysis.inconsistencies && analysis.inconsistencies.length > 0) {
+            recommendations.push('Corriger les incohérences de données détectées');
+        }
+
+        if (recommendations.length === 0) {
+            recommendations.push('Système en bon état - aucune action requise');
+        }
+
+        return recommendations;
+    }
+
+    // CALCUL DU SCORE DE SANTÉ DE LA BASE DE DONNÉES
+    private calculateHealthScore(analysis: any): number {
+        let score = 100;
+
+        // Pénalités basées sur les problèmes détectés
+        if (analysis.inconsistencies && analysis.inconsistencies.length > 0) {
+            score -= analysis.inconsistencies.length * 5; // -5 points par incohérence
+        }
+
+        if (analysis.performance && analysis.performance.slow_queries > 0) {
+            score -= analysis.performance.slow_queries * 3; // -3 points par requête lente
+        }
+
+        if (analysis.integrity && analysis.integrity.orphaned_records > 0) {
+            score -= Math.min(analysis.integrity.orphaned_records * 2, 20); // -2 points par orphelin, max -20
+        }
+
+        if (analysis.stats) {
+            if (analysis.stats.disk_usage > 90) {
+                score -= 20; // Usage disque critique
+            } else if (analysis.stats.disk_usage > 80) {
+                score -= 10; // Usage disque élevé
+            }
+
+            if (analysis.stats.system_logs_count > 50000) {
+                score -= 10; // Trop de logs
+            }
+        }
+
+        // S'assurer que le score reste entre 0 et 100
+        return Math.max(0, Math.min(100, score));
+    }
 }

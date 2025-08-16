@@ -20,7 +20,7 @@
 
     <!-- Navigation entre les vues -->
     <ion-toolbar color="light">
-        <ion-segment [(ngModel)]="currentView" (ionChange)="switchView($event.detail.value)">
+        <ion-segment [(ngModel)]="currentView" (ionChange)="switchView($event.detail.value?.toString())">
             <ion-segment-button value="logs">
                 <ion-label>Logs</ion-label>
                 <ion-icon name="list"></ion-icon>
