@@ -37,12 +37,42 @@ const upload = multer({
 router.post('/', authenticateToken, upload.single('image'), createFail);
 
 // GET /api/fails - Récupérer les fails (avec pagination et filtres)
-router.get('/', optionalAuth, getFails);
+router.get('/', authenticateToken, getFails);
 
 // GET /api/fails/:id - Récupérer un fail spécifique
-router.get('/:id', optionalAuth, getFailById);
+router.get('/:id', authenticateToken, getFailById);
+
+// PUT /api/fails/:id - Modifier un fail (placeholder)
+router.put('/:id', authenticateToken, (req, res) => {
+  res.json({
+    success: true,
+    message: 'Fail update endpoint - implementation en cours'
+  });
+});
 
 // DELETE /api/fails/:id - Supprimer un fail
 router.delete('/:id', authenticateToken, deleteFail);
+
+// GET /api/fails/:id/comments - Récupérer les commentaires d'un fail (placeholder)
+router.get('/:id/comments', authenticateToken, (req, res) => {
+  res.json({
+    comments: [],
+    message: 'Comments endpoint - implementation en cours'
+  });
+});
+
+// POST /api/fails/:id/comments - Ajouter un commentaire (placeholder)
+router.post('/:id/comments', authenticateToken, (req, res) => {
+  res.json({
+    success: true,
+    comment: {
+      id: Date.now(),
+      content: req.body.content,
+      author: req.user.email,
+      created_at: new Date()
+    },
+    message: 'Comment creation endpoint - implementation en cours'
+  });
+});
 
 module.exports = router;

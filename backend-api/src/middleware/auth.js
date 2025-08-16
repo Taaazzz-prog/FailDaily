@@ -19,7 +19,7 @@ const authenticateToken = async (req, res, next) => {
     
     // Vérifier que l'utilisateur existe toujours en base
     const users = await executeQuery(
-      'SELECT id, email, role, is_active FROM users WHERE id = ?',
+      'SELECT id, email, role, account_status FROM users WHERE id = ?',
       [decoded.userId]
     );
 
@@ -32,7 +32,7 @@ const authenticateToken = async (req, res, next) => {
 
     const user = users[0];
 
-    if (!user.is_active) {
+    if (user.account_status !== 'active') {
       return res.status(401).json({ 
         error: 'Compte utilisateur désactivé',
         code: 'USER_INACTIVE' 
@@ -92,7 +92,7 @@ const optionalAuth = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const users = await executeQuery(
-      'SELECT id, email, role FROM users WHERE id = ? AND is_active = 1',
+      'SELECT id, email, role FROM users WHERE id = ? AND account_status = "active"',
       [decoded.userId]
     );
 

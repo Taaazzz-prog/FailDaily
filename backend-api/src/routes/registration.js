@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { executeQuery, executeTransaction } = require('../config/database');
-const authenticateToken = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -21,7 +21,6 @@ router.get('/check-email', async (req, res) => {
     }
 
     const users = await executeQuery(
-      req.dbConnection,
       'SELECT id FROM users WHERE email = ?',
       [email.toLowerCase()]
     );
@@ -55,8 +54,7 @@ router.get('/check-display-name', async (req, res) => {
     }
 
     const users = await executeQuery(
-      req.dbConnection,
-      'SELECT id FROM users WHERE display_name = ?',
+      'SELECT id FROM profiles WHERE display_name = ?',
       [displayName]
     );
 
@@ -91,7 +89,7 @@ router.get('/validate-referral', async (req, res) => {
 
     // Vérifier si le code existe et est actif
     const referrals = await executeQuery(
-      req.dbConnection,
+      
       `SELECT r.*, u.display_name 
        FROM referral_codes r 
        JOIN users u ON r.user_id = u.id 
@@ -187,7 +185,6 @@ router.post('/register', async (req, res) => {
 
     // Vérifier que l'email n'existe pas déjà
     const existingUsers = await executeQuery(
-      req.dbConnection,
       'SELECT id FROM users WHERE email = ?',
       [email.toLowerCase()]
     );
@@ -201,8 +198,7 @@ router.post('/register', async (req, res) => {
 
     // Vérifier que le nom d'affichage n'existe pas déjà
     const existingDisplayNames = await executeQuery(
-      req.dbConnection,
-      'SELECT id FROM users WHERE display_name = ?',
+      'SELECT id FROM profiles WHERE display_name = ?',
       [displayName]
     );
 
@@ -217,7 +213,7 @@ router.post('/register', async (req, res) => {
     let referralData = null;
     if (referralCode) {
       const referrals = await executeQuery(
-        req.dbConnection,
+        
         `SELECT r.*, u.id as referrer_id 
          FROM referral_codes r 
          JOIN users u ON r.user_id = u.id 
@@ -236,7 +232,7 @@ router.post('/register', async (req, res) => {
     }
 
     // Transaction pour créer l'utilisateur
-    await executeTransaction(req.dbConnection, async (connection) => {
+    await executeTransaction( async (connection) => {
       // Hacher le mot de passe
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -408,7 +404,6 @@ router.post('/resend-verification', authenticateToken, async (req, res) => {
 
     // Vérifier si l'utilisateur existe et n'est pas déjà vérifié
     const users = await executeQuery(
-      req.dbConnection,
       'SELECT email, is_verified FROM users WHERE id = ?',
       [userId]
     );
@@ -466,7 +461,7 @@ router.post('/verify-email', async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
       
       await executeQuery(
-        req.dbConnection,
+        
         'UPDATE users SET is_verified = 1, updated_at = NOW() WHERE id = ?',
         [decoded.userId]
       );
@@ -500,7 +495,7 @@ router.post('/verify-email', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const stats = await executeQuery(
-      req.dbConnection,
+      
       `SELECT 
         COUNT(*) as total_users,
         COUNT(CASE WHEN is_verified = 1 THEN 1 END) as verified_users,

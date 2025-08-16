@@ -52,7 +52,7 @@ async function testDatabaseStructure() {
         }
 
         // Vérifier les colonnes
-        const [columns] = await connection.execute('DESCRIBE ??', [tableName]);
+        const [columns] = await connection.execute(`DESCRIBE \`${tableName}\``);
         const actualColumns = columns.map(col => col.Field);
         
         results.tables[tableName] = {
@@ -84,7 +84,7 @@ async function testDatabaseStructure() {
 
         // Vérifier les index
         const [indexes] = await connection.execute(
-          'SHOW INDEX FROM ??', [tableName]
+          `SHOW INDEX FROM \`${tableName}\``
         );
         
         results.indexes[tableName] = indexes.map(idx => ({

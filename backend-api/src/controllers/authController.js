@@ -39,9 +39,22 @@ const register = async (req, res) => {
     );
 
     if (existingUsers.length > 0) {
-      return res.status(400).json({
+      return res.status(409).json({
         error: 'Cet email est déjà utilisé',
         code: 'EMAIL_EXISTS'
+      });
+    }
+
+    // Vérifier si le nom d'affichage existe déjà
+    const existingProfiles = await executeQuery(
+      'SELECT id FROM profiles WHERE display_name = ?',
+      [displayName]
+    );
+
+    if (existingProfiles.length > 0) {
+      return res.status(409).json({
+        error: 'Ce nom d\'utilisateur est déjà pris',
+        code: 'DISPLAY_NAME_EXISTS'
       });
     }
 
@@ -61,9 +74,8 @@ const register = async (req, res) => {
         params: [userId, email.toLowerCase(), hashedPassword]
       },
       {
-        query: `INSERT INTO profiles (id, user_id, display_name, avatar_url, total_points, 
-                total_fails, total_badges, settings, created_at) 
-                VALUES (?, ?, ?, ?, 0, 0, 0, '{}', NOW())`,
+        query: `INSERT INTO profiles (id, user_id, display_name, avatar_url, created_at) 
+                VALUES (?, ?, ?, ?, NOW())`,
         params: [profileId, userId, displayName, null]
       }
     ];
@@ -113,7 +125,7 @@ const login = async (req, res) => {
 
     // Récupérer l'utilisateur avec son profil
     const users = await executeQuery(`
-      SELECT u.id, u.email, u.password_hash, u.role, u.is_active,
+      SELECT u.id, u.email, u.password_hash, u.role, u.account_status,
              p.display_name, p.avatar_url
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
@@ -129,7 +141,7 @@ const login = async (req, res) => {
 
     const user = users[0];
 
-    if (!user.is_active) {
+    if (user.account_status !== 'active') {
       return res.status(401).json({
         error: 'Compte utilisateur désactivé',
         code: 'USER_INACTIVE'

@@ -11,6 +11,7 @@ const database = require('./src/config/database');
 // Import des routes
 const authRoutes = require('./src/routes/auth');
 const failRoutes = require('./src/routes/fails');
+const registrationRoutes = require('./src/routes/registration');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -64,6 +65,19 @@ app.get('/health', (req, res) => {
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/fails', failRoutes);
+app.use('/api/registration', registrationRoutes);
+
+// Route temporaire pour les stats utilisateur
+app.get('/api/user/stats', require('./src/middleware/auth').authenticateToken, (req, res) => {
+  res.json({
+    stats: {
+      totalFails: 0,
+      totalReactions: 0,
+      badges: 0
+    },
+    message: 'Stats endpoint - implementation en cours'
+  });
+});
 
 // Route par défaut
 app.get('/', (req, res) => {

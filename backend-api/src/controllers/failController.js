@@ -103,6 +103,10 @@ const getFails = async (req, res) => {
   try {
     const { page = 1, limit = 20, category, userId: filterUserId } = req.query;
     const currentUserId = req.user?.id;
+    
+    // Convertir en nombres
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
 
     let query = `
       SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
@@ -136,9 +140,8 @@ const getFails = async (req, res) => {
     query += ' ORDER BY f.created_at DESC';
 
     // Pagination
-    const offset = (page - 1) * limit;
-    query += ' LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), parseInt(offset));
+    const offset = (pageNum - 1) * limitNum;
+    query += ` LIMIT ${limitNum} OFFSET ${offset}`;
 
     const fails = await executeQuery(query, params);
 

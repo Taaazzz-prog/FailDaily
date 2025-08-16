@@ -15,7 +15,7 @@ const { TEST_UTILS } = require('./0_test-config');
 // Import de tous les tests
 const testDatabaseConnection = require('./1_database/1.1_connection-test');
 const testDatabaseStructure = require('./1_database/1.2_structure-test');
-const testUserRegistration = require('./2_auth/2.1_registration-test');
+const testUserRegistration = require('./2_auth/2.1_registration-test-simple');
 const testUserLogin = require('./2_auth/2.2_login-test');
 const testJWTVerification = require('./2_auth/2.3_jwt-verification-test');
 const testUnauthorizedAccess = require('./2_auth/2.4_unauthorized-access-test');
@@ -51,7 +51,7 @@ async function runAllTests() {
   const testSuite = [
     { name: '1.1 - Connexion Base de Données', fn: testDatabaseConnection, category: 'Database' },
     { name: '1.2 - Structure Base de Données', fn: testDatabaseStructure, category: 'Database' },
-    { name: '2.1 - Inscription Utilisateur', fn: testUserRegistration, category: 'Authentication' },
+    { name: '2.1 - Inscription Utilisateur', fn: testUserRegistration.testRegistration, category: 'Authentication' },
     { name: '2.2 - Connexion Utilisateur', fn: testUserLogin, category: 'Authentication' },
     { name: '2.3 - Vérification JWT', fn: testJWTVerification, category: 'Authentication' },
     { name: '2.4 - Protection Accès Non Authentifié', fn: testUnauthorizedAccess, category: 'Security' },

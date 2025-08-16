@@ -29,7 +29,7 @@ async function testUserRegistration() {
   };
 
   const baseUrl = API_CONFIG.baseUrl;
-  const registerUrl = `${baseUrl}/api/registration/register`;
+  const registerUrl = `${baseUrl}/api/auth/register`;
   const checkEmailUrl = `${baseUrl}/api/registration/check-email`;
   const checkDisplayNameUrl = `${baseUrl}/api/registration/check-display-name`;
   const verifyAgeUrl = `${baseUrl}/api/age-verification/verify`;

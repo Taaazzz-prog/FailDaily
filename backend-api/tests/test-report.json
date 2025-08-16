@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-08-16T16:01:30.133Z",
-  "duration": 12862,
+  "timestamp": "2025-08-16T16:50:19.141Z",
+  "duration": 13293,
   "summary": {
     "total": 9,
     "passed": 1,
@@ -12,7 +12,7 @@
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 103,
+      "duration": 78,
       "details": {
         "connection": true,
         "tablesCount": 19,
@@ -24,50 +24,315 @@
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
       "success": false,
-      "duration": 125,
+      "duration": 176,
       "details": {
-        "tables": {},
+        "tables": {
+          "users": {
+            "exists": true,
+            "columns": [
+              "id",
+              "email",
+              "email_confirmed",
+              "password_hash",
+              "role",
+              "last_login",
+              "login_count",
+              "account_status",
+              "registration_step",
+              "created_at",
+              "updated_at"
+            ],
+            "missingColumns": [
+              "is_active"
+            ],
+            "extraColumns": [
+              "email_confirmed",
+              "last_login",
+              "login_count",
+              "account_status",
+              "registration_step"
+            ]
+          },
+          "profiles": {
+            "exists": true,
+            "columns": [
+              "id",
+              "user_id",
+              "username",
+              "display_name",
+              "avatar_url",
+              "bio",
+              "registration_completed",
+              "legal_consent",
+              "age_verification",
+              "preferences",
+              "stats",
+              "created_at",
+              "updated_at"
+            ],
+            "missingColumns": [
+              "total_points",
+              "total_fails",
+              "total_badges"
+            ],
+            "extraColumns": [
+              "username",
+              "bio",
+              "registration_completed",
+              "legal_consent",
+              "age_verification",
+              "preferences",
+              "stats",
+              "created_at",
+              "updated_at"
+            ]
+          },
+          "fails": {
+            "exists": true,
+            "columns": [
+              "id",
+              "user_id",
+              "title",
+              "description",
+              "category",
+              "image_url",
+              "is_public",
+              "reactions",
+              "comments_count",
+              "created_at",
+              "updated_at"
+            ],
+            "missingColumns": [],
+            "extraColumns": [
+              "reactions",
+              "comments_count",
+              "updated_at"
+            ]
+          },
+          "badge_definitions": {
+            "exists": true,
+            "columns": [
+              "id",
+              "name",
+              "description",
+              "icon",
+              "category",
+              "rarity",
+              "requirement_type",
+              "requirement_value",
+              "created_at"
+            ],
+            "missingColumns": [
+              "xp_reward",
+              "requirements"
+            ],
+            "extraColumns": [
+              "rarity",
+              "requirement_type",
+              "requirement_value",
+              "created_at"
+            ]
+          },
+          "user_badges": {
+            "exists": true,
+            "columns": [
+              "id",
+              "user_id",
+              "badge_id",
+              "unlocked_at",
+              "created_at"
+            ],
+            "missingColumns": [],
+            "extraColumns": [
+              "created_at"
+            ]
+          },
+          "reactions": {
+            "exists": true,
+            "columns": [
+              "id",
+              "user_id",
+              "fail_id",
+              "reaction_type",
+              "created_at"
+            ],
+            "missingColumns": [],
+            "extraColumns": []
+          },
+          "system_logs": {
+            "exists": true,
+            "columns": [
+              "id",
+              "level",
+              "message",
+              "action",
+              "details",
+              "user_id",
+              "timestamp",
+              "created_at"
+            ],
+            "missingColumns": [
+              "service",
+              "metadata"
+            ],
+            "extraColumns": [
+              "action",
+              "details",
+              "timestamp"
+            ]
+          }
+        },
         "constraints": {},
-        "indexes": {},
-        "errors": [
-          "users: Erreur de syntaxe près de '??' à la ligne 1",
-          "profiles: Erreur de syntaxe près de '??' à la ligne 1",
-          "fails: Erreur de syntaxe près de '??' à la ligne 1",
-          "badge_definitions: Erreur de syntaxe près de '??' à la ligne 1",
-          "user_badges: Erreur de syntaxe près de '??' à la ligne 1",
-          "reactions: Erreur de syntaxe près de '??' à la ligne 1",
-          "system_logs: Erreur de syntaxe près de '??' à la ligne 1"
-        ]
+        "indexes": {
+          "users": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "email",
+              "column": "email",
+              "unique": true
+            },
+            {
+              "name": "idx_users_email",
+              "column": "email",
+              "unique": false
+            },
+            {
+              "name": "idx_users_status",
+              "column": "account_status",
+              "unique": false
+            }
+          ],
+          "profiles": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "user_id",
+              "column": "user_id",
+              "unique": true
+            },
+            {
+              "name": "username",
+              "column": "username",
+              "unique": true
+            }
+          ],
+          "fails": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "idx_fails_user_id",
+              "column": "user_id",
+              "unique": false
+            },
+            {
+              "name": "idx_fails_created_at",
+              "column": "created_at",
+              "unique": false
+            }
+          ],
+          "badge_definitions": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "idx_badge_definitions_category",
+              "column": "category",
+              "unique": false
+            },
+            {
+              "name": "idx_badge_definitions_rarity",
+              "column": "rarity",
+              "unique": false
+            }
+          ],
+          "user_badges": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "unique_user_badge",
+              "column": "user_id",
+              "unique": true
+            },
+            {
+              "name": "unique_user_badge",
+              "column": "badge_id",
+              "unique": true
+            },
+            {
+              "name": "idx_user_badges_badge_id",
+              "column": "badge_id",
+              "unique": false
+            }
+          ],
+          "reactions": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "unique_user_fail_reaction",
+              "column": "user_id",
+              "unique": true
+            },
+            {
+              "name": "unique_user_fail_reaction",
+              "column": "fail_id",
+              "unique": true
+            },
+            {
+              "name": "idx_reactions_fail_id",
+              "column": "fail_id",
+              "unique": false
+            },
+            {
+              "name": "idx_reactions_user_id",
+              "column": "user_id",
+              "unique": false
+            }
+          ],
+          "system_logs": [
+            {
+              "name": "PRIMARY",
+              "column": "id",
+              "unique": true
+            },
+            {
+              "name": "system_logs_user_id_fkey",
+              "column": "user_id",
+              "unique": false
+            }
+          ]
+        },
+        "errors": []
       }
     },
     {
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
       "success": false,
-      "duration": 375,
-      "details": {
-        "emailUniqueness": false,
-        "displayNameUniqueness": false,
-        "ageVerificationUnder13": false,
-        "ageVerification13to16": false,
-        "ageVerificationAdult": false,
-        "parentalConsentRequired": false,
-        "termsValidation": false,
-        "validRegistrationAdult": false,
-        "validRegistrationMinor": false,
-        "responseFormat": false,
-        "errors": [
-          "Âge < 13 ans devrait être rejeté: 404",
-          "CGU devrait être obligatoire: 404",
-          "Inscription adulte valide échouée: 404 - Erreur inconnue"
-        ]
-      }
+      "duration": 300
     },
     {
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
       "success": false,
-      "duration": 398,
+      "duration": 340,
       "details": {
         "userCreated": false,
         "validLogin": false,
@@ -84,7 +349,7 @@
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
       "success": false,
-      "duration": 625,
+      "duration": 505,
       "details": {
         "userCreated": false,
         "tokenReceived": false,
@@ -102,17 +367,17 @@
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
       "success": false,
-      "duration": 441,
+      "duration": 1365,
       "details": {
-        "protectedEndpoints": 4,
-        "blockedEndpoints": 1,
+        "protectedEndpoints": 11,
+        "blockedEndpoints": 9,
         "endpointResults": [
           {
             "name": "GET /api/fails",
             "method": "GET",
             "url": "http://localhost:3001/api/fails",
             "expectedStatus": 401,
-            "actualStatus": 500,
+            "actualStatus": 200,
             "blocked": false
           },
           {
@@ -130,12 +395,78 @@
             "expectedStatus": 401,
             "actualStatus": 404,
             "blocked": false
+          },
+          {
+            "name": "PUT /api/fails/:id",
+            "method": "PUT",
+            "url": "http://localhost:3001/api/fails/123",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "DELETE /api/fails/:id",
+            "method": "DELETE",
+            "url": "http://localhost:3001/api/fails/123",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "GET /api/auth/profile",
+            "method": "GET",
+            "url": "http://localhost:3001/api/auth/profile",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "PUT /api/auth/profile",
+            "method": "PUT",
+            "url": "http://localhost:3001/api/auth/profile",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "GET /api/auth/verify",
+            "method": "GET",
+            "url": "http://localhost:3001/api/auth/verify",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "GET /api/user/stats",
+            "method": "GET",
+            "url": "http://localhost:3001/api/user/stats",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "GET /api/fails/:id/comments",
+            "method": "GET",
+            "url": "http://localhost:3001/api/fails/123/comments",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
+          },
+          {
+            "name": "POST /api/fails/:id/comments",
+            "method": "POST",
+            "url": "http://localhost:3001/api/fails/123/comments",
+            "expectedStatus": 401,
+            "actualStatus": 401,
+            "blocked": true
           }
         ],
         "errors": [
-          "GET /api/fails - ÉCHEC: attendu 401, reçu 500",
+          "GET /api/fails - ÉCHEC: attendu 401, reçu 200",
           "GET /api/fails/:id - ÉCHEC: attendu 401, reçu 404",
-          "Erreur réseau: Failed to parse URL from http://localhost:3001undefined/123"
+          "Token invalide devrait être rejeté, reçu: 200",
+          "Token expiré devrait être rejeté, reçu: 200",
+          "Header malformé devrait être rejeté, reçu: 200"
         ]
       }
     },
@@ -143,7 +474,7 @@
       "name": "3.1 - Création de Fails",
       "category": "Fails",
       "success": false,
-      "duration": 519,
+      "duration": 485,
       "details": {
         "userCreated": false,
         "tokenObtained": false,
@@ -162,7 +493,7 @@
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
       "success": false,
-      "duration": 572,
+      "duration": 520,
       "details": {
         "userCreated": false,
         "failsCreated": 0,
@@ -181,7 +512,7 @@
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
       "success": false,
-      "duration": 627,
+      "duration": 447,
       "details": {
         "userRegistration": false,
         "userLogin": false,
