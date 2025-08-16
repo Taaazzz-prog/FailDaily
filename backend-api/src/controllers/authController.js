@@ -15,12 +15,12 @@ const generateToken = (userId, email) => {
 // Inscription
 const register = async (req, res) => {
   try {
-    const { email, password, displayName } = req.body;
+    const { email, password, displayName, birthDate, agreeToTerms } = req.body;
 
     // Validation des données
-    if (!email || !password || !displayName) {
+    if (!email || !password || !displayName || !birthDate || !agreeToTerms) {
       return res.status(400).json({
-        error: 'Email, mot de passe et nom d\'affichage requis',
+        error: 'Tous les champs obligatoires doivent être remplis',
         code: 'MISSING_FIELDS'
       });
     }
@@ -31,6 +31,21 @@ const register = async (req, res) => {
         code: 'PASSWORD_TOO_SHORT'
       });
     }
+
+    // Validation âge et logique d'autorisation parentale
+    // Calculer l'âge pour déterminer registration_completed (validation faite côté front)
+    const birthDateObj = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birthDateObj.getFullYear();
+    const monthDiff = today.getMonth() - birthDateObj.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
+      age--;
+    }
+
+    // 13-16 ans : besoin autorisation parentale (0)
+    // 17+ ans : inscription complète directement (1)
+    const registrationCompleted = age >= 17 ? 1 : 0;
 
     // Vérifier si l'email existe déjà
     const existingUsers = await executeQuery(
@@ -74,9 +89,18 @@ const register = async (req, res) => {
         params: [userId, email.toLowerCase(), hashedPassword]
       },
       {
-        query: `INSERT INTO profiles (id, user_id, display_name, avatar_url, created_at) 
-                VALUES (?, ?, ?, ?, NOW())`,
-        params: [profileId, userId, displayName, null]
+        query: `INSERT INTO profiles (
+          id, user_id, display_name, registration_completed, 
+          legal_consent, age_verification, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        params: [
+          profileId, 
+          userId, 
+          displayName, 
+          registrationCompleted, // 1 si 17+, 0 si 13-16
+          JSON.stringify({ birthDate, agreeToTerms, acceptedAt: new Date() }),
+          JSON.stringify({ birthDate, age, verified: true })
+        ]
       }
     ];
 

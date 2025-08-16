@@ -12,6 +12,7 @@ const database = require('./src/config/database');
 const authRoutes = require('./src/routes/auth');
 const failRoutes = require('./src/routes/fails');
 const registrationRoutes = require('./src/routes/registration');
+const ageVerificationRoutes = require('./src/routes/ageVerification');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,6 +67,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/fails', failRoutes);
 app.use('/api/registration', registrationRoutes);
+app.use('/api/age-verification', ageVerificationRoutes);
 
 // Route temporaire pour les stats utilisateur
 app.get('/api/user/stats', require('./src/middleware/auth').authenticateToken, (req, res) => {

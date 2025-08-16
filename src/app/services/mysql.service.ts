@@ -31,7 +31,7 @@ export interface Badge {
   category: string;
   xp_reward: number;
   requirements: any;
-  is_active: boolean;
+  account_status: string;
   created_at: Date;
   updated_at: Date;
 }

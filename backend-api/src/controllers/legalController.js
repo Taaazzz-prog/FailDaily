@@ -12,7 +12,7 @@ class LegalController {
     try {
       const terms = await executeQuery(
         req.dbConnection,
-        'SELECT * FROM legal_documents WHERE type = "terms" AND is_active = 1 ORDER BY version DESC LIMIT 1',
+        'SELECT * FROM legal_documents WHERE document_type = "terms" AND is_active = 1 ORDER BY version DESC LIMIT 1',
         []
       );
 
@@ -58,7 +58,7 @@ class LegalController {
     try {
       const privacy = await executeQuery(
         req.dbConnection,
-        'SELECT * FROM legal_documents WHERE type = "privacy" AND is_active = 1 ORDER BY version DESC LIMIT 1',
+        'SELECT * FROM legal_documents WHERE document_type = "privacy" AND is_active = 1 ORDER BY version DESC LIMIT 1',
         []
       );
 
@@ -218,7 +218,7 @@ class LegalController {
         req.dbConnection,
         `SELECT 
           id, email, display_name, xp, level, created_at, updated_at,
-          is_verified, birth_date
+          email_confirmed, birth_date
         FROM users WHERE id = ?`,
         [userId]
       );
@@ -271,9 +271,9 @@ class LegalController {
         reactions: reactionsData,
         badges: badgesData,
         statistics: {
-          total_fails: failsData.length,
+          total_fails: failsData.length, // Compté dynamiquement car pas de colonne
           total_reactions: reactionsData.length,
-          total_badges: badgesData.length
+          total_badges: badgesData.length // Compté dynamiquement car pas de colonne
         }
       };
 

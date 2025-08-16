@@ -79,7 +79,7 @@ async function checkUsers() {
     // Vérifier les badges
     console.log('\n📊 === VÉRIFICATION DES BADGES ===');
     
-    const badges = await connection.execute('SELECT id, name, description, xp_reward FROM badges WHERE is_active = 1');
+    const badges = await connection.execute('SELECT id, name, description FROM badge_definitions');
     
     console.log(`\n🏆 Nombre de badges actifs: ${badges[0].length}`);
     
@@ -116,7 +116,7 @@ async function checkUsers() {
       SELECT 
         (SELECT COUNT(*) FROM users) as total_users,
         (SELECT COUNT(*) FROM fails) as total_fails,
-        (SELECT COUNT(*) FROM badges) as total_badges,
+        (SELECT COUNT(*) FROM badge_definitions) as total_badges,
         (SELECT COUNT(*) FROM user_badges) as total_user_badges,
         (SELECT COUNT(*) FROM fail_reactions) as total_reactions
     `);
@@ -196,7 +196,7 @@ async function createTestUser() {
 
     // Créer l'utilisateur
     const userResult = await connection.execute(
-      `INSERT INTO users (email, password_hash, display_name, is_verified, created_at, updated_at) 
+      `INSERT INTO users (email, password_hash, display_name, email_confirmed, created_at, updated_at) 
        VALUES (?, ?, ?, 1, NOW(), NOW())`,
       [testEmail, hashedPassword, testDisplayName]
     );

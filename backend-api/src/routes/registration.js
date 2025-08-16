@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 
@@ -79,42 +80,11 @@ router.get('/validate-referral', async (req, res) => {
   try {
     const { code } = req.query;
 
-    if (!code) {
-      return res.json({
-        success: true,
-        valid: false,
-        message: 'Code de parrainage optionnel'
-      });
-    }
-
-    // Vérifier si le code existe et est actif
-    const referrals = await executeQuery(
-      
-      `SELECT r.*, u.display_name 
-       FROM referral_codes r 
-       JOIN users u ON r.user_id = u.id 
-       WHERE r.code = ? AND r.is_active = 1 AND r.expires_at > NOW()`,
-      [code]
-    );
-
-    if (referrals.length === 0) {
-      return res.json({
-        success: true,
-        valid: false,
-        message: 'Code de parrainage invalide ou expiré'
-      });
-    }
-
-    const referral = referrals[0];
-
+    // Pour l'instant, les codes de parrainage ne sont pas implémentés
     res.json({
       success: true,
-      valid: true,
-      referral: {
-        code: referral.code,
-        referrer_name: referral.display_name,
-        bonus_xp: referral.bonus_xp || 50
-      }
+      valid: false,
+      message: 'Codes de parrainage non disponibles pour le moment'
     });
 
   } catch (error) {
@@ -166,22 +136,20 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Validation âge
+    // Logique registration_completed selon l'âge (validation faite côté front)
+    // Calculer l'âge pour déterminer le statut d'inscription
     const birthDateObj = new Date(birthDate);
     const today = new Date();
-    const age = today.getFullYear() - birthDateObj.getFullYear();
+    let age = today.getFullYear() - birthDateObj.getFullYear();
     const monthDiff = today.getMonth() - birthDateObj.getMonth();
     
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDateObj.getDate())) {
       age--;
     }
 
-    if (age < 13) {
-      return res.status(400).json({
-        success: false,
-        message: 'Vous devez avoir au moins 13 ans pour vous inscrire'
-      });
-    }
+    // 13-16 ans : besoin autorisation parentale (0)
+    // 17+ ans : inscription complète directement (1)
+    const registrationCompleted = age >= 17 ? 1 : 0;
 
     // Vérifier que l'email n'existe pas déjà
     const existingUsers = await executeQuery(
@@ -212,27 +180,11 @@ router.post('/register', async (req, res) => {
     // Validation du code de parrainage si fourni
     let referralData = null;
     if (referralCode) {
-      const referrals = await executeQuery(
-        
-        `SELECT r.*, u.id as referrer_id 
-         FROM referral_codes r 
-         JOIN users u ON r.user_id = u.id 
-         WHERE r.code = ? AND r.is_active = 1 AND r.expires_at > NOW()`,
-        [referralCode]
-      );
-
-      if (referrals.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Code de parrainage invalide ou expiré'
-        });
-      }
-
-      referralData = referrals[0];
+      // Pour l'instant, on ignore les codes de parrainage car la table n'existe pas
+      console.log('⚠️ Code de parrainage ignoré (non implémenté):', referralCode);
     }
 
     // Transaction pour créer l'utilisateur ET son profil
-    const { v4: uuidv4 } = require('uuid');
     const userId = uuidv4();
     const profileId = uuidv4();
     
@@ -240,96 +192,72 @@ router.post('/register', async (req, res) => {
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Exécuter les requêtes dans une transaction
-    await connection.query('START TRANSACTION');
-    
+    // Utiliser executeTransaction avec un array de requêtes
     try {
-      // Insérer l'utilisateur
-      const userResult = await executeQuery(
-        connection,
-        `INSERT INTO users (
-          id, email, password_hash, role, account_status, registration_step, created_at
-        ) VALUES (?, ?, ?, 'user', 'active', 'basic', NOW())`,
-        [userId, email.toLowerCase(), hashedPassword]
-      );
+      // Préparer toutes les requêtes pour la transaction
+      const queries = [
+        // Insérer l'utilisateur
+        {
+          query: `INSERT INTO users (
+            id, email, password_hash, role, account_status, registration_step, created_at
+          ) VALUES (?, ?, ?, 'user', 'active', 'basic', NOW())`,
+          params: [userId, email.toLowerCase(), hashedPassword]
+        },
+        // Créer le profil utilisateur avec logique d'âge
+        {
+          query: `INSERT INTO profiles (
+            id, user_id, display_name, registration_completed, 
+            legal_consent, age_verification, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          params: [
+            profileId, 
+            userId, 
+            displayName, 
+            registrationCompleted, // 1 si 17+, 0 si 13-16
+            JSON.stringify({ birthDate, agreeToTerms, acceptedAt: new Date() }), 
+            JSON.stringify({ birthDate, age, verified: true })
+          ]
+        }
+      ];
 
-      // Créer le profil utilisateur
-      await executeQuery(
-        connection,
-        `INSERT INTO profiles (
-          id, user_id, display_name, avatar_url, registration_completed, 
-          legal_consent, age_verification, created_at
-        ) VALUES (?, ?, ?, NULL, 1, ?, ?, NOW())`,
-        [
-          profileId, 
-          userId, 
-          displayName, 
-          JSON.stringify({ birthDate, agreeToTerms }), 
-          JSON.stringify({ birthDate, verified: true })
-        ]
-      );
+      // Les codes de parrainage ne sont pas implémentés pour l'instant
+      // (table referral_codes inexistante)
 
-      // Traiter le parrainage si applicable
-      if (referralData) {
-        // Enregistrer la relation de parrainage
-        await executeQuery(
-          connection,
-          `INSERT INTO user_referrals (
-            referrer_id, referred_id, referral_code, bonus_xp, 
-            created_at
-          ) VALUES (?, ?, ?, ?, NOW())`,
-          [referralData.referrer_id, userId, referralCode, referralData.bonus_xp || 50]
-        );
-
-        // Donner les XP de bonus au parrain
-        await executeQuery(
-          connection,
-          'UPDATE users SET xp = xp + ? WHERE id = ?',
-          [referralData.bonus_xp || 50, referralData.referrer_id]
-        );
-
-        // Donner les XP de bonus au nouveau membre
-        await executeQuery(
-          connection,
-          'UPDATE users SET xp = xp + ? WHERE id = ?',
-          [25, userId] // Moitié des XP pour le nouveau membre
-        );
-
-        // Incrémenter le compteur d'utilisations du code
-        await executeQuery(
-          connection,
-          'UPDATE referral_codes SET used_count = used_count + 1 WHERE id = ?',
-          [referralData.id]
-        );
-      }
-
-      // Attribuer le badge "Bienvenue"
+      // Vérifier s'il y a un badge de bienvenue et l'ajouter
       const welcomeBadge = await executeQuery(
-        connection,
-        'SELECT id FROM badges WHERE name = "Bienvenue" AND is_active = 1',
+        'SELECT id FROM badge_definitions WHERE name = "Bienvenue"',
         []
       );
 
       if (welcomeBadge.length > 0) {
-        await executeQuery(
-          connection,
-          `INSERT INTO user_badges (
-            user_id, badge_id, earned_at, xp_earned
-          ) VALUES (?, ?, NOW(), ?)`,
-          [userId, welcomeBadge[0].id, 5]
-        );
-
-        // Ajouter les XP du badge
-        await executeQuery(
-          connection,
-          'UPDATE users SET xp = xp + 5 WHERE id = ?',
-          [userId]
+        const badgeInfo = welcomeBadge[0];
+        queries.push(
+          // Attribuer le badge dans la table badges (complète)
+          {
+            query: `INSERT INTO badges (
+              id, user_id, name, description, icon, category, rarity, badge_type, unlocked_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'welcome', NOW(), NOW())`,
+            params: [
+              uuidv4(), // ID du badge attribué
+              userId, 
+              badgeInfo.name,
+              badgeInfo.description,
+              badgeInfo.icon,
+              badgeInfo.category,
+              badgeInfo.rarity
+            ]
+          },
+          // Ajouter les XP du badge
+          {
+            query: 'UPDATE users SET xp = xp + 5 WHERE id = ?',
+            params: [userId]
+          }
         );
       }
 
-      // Valider la transaction
-      await connection.query('COMMIT');
-      
+      // Exécuter toutes les requêtes dans une transaction
+      await executeTransaction(queries);
+
       console.log(`✅ Utilisateur inscrit: ${email} (ID: ${userId})`);
 
       // Générer le token JWT
@@ -354,10 +282,8 @@ router.post('/register', async (req, res) => {
         WHERE u.id = ?
       `;
 
-      const userData = await executeQuery(connection, userQuery, [userId]);
+      const userData = await executeQuery(userQuery, [userId]);
       const user = userData[0];
-
-      console.log(`✅ Utilisateur inscrit: ${email} (ID: ${userId})`);
 
       // Retourner la réponse de succès
       res.status(201).json({
@@ -377,13 +303,6 @@ router.post('/register', async (req, res) => {
       });
 
     } catch (error) {
-      // En cas d'erreur, faire un rollback de la transaction
-      try {
-        await connection.query('ROLLBACK');
-      } catch (rollbackError) {
-        console.error('Erreur lors du rollback:', rollbackError);
-      }
-    
       console.error('❌ Erreur inscription:', error);
 
       if (error.code === 'ER_DUP_ENTRY') {
@@ -399,11 +318,12 @@ router.post('/register', async (req, res) => {
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  } finally {
-    // Libérer la connexion
-    if (connection) {
-      connection.release();
-    }
+  } catch (outerError) {
+    console.error('❌ Erreur générale inscription:', outerError);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'inscription'
+    });
   }
 });
 
@@ -416,7 +336,7 @@ router.post('/resend-verification', authenticateToken, async (req, res) => {
 
     // Vérifier si l'utilisateur existe et n'est pas déjà vérifié
     const users = await executeQuery(
-      'SELECT email, is_verified FROM users WHERE id = ?',
+      'SELECT email, email_confirmed FROM users WHERE id = ?',
       [userId]
     );
 
@@ -429,7 +349,7 @@ router.post('/resend-verification', authenticateToken, async (req, res) => {
 
     const user = users[0];
 
-    if (user.is_verified) {
+    if (user.email_confirmed) {
       return res.status(400).json({
         success: false,
         message: 'Email déjà vérifié'
@@ -473,8 +393,7 @@ router.post('/verify-email', async (req, res) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret');
       
       await executeQuery(
-        
-        'UPDATE users SET is_verified = 1, updated_at = NOW() WHERE id = ?',
+        'UPDATE users SET email_confirmed = 1, updated_at = NOW() WHERE id = ?',
         [decoded.userId]
       );
 
@@ -507,10 +426,9 @@ router.post('/verify-email', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const stats = await executeQuery(
-      
       `SELECT 
         COUNT(*) as total_users,
-        COUNT(CASE WHEN is_verified = 1 THEN 1 END) as verified_users,
+        COUNT(CASE WHEN email_confirmed = 1 THEN 1 END) as verified_users,
         COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as users_this_week,
         COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as users_this_month
       FROM users`

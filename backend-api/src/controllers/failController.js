@@ -40,7 +40,8 @@ const createFail = async (req, res) => {
 
     // Mettre à jour les statistiques du profil
     await executeQuery(
-      'UPDATE profiles SET total_fails = total_fails + 1 WHERE user_id = ?',
+      // Ne pas mettre à jour les compteurs car les colonnes n'existent pas
+      // 'UPDATE profiles SET total_fails = total_fails + 1 WHERE user_id = ?',
       [userId]
     );
 
@@ -64,7 +65,8 @@ const createFail = async (req, res) => {
           );
 
           await executeQuery(
-            'UPDATE profiles SET total_badges = total_badges + 1, total_points = total_points + 10 WHERE user_id = ?',
+            // Ne pas mettre à jour les compteurs car les colonnes n'existent pas
+            // 'UPDATE profiles SET total_badges = total_badges + 1, total_points = total_points + 10 WHERE user_id = ?',
             [userId]
           );
         }
@@ -297,7 +299,8 @@ const deleteFail = async (req, res) => {
 
     // Mettre à jour les statistiques du profil
     await executeQuery(
-      'UPDATE profiles SET total_fails = total_fails - 1 WHERE user_id = ?',
+      // Ne pas mettre à jour les compteurs car les colonnes n'existent pas
+      // 'UPDATE profiles SET total_fails = total_fails - 1 WHERE user_id = ?',
       [fail.user_id]
     );
 

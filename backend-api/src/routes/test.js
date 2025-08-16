@@ -114,7 +114,7 @@ router.post('/create-temp-user', async (req, res) => {
 
     const result = await executeQuery(
       req.dbConnection,
-      `INSERT INTO users (email, password_hash, display_name, is_verified, created_at, updated_at) 
+      `INSERT INTO users (email, password_hash, display_name, email_confirmed, created_at, updated_at) 
        VALUES (?, ?, ?, 0, NOW(), NOW())`,
       [testEmail, hashedPassword, testDisplayName]
     );

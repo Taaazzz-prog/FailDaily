@@ -100,7 +100,7 @@ class DebugController {
         req.dbConnection,
         `SELECT 
           COUNT(*) as total_users,
-          COUNT(CASE WHEN is_verified = 1 THEN 1 END) as verified_users,
+          COUNT(CASE WHEN email_confirmed = 1 THEN 1 END) as verified_users,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as users_24h,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as users_7d,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as users_30d
