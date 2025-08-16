@@ -31,12 +31,7 @@ export class FollowService {
         }
 
         try {
-            const { data, error } = await this.mysqlService.client
-                .from('follows')
-                .insert({
-                    follower_id: currentUser.id,
-                    following_id: userId
-                });
+            const { data, error } = await this.mysqlService.followUser(currentUser.id, userId);
 
             if (error) throw error;
 
@@ -63,13 +58,7 @@ export class FollowService {
         }
 
         try {
-            const { error } = await this.mysqlService.client
-                .from('follows')
-                .delete()
-                .match({
-                    follower_id: currentUser.id,
-                    following_id: userId
-                });
+            const { error } = await this.mysqlService.unfollowUser(currentUser.id, userId);
 
             if (error) throw error;
 
@@ -101,32 +90,19 @@ export class FollowService {
 
         try {
             // Nombre de followers
-            const { count: followersCount, error: followersError } = await this.mysqlService.client
-                .from('follows')
-                .select('*', { count: 'exact', head: true })
-                .eq('following_id', userId);
+            const { data: followersCount, error: followersError } = await this.mysqlService.getFollowersCount(userId);
 
             if (followersError) throw followersError;
 
             // Nombre de following
-            const { count: followingCount, error: followingError } = await this.mysqlService.client
-                .from('follows')
-                .select('*', { count: 'exact', head: true })
-                .eq('follower_id', userId);
+            const { data: followingCount, error: followingError } = await this.mysqlService.getFollowingCount(userId);
 
             if (followingError) throw followingError;
 
             // Vérifier si l'utilisateur actuel suit cette personne
             let isFollowing = false;
             if (currentUser && currentUser.id !== userId) {
-                const { data, error: isFollowingError } = await this.mysqlService.client
-                    .from('follows')
-                    .select('id')
-                    .match({
-                        follower_id: currentUser.id,
-                        following_id: userId
-                    })
-                    .single();
+                const { data, error: isFollowingError } = await this.mysqlService.isFollowing(currentUser.id, userId);
 
                 if (!isFollowingError && data) {
                     isFollowing = true;
@@ -155,17 +131,7 @@ export class FollowService {
     async getUserProfile(userId: string): Promise<UserProfile | null> {
         try {
             // Récupérer les infos de base du profil
-            const { data: profile, error: profileError } = await this.mysqlService.client
-                .from('profiles')
-                .select(`
-          id,
-          display_name,
-          avatar_url,
-          bio,
-          created_at
-        `)
-                .eq('id', userId)
-                .single();
+            const { data: profile, error: profileError } = await this.mysqlService.getProfile(userId);
 
             if (profileError || !profile) {
                 console.error('Erreur profil:', profileError);
@@ -173,11 +139,7 @@ export class FollowService {
             }
 
             // Compter les fails publics de l'utilisateur
-            const { count: totalFails, error: failsError } = await this.mysqlService.client
-                .from('fails')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', userId)
-                .eq('is_public', true);
+            const { data: totalFails, error: failsError } = await this.mysqlService.getUserFailsCount(userId);
 
             if (failsError) {
                 console.error('Erreur fails count:', failsError);
@@ -216,14 +178,11 @@ export class FollowService {
         if (!currentUser) return;
 
         try {
-            const { data, error } = await this.mysqlService.client
-                .from('follows')
-                .select('following_id')
-                .eq('follower_id', currentUser.id);
+            const { data, error } = await this.mysqlService.getFollowing(currentUser.id);
 
             if (error) throw error;
 
-            const followingIds = data?.map(follow => follow.following_id) || [];
+            const followingIds = data?.map((follow: any) => follow.following_id) || [];
             this.followingSubject.next(followingIds);
 
         } catch (error) {
@@ -240,26 +199,22 @@ export class FollowService {
         if (!targetUserId) return [];
 
         try {
-            const { data, error } = await this.mysqlService.client
-                .from('follows')
-                .select(`
-          following_id,
-          profiles!follows_following_id_fkey (
-            id,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `)
-                .eq('follower_id', targetUserId);
+            const { data, error } = await this.mysqlService.getFollowing(targetUserId);
 
             if (error) throw error;
 
-            return data?.map((follow: any) => ({
-                id: follow.profiles.id,
-                display_name: follow.profiles.display_name || 'Utilisateur',
-                avatar_url: follow.profiles.avatar_url || 'assets/profil/base.png',
-                bio: follow.profiles.bio,
+            // Récupérer les IDs puis les profils
+            const followingIds = data?.map((follow: any) => follow.following_id) || [];
+            if (followingIds.length === 0) return [];
+
+            const { data: profiles, error: profilesError } = await this.mysqlService.getUsersByIds(followingIds);
+            if (profilesError) throw profilesError;
+
+            return profiles?.map((profile: any) => ({
+                id: profile.id,
+                display_name: profile.display_name || 'Utilisateur',
+                avatar_url: profile.avatar_url || 'assets/profil/base.png',
+                bio: profile.bio,
                 totalFails: 0, // À calculer si nécessaire
                 couragePoints: 0, // À calculer si nécessaire
                 followersCount: 0,
@@ -281,26 +236,22 @@ export class FollowService {
         if (!targetUserId) return [];
 
         try {
-            const { data, error } = await this.mysqlService.client
-                .from('follows')
-                .select(`
-          follower_id,
-          profiles!follows_follower_id_fkey (
-            id,
-            display_name,
-            avatar_url,
-            bio
-          )
-        `)
-                .eq('following_id', targetUserId);
+            const { data, error } = await this.mysqlService.getFollowers(targetUserId);
 
             if (error) throw error;
 
-            return data?.map((follow: any) => ({
-                id: follow.profiles.id,
-                display_name: follow.profiles.display_name || 'Utilisateur',
-                avatar_url: follow.profiles.avatar_url || 'assets/profil/base.png',
-                bio: follow.profiles.bio,
+            // Récupérer les IDs puis les profils
+            const followerIds = data?.map((follow: any) => follow.follower_id) || [];
+            if (followerIds.length === 0) return [];
+
+            const { data: profiles, error: profilesError } = await this.mysqlService.getUsersByIds(followerIds);
+            if (profilesError) throw profilesError;
+
+            return profiles?.map((profile: any) => ({
+                id: profile.id,
+                display_name: profile.display_name || 'Utilisateur',
+                avatar_url: profile.avatar_url || 'assets/profil/base.png',
+                bio: profile.bio,
                 totalFails: 0,
                 couragePoints: 0,
                 followersCount: 0,

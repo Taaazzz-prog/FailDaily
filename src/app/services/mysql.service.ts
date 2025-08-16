@@ -1556,7 +1556,7 @@ export class MysqlService {
   async followUser(followerId: string, followingId: string): Promise<any> {
     try {
       const response = await this.http.post(
-        `${this.baseUrl}/follows`,
+        `\$\{this.apiUrl\}/follows`,
         { follower_id: followerId, following_id: followingId },
         { headers: this.getAuthHeaders() }
       ).toPromise();
@@ -1570,7 +1570,7 @@ export class MysqlService {
   async unfollowUser(followerId: string, followingId: string): Promise<any> {
     try {
       const response = await this.http.delete(
-        `${this.baseUrl}/follows/${followerId}/${followingId}`,
+        `\$\{this.apiUrl\}/follows/${followerId}/${followingId}`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
@@ -1583,7 +1583,7 @@ export class MysqlService {
   async getFollowers(userId: string): Promise<any> {
     try {
       const response = await this.http.get(
-        `${this.baseUrl}/users/${userId}/followers`,
+        `\$\{this.apiUrl\}/users/${userId}/followers`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
@@ -1596,7 +1596,7 @@ export class MysqlService {
   async getFollowing(userId: string): Promise<any> {
     try {
       const response = await this.http.get(
-        `${this.baseUrl}/users/${userId}/following`,
+        `\$\{this.apiUrl\}/users/${userId}/following`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
@@ -1609,7 +1609,7 @@ export class MysqlService {
   async getFollowersCount(userId: string): Promise<any> {
     try {
       const response = await this.http.get(
-        `${this.baseUrl}/users/${userId}/followers/count`,
+        `\$\{this.apiUrl\}/users/${userId}/followers/count`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
@@ -1622,7 +1622,7 @@ export class MysqlService {
   async getFollowingCount(userId: string): Promise<any> {
     try {
       const response = await this.http.get(
-        `${this.baseUrl}/users/${userId}/following/count`,
+        `\$\{this.apiUrl\}/users/${userId}/following/count`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
@@ -1635,7 +1635,7 @@ export class MysqlService {
   async isFollowing(followerId: string, followingId: string): Promise<any> {
     try {
       const response = await this.http.get(
-        `${this.baseUrl}/follows/${followerId}/${followingId}`,
+        `\$\{this.apiUrl\}/follows/${followerId}/${followingId}`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
@@ -1648,7 +1648,7 @@ export class MysqlService {
   async getUsersByIds(userIds: string[]): Promise<any> {
     try {
       const response = await this.http.post(
-        `${this.baseUrl}/users/batch`,
+        `\$\{this.apiUrl\}/users/batch`,
         { user_ids: userIds },
         { headers: this.getAuthHeaders() }
       ).toPromise();
@@ -1662,7 +1662,7 @@ export class MysqlService {
   async getUserFailsCount(userId: string): Promise<any> {
     try {
       const response = await this.http.get(
-        `${this.baseUrl}/users/${userId}/fails/count`,
+        `\$\{this.apiUrl\}/users/${userId}/fails/count`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
       return { data: response, error: null };
