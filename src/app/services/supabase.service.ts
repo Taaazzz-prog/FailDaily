@@ -3,7 +3,6 @@ import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-
 import { environment } from '../../environments/environment';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { safeAuthOperation } from '../utils/mobile-fixes';
-import { SUPABASE_CONFIG, withTimeout, retryWithBackoff } from '../utils/supabase-config';
 
 @Injectable({
     providedIn: 'root'
@@ -31,8 +30,7 @@ export class SupabaseService {
     constructor() {
         this.supabase = createClient(
             environment.supabase.url,
-            environment.supabase.anonKey,
-            SUPABASE_CONFIG
+            environment.supabase.anonKey
         );
         this.client = this.supabase;
 
@@ -449,22 +447,14 @@ export class SupabaseService {
         if (!user) throw new Error('Utilisateur non authentifié');
 
         try {
-            // Vérifier si l'utilisateur a déjà cette réaction spécifique avec retry et timeout
-            const existingReaction = await retryWithBackoff(async () => {
-                return await withTimeout(
-                    Promise.resolve(
-                        this.supabase
-                            .from('reactions')
-                            .select('id')
-                            .eq('fail_id', failId)
-                            .eq('user_id', user.id)
-                            .eq('reaction_type', reactionType)
-                            .maybeSingle()
-                    ),
-                    8000, // 8 secondes max
-                    'Timeout lors de la vérification de réaction'
-                );
-            }, 2); // Max 2 retries pour la vérification
+            // Vérifier si l'utilisateur a déjà cette réaction spécifique
+            const existingReaction = await this.supabase
+                .from('reactions')
+                .select('id')
+                .eq('fail_id', failId)
+                .eq('user_id', user.id)
+                .eq('reaction_type', reactionType)
+                .maybeSingle();
 
             const checkResult = existingReaction as { data: any, error: any };
             if (checkResult.error) {
@@ -478,29 +468,19 @@ export class SupabaseService {
                 return;
             }
 
-            // Sinon, ajouter la nouvelle réaction avec retry et timeout
-            await retryWithBackoff(async () => {
-                const result = await withTimeout(
-                    Promise.resolve(
-                        this.supabase
-                            .from('reactions')
-                            .insert({
-                                fail_id: failId,
-                                user_id: user.id,
-                                reaction_type: reactionType
-                            })
-                    ),
-                    8000, // 8 secondes max
-                    'Timeout lors de l\'ajout de réaction'
-                );
+            // Sinon, ajouter la nouvelle réaction
+            const result = await this.supabase
+                .from('reactions')
+                .insert({
+                    fail_id: failId,
+                    user_id: user.id,
+                    reaction_type: reactionType
+                });
 
-                const insertResult = result as { data: any, error: any };
-                if (insertResult.error) {
-                    console.log(`Erreur lors de l'ajout: ${insertResult.error.message}`);
-                    throw insertResult.error;
-                }
-                return insertResult;
-            }, 2); // Max 2 retries pour l'ajout
+            if (result.error) {
+                console.log(`Erreur lors de l'ajout: ${result.error.message}`);
+                throw result.error;
+            }
 
             // Logger l'ajout de la réaction
             if (this.logger) {

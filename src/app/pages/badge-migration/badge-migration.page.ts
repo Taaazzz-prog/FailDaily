@@ -7,7 +7,7 @@ import {
     IonSpinner, IonIcon, IonBadge, IonList, IonButtons, IonBackButton
 } from '@ionic/angular/standalone';
 import { SupabaseService } from '../../services/supabase.service';
-import { BadgeMigration } from '../../utils/badge-migration';
+import { BadgeMigration, BadgeMigrationHelper } from '../../utils/badge-migration';
 
 interface MigrationDetail {
     id: string;
