@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { AdminService } from '../../services/admin.service';
 import { DebugService } from '../../services/debug.service';
-import { SupabaseService } from '../../services/supabase.service';
+import { MysqlService } from '../../services/mysql.service';
 import { ComprehensiveLoggerService } from '../../services/comprehensive-logger.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -111,7 +111,7 @@ export class AdminPage implements OnInit, OnDestroy {
     constructor(
         private adminService: AdminService,
         private debugService: DebugService,
-        private supabaseService: SupabaseService,
+        private MysqlService: MysqlService,
         private comprehensiveLoggerService: ComprehensiveLoggerService,
         private alertController: AlertController,
         private toastController: ToastController,
@@ -429,7 +429,7 @@ export class AdminPage implements OnInit, OnDestroy {
             const activityType = filters.activity_type || 'all';
             const periodHours = this.getPeriodInHours(this.logFilters.period);
             
-            this.comprehensiveLogs = await this.supabaseService.getActivityLogsByType(
+            this.comprehensiveLogs = await this.MysqlService.getActivityLogsByType(
                 activityType,
                 periodHours,
                 this.logsPageSize
@@ -450,7 +450,7 @@ export class AdminPage implements OnInit, OnDestroy {
     async loadLogsStatistics() {
         try {
             // Chargement des statistiques basées sur les logs actuels
-            const todayLogs = await this.supabaseService.getActivityLogsByType('all', 24, 1000);
+            const todayLogs = await this.MysqlService.getActivityLogsByType('all', 24, 1000);
             
             this.logsStats = {
                 totalToday: todayLogs.length,
@@ -605,7 +605,7 @@ export class AdminPage implements OnInit, OnDestroy {
     async exportComprehensiveLogs() {
         try {
             // Utilisation de la vraie signature (3 paramètres)
-            const allLogs = await this.supabaseService.getActivityLogsByType(
+            const allLogs = await this.MysqlService.getActivityLogsByType(
                 'all',
                 24 * 30, // 30 jours en heures
                 1000
@@ -683,7 +683,7 @@ export class AdminPage implements OnInit, OnDestroy {
     async viewUserLogs(userId: string) {
         try {
             // Pour l'instant, utilisons les logs généraux filtrés par utilisateur
-            const userLogs = await this.supabaseService.getActivityLogsByType('all', 24 * 7, 100);
+            const userLogs = await this.MysqlService.getActivityLogsByType('all', 24 * 7, 100);
             const filteredUserLogs = userLogs.filter((log: any) => log.user_id === userId);
             
             const alert = await this.alertController.create({
@@ -1202,7 +1202,7 @@ export class AdminPage implements OnInit, OnDestroy {
     private async performTruncate(tableName: string, isAuthTable: boolean) {
         this.loading = true;
         try {
-            const result = await this.supabaseService.truncateTable(tableName, isAuthTable);
+            const result = await this.MysqlService.truncateTable(tableName, isAuthTable);
             this.truncateResults.unshift({
                 table: tableName,
                 success: result.success,
@@ -1238,7 +1238,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
         for (const table of tables) {
             try {
-                const result = await this.supabaseService.truncateTable(table, areAuthTables);
+                const result = await this.MysqlService.truncateTable(table, areAuthTables);
                 this.truncateResults.unshift({
                     table: table,
                     success: result.success,
@@ -1286,7 +1286,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
             // Supprimer tous les utilisateurs d'authentification avec la nouvelle fonction RPC
             try {
-                const result = await this.supabaseService.deleteAllAuthUsers();
+                const result = await this.MysqlService.deleteAllAuthUsers();
                 this.truncateResults.unshift({
                     table: 'auth.users',
                     success: result.success,
@@ -1378,7 +1378,7 @@ export class AdminPage implements OnInit, OnDestroy {
         this.loading = true;
 
         try {
-            const result = await this.supabaseService.deleteAllAuthUsers();
+            const result = await this.MysqlService.deleteAllAuthUsers();
 
             this.truncateResults.unshift({
                 table: 'auth.users (RPC)',
@@ -1516,7 +1516,7 @@ export class AdminPage implements OnInit, OnDestroy {
     async loadBadgeDefinitions() {
         try {
             this.loading = true;
-            const badges = await this.supabaseService.getAllBadgeDefinitions();
+            const badges = await this.MysqlService.getAllBadgeDefinitions();
             this.badgeDefinitions = badges || [];
             this.identifyDuplicateBadges();
         } catch (error) {
@@ -1586,7 +1586,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
         for (const badge of this.duplicateBadges) {
             try {
-                await this.supabaseService.deleteBadgeDefinition(badge.id);
+                await this.MysqlService.deleteBadgeDefinition(badge.id);
                 successCount++;
             } catch (error) {
                 console.error(`Erreur lors de la suppression du badge ${badge.name}:`, error);
@@ -1616,7 +1616,7 @@ export class AdminPage implements OnInit, OnDestroy {
                     role: 'destructive',
                     handler: async () => {
                         try {
-                            await this.supabaseService.deleteBadgeDefinition(badgeId);
+                            await this.MysqlService.deleteBadgeDefinition(badgeId);
                             await this.showToast('Badge supprimé avec succès', 'success');
                             await this.loadBadgeDefinitions();
                         } catch (error) {
@@ -1650,7 +1650,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
         try {
             this.loading = true;
-            await this.supabaseService.createBadgeDefinition(this.newBadge);
+            await this.MysqlService.createBadgeDefinition(this.newBadge);
             await this.showToast('Badge créé avec succès', 'success');
             this.resetNewBadgeForm();
             await this.loadBadgeDefinitions();

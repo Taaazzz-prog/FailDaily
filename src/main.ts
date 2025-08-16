@@ -7,8 +7,8 @@ import { provideHttpClient } from '@angular/common/http';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
-import { AuthService } from './app/services/auth.service';
-import { SupabaseService } from './app/services/supabase.service';
+import { NewAuthService } from './app/services/new-auth.service';
+import { MysqlService } from './app/services/mysql.service';
 import { FollowService } from './app/services/follow.service';
 import { LoggingSetupService } from './app/services/logging-setup.service';
 import { initializeIcons } from './app/utils/icons';
@@ -23,13 +23,13 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(),
     importProvidersFrom(BrowserModule),
-    AuthService,
-    SupabaseService,
+    NewAuthService,
+    MysqlService,
     FollowService,
     LoggingSetupService, // Service pour configurer le logging
   ],
 }).then(() => {
-  console.log('FailDaily application started with comprehensive logging system');
+  console.log('FailDaily application started with MySQL backend and comprehensive logging system');
 }).catch((err: any) => {
   console.error('Error starting FailDaily application:', err);
 });

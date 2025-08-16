@@ -14,10 +14,10 @@ import {
     documentOutline, shieldCheckmark, chevronForward, settingsOutline,
     lockClosed, chevronDownCircleOutline, personOutline
 } from 'ionicons/icons';
-import { AuthService } from '../../services/auth.service';
+import { NewAuthService } from '../../services/new-auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
-import { SupabaseService } from '../../services/supabase.service';
+import { MysqlService } from '../../services/mysql.service';
 import { EventBusService, AppEvents } from '../../services/event-bus.service';
 import { User } from '../../models/user.model';
 import { Fail } from '../../models/fail.model';
@@ -145,10 +145,10 @@ export class ProfilePage implements OnInit, OnDestroy {
     currentEncouragementMessage: string = '';
 
     constructor(
-        private authService: AuthService,
+        private authService: NewAuthService,
         private failService: FailService,
         private badgeService: BadgeService,
-        private supabaseService: SupabaseService,
+        private mysqlService: MysqlService,
         private eventBus: EventBusService,
         private router: Router
     ) {
@@ -297,7 +297,7 @@ export class ProfilePage implements OnInit, OnDestroy {
         if (!user?.id) return;
 
         console.log('🔍 Lancement du debug des points de courage...');
-        this.courageDebugInfo = await this.supabaseService.debugCouragePoints(user.id);
+        this.courageDebugInfo = await this.mysqlService.debugCouragePoints(user.id);
         this.showDebug = true;
     }
 
@@ -315,7 +315,7 @@ export class ProfilePage implements OnInit, OnDestroy {
         const user = this.authService.getCurrentUser();
         if (!user?.id) return;
 
-        await this.supabaseService.testAddCouragePoints(user.id, 10);
+        await this.mysqlService.testAddCouragePoints(user.id, 10);
         console.log('✅ +10 points de test ajoutés');
 
         // Rafraîchir le debug
@@ -360,7 +360,7 @@ export class ProfilePage implements OnInit, OnDestroy {
     }
 
     async confirmLogout() {
-        await this.authService.logout();
+        await this.authService.signOut();
         this.router.navigate(['/auth/login']);
         this.isAlertOpen = false;
     }

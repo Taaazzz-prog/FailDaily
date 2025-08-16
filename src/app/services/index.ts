@@ -1,5 +1,5 @@
-export { SupabaseService } from './supabase.service';
-export { AuthService } from './auth.service';
+export { MysqlService } from './mysql.service';
+export { NewAuthService } from './new-auth.service';
 export { FailService } from './fail.service';
 export { BadgeService } from './badge.service';
 export { AnalyticsService } from './analytics.service';

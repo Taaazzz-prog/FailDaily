@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, map, switchMap, catchError, of, BehaviorSubject } from 'rxjs';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { EventBusService, AppEvents } from './event-bus.service';
 import { Fail } from '../models/fail.model';
-import { User } from '@supabase/supabase-js';
+import { User } from '../models/user.model';
 import { FailCategory } from '../models/enums';
 import { ComprehensiveLoggerService } from './comprehensive-logger.service';
 
@@ -23,18 +23,18 @@ export class FailService {
   public fails$ = this.failsSubject.asObservable();
 
   constructor(
-    private supabaseService: SupabaseService,
+    private mysqlService: MysqlService,
     private eventBus: EventBusService,
     private logger: ComprehensiveLoggerService
   ) {
-    console.log('FailService: Constructor called - initializing fail service');
+    console.log('FailService: Constructor called - initializing fail service with MySQL backend');
     // Charger les fails au démarrage
     this.loadFails();
   }
 
   async createFail(failData: CreateFailData): Promise<void> {
     // Utiliser la méthode synchrone pour éviter les problèmes de concurrence
-    const user = this.supabaseService.getCurrentUserSync();
+    const user = this.mysqlService.getCurrentUserSync();
     if (!user) {
       throw new Error('Utilisateur non connecté');
     }
@@ -42,7 +42,7 @@ export class FailService {
     let imageUrl = null;
     if (failData.image) {
       try {
-        imageUrl = await this.supabaseService.uploadFile(
+        imageUrl = await this.mysqlService.uploadFile(
           'fails',
           `${user.id}/${Date.now()}`,
           failData.image
@@ -73,7 +73,7 @@ export class FailService {
     }
 
     try {
-      await this.supabaseService.createFail(failToCreate);
+      await this.mysqlService.createFail(failToCreate);
 
       // Logger la création du fail
       await this.logger.logFail('create', failToCreate.title, undefined, {
@@ -104,7 +104,7 @@ export class FailService {
 
   private async loadFails(): Promise<void> {
     try {
-      const fails = await this.supabaseService.getFails();
+      const fails = await this.mysqlService.getFails();
       const formattedFails = await Promise.all(
         fails.map(fail => this.formatFailWithAuthor(fail))
       );
@@ -120,7 +120,7 @@ export class FailService {
   }
 
   getFailsByCategory(category: FailCategory): Observable<Fail[]> {
-    return from(this.supabaseService.getFails()).pipe(
+    return from(this.mysqlService.getFails()).pipe(
       switchMap((fails: any[]) => {
         if (!fails || fails.length === 0) {
           return of([]);
@@ -148,7 +148,7 @@ export class FailService {
     if (failData.is_public) {
       try {
         // Récupérer le profil de l'utilisateur pour avoir son vrai nom et avatar
-        const profile = await this.supabaseService.getProfile(failData.user_id);
+        const profile = await this.mysqlService.getProfile(failData.user_id);
         if (profile && profile.display_name) {
           authorName = profile.display_name;
           // Récupérer l'avatar du profil s'il existe
@@ -192,7 +192,7 @@ export class FailService {
   async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
     console.log('FailService: addReaction called for fail:', failId, 'type:', reactionType);
 
-    const user = await this.supabaseService.getCurrentUser();
+    const user = await this.mysqlService.getCurrentUser();
     if (!user) {
       console.log('FailService: No user connected for addReaction');
       throw new Error('Utilisateur non connecté');
@@ -201,7 +201,7 @@ export class FailService {
     console.log('FailService: User found for reaction:', user.id);
 
     try {
-      const result = await this.supabaseService.addReaction(failId, reactionType);
+      const result = await this.mysqlService.addReaction(failId, reactionType);
       console.log('FailService: supabaseService.addReaction completed successfully');
 
       // Émettre un événement pour notifier la réaction
@@ -221,21 +221,21 @@ export class FailService {
   }
 
   async removeReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
-    const user = await this.supabaseService.getCurrentUser();
+    const user = await this.mysqlService.getCurrentUser();
     if (!user) {
       throw new Error('Utilisateur non connecté');
     }
 
-    return this.supabaseService.removeReaction(failId, reactionType);
+    return this.mysqlService.removeReaction(failId, reactionType);
   }
 
   async getUserReactionForFail(failId: string): Promise<string | null> {
-    return this.supabaseService.getUserReactionForFail(failId);
+    return this.mysqlService.getUserReactionForFail(failId);
   }
 
   async getUserReactionsForFail(failId: string): Promise<string[]> {
     console.log('FailService: getUserReactionsForFail called for fail:', failId);
-    const result = await this.supabaseService.getUserReactionsForFail(failId);
+    const result = await this.mysqlService.getUserReactionsForFail(failId);
     console.log('FailService: getUserReactionsForFail result:', result);
     return result;
   }
@@ -244,7 +244,7 @@ export class FailService {
     console.log('FailService: getFailById called for fail:', failId);
 
     try {
-      const failData = await this.supabaseService.getFailById(failId);
+      const failData = await this.mysqlService.getFailById(failId);
       if (!failData) {
         console.log('FailService: No fail data found for ID:', failId);
         return null;

@@ -3,7 +3,7 @@ import { Observable, from, BehaviorSubject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Badge } from '../models/badge.model';
 import { BadgeCategory } from '../models/enums';
-import { SupabaseService } from './supabase.service';
+import { MysqlService } from './mysql.service';
 import { EventBusService, AppEvents } from './event-bus.service';
 
 @Injectable({ providedIn: 'root' })
@@ -15,8 +15,8 @@ export class BadgeService {
   private lastBadgeCheck = 0;
   private readonly BADGE_CHECK_COOLDOWN = 2000; // 2 secondes entre les vérifications
 
-  constructor(private supabase: SupabaseService, private eventBus: EventBusService) {
-    console.log('BadgeService: Constructor called - initializing badge service');
+  constructor(private mysqlService: MysqlService, private eventBus: EventBusService) {
+    console.log('BadgeService: Constructor called - initializing badge service with MySQL backend');
 
     // Charger les badges utilisateur au démarrage
     console.log('BadgeService: Calling initializeBadges');
@@ -35,7 +35,7 @@ export class BadgeService {
     this.eventBus.on(AppEvents.FAIL_POSTED).subscribe(async (payload) => {
       console.log('Événement FAIL_POSTED reçu:', payload);
       try {
-        const user = await this.supabase.getCurrentUser();
+        const user = await this.mysqlService.getCurrentUser();
         if (user) {
           const newBadges = await this.checkAndUnlockBadgesWithCooldown(user.id, 'FAIL_POSTED');
           if (newBadges.length > 0) {
@@ -51,7 +51,7 @@ export class BadgeService {
     this.eventBus.on(AppEvents.REACTION_GIVEN).subscribe(async (payload) => {
       console.log('Événement REACTION_GIVEN reçu:', payload);
       try {
-        const user = await this.supabase.getCurrentUser();
+        const user = await this.mysqlService.getCurrentUser();
         if (user) {
           const newBadges = await this.checkAndUnlockBadgesWithCooldown(user.id, 'REACTION_GIVEN');
           if (newBadges.length > 0) {
@@ -85,7 +85,7 @@ export class BadgeService {
   private async initializeBadges(): Promise<void> {
     try {
       // Attendre que l'utilisateur soit connecté
-      const user = await this.supabase.getCurrentUser();
+      const user = await this.mysqlService.getCurrentUser();
       if (user) {
         await this.loadUserBadges(user.id);
       }
@@ -96,7 +96,7 @@ export class BadgeService {
 
   private async loadUserBadges(userId: string): Promise<void> {
     try {
-      const badgeIds = await this.supabase.getUserBadgesNew(userId);
+      const badgeIds = await this.mysqlService.getUserBadgesNew(userId);
       console.log('Badges récupérés de la DB:', badgeIds);
 
       // Récupérer TOUS les badges disponibles (BDD + fallback)
@@ -115,7 +115,7 @@ export class BadgeService {
    * Force le rechargement des badges utilisateur depuis la base de données
    */
   async refreshUserBadges(): Promise<void> {
-    const user = await this.supabase.getCurrentUser();
+    const user = await this.mysqlService.getCurrentUser();
     if (user) {
       await this.loadUserBadges(user.id);
     }
@@ -127,7 +127,7 @@ export class BadgeService {
   async getAllAvailableBadges(): Promise<Badge[]> {
     try {
       // Récupérer depuis la base de données
-      const dbBadges = await this.supabase.getAllAvailableBadges();
+      const dbBadges = await this.mysqlService.getAllAvailableBadges();
 
       if (dbBadges && dbBadges.length > 0) {
         console.log(`✨ Badges chargés depuis la BDD: ${dbBadges.length} badges trouvés`);
@@ -219,7 +219,7 @@ export class BadgeService {
       console.log('🏆 BadgeService: Getting badges for user:', userId);
 
       // Récupérer les IDs des badges de l'utilisateur
-      const badgeIds = await this.supabase.getUserBadgesNew(userId);
+      const badgeIds = await this.mysqlService.getUserBadgesNew(userId);
       console.log('🏆 BadgeService: User badge IDs:', badgeIds);
 
       // Récupérer tous les badges disponibles
@@ -252,7 +252,7 @@ export class BadgeService {
 
       // CORRECTION: Récupérer les badges depuis la BDD, pas depuis le cache local
       console.log('🏆 BadgeService: Getting current user badges from database');
-      const currentBadgeIds = await this.supabase.getUserBadgesNew(userId);
+      const currentBadgeIds = await this.mysqlService.getUserBadgesNew(userId);
       console.log('🏆 BadgeService: Current user badges:', currentBadgeIds);
 
       console.log('🏆 BadgeService: Getting all available badges');
@@ -301,7 +301,7 @@ export class BadgeService {
       console.log('📊 Stats utilisateur:', userStats);
 
       // 2. Badges actuels en BDD
-      const currentBadgeIds = await this.supabase.getUserBadgesNew(userId);
+      const currentBadgeIds = await this.mysqlService.getUserBadgesNew(userId);
       console.log('✅ Badges actuellement possédés:', currentBadgeIds);
 
       // 3. Tous les badges disponibles
@@ -463,7 +463,7 @@ export class BadgeService {
 
   private getUserStats(userId: string): Promise<any> {
     // Récupérer les statistiques utilisateur depuis Supabase
-    return this.supabase.getUserStats(userId);
+    return this.mysqlService.getUserStats(userId);
   }
 
   /**
@@ -471,10 +471,10 @@ export class BadgeService {
    */
   private async unlockBadge(badgeId: string): Promise<boolean> {
     try {
-      const user = await this.supabase.getCurrentUser();
+      const user = await this.mysqlService.getCurrentUser();
       if (!user) return false;
 
-      const success = await this.supabase.unlockBadge(user.id, badgeId);
+      const success = await this.mysqlService.unlockBadge(user.id, badgeId);
 
       if (success) {
         // Recharger les badges utilisateur avec TOUS les badges disponibles
@@ -508,11 +508,11 @@ export class BadgeService {
     progress: number;
   }>> {
     try {
-      const user = await this.supabase.getCurrentUser();
+      const user = await this.mysqlService.getCurrentUser();
       if (!user) return [];
 
       const userStats = await this.getUserStats(user.id);
-      const userBadgeIds = await this.supabase.getUserBadgesNew(user.id);
+      const userBadgeIds = await this.mysqlService.getUserBadgesNew(user.id);
       const allAvailableBadges = await this.getAllAvailableBadges();
 
       // Trouver les badges non débloqués et leurs statistiques
@@ -622,7 +622,7 @@ export class BadgeService {
     return { current: Math.min(current, required), required, progress };
   }
   async getBadgeProgress(badgeId: string): Promise<{ current: number, required: number, progress: number }> {
-    const user = await this.supabase.getCurrentUser();
+    const user = await this.mysqlService.getCurrentUser();
     if (!user) return { current: 0, required: 1, progress: 0 };
 
     const userStats = await this.getUserStats(user.id);
@@ -683,7 +683,7 @@ export class BadgeService {
     console.log('🏆 BadgeService: checkBadgesAfterAction called with action:', action);
     console.log('🏆 BadgeService: checkBadgesAfterAction est déprécié, utiliser EventBus à la place');
 
-    const user = await this.supabase.getCurrentUser();
+    const user = await this.mysqlService.getCurrentUser();
     if (!user) {
       console.log('🏆 BadgeService: No user found, returning empty badges array');
       return [];
@@ -701,7 +701,7 @@ export class BadgeService {
    */
   async forceCheckBadges(): Promise<Badge[]> {
     try {
-      const user = await this.supabase.getCurrentUser();
+      const user = await this.mysqlService.getCurrentUser();
       if (!user) {
         console.log('Aucun utilisateur connecté pour la vérification des badges');
         return [];
