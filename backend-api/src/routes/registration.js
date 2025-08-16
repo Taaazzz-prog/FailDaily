@@ -231,41 +231,42 @@ router.post('/register', async (req, res) => {
       referralData = referrals[0];
     }
 
-    // Transaction pour créer l'utilisateur
-    await executeTransaction( async (connection) => {
-      // Hacher le mot de passe
-      const saltRounds = 12;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Transaction pour créer l'utilisateur ET son profil
+    const { v4: uuidv4 } = require('uuid');
+    const userId = uuidv4();
+    const profileId = uuidv4();
+    
+    // Hacher le mot de passe
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      // Créer l'utilisateur
+    // Exécuter les requêtes dans une transaction
+    await connection.query('START TRANSACTION');
+    
+    try {
+      // Insérer l'utilisateur
       const userResult = await executeQuery(
         connection,
         `INSERT INTO users (
-          email, password_hash, display_name, birth_date, 
-          agree_to_terms, agree_to_newsletter, is_verified, 
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [
-          email.toLowerCase(),
-          hashedPassword,
-          displayName,
-          birthDate,
-          agreeToTerms,
-          agreeToNewsletter,
-          false // Email pas encore vérifié
-        ]
+          id, email, password_hash, role, account_status, registration_step, created_at
+        ) VALUES (?, ?, ?, 'user', 'active', 'basic', NOW())`,
+        [userId, email.toLowerCase(), hashedPassword]
       );
-
-      const userId = userResult.insertId;
 
       // Créer le profil utilisateur
       await executeQuery(
         connection,
-        `INSERT INTO user_profiles (
-          user_id, bio, location, website, is_public, 
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-        [userId, null, null, null, true]
+        `INSERT INTO profiles (
+          id, user_id, display_name, avatar_url, registration_completed, 
+          legal_consent, age_verification, created_at
+        ) VALUES (?, ?, ?, NULL, 1, ?, ?, NOW())`,
+        [
+          profileId, 
+          userId, 
+          displayName, 
+          JSON.stringify({ birthDate, agreeToTerms }), 
+          JSON.stringify({ birthDate, verified: true })
+        ]
       );
 
       // Traiter le parrainage si applicable
@@ -326,6 +327,11 @@ router.post('/register', async (req, res) => {
         );
       }
 
+      // Valider la transaction
+      await connection.query('COMMIT');
+      
+      console.log(`✅ Utilisateur inscrit: ${email} (ID: ${userId})`);
+
       // Générer le token JWT
       const token = jwt.sign(
         { 
@@ -340,11 +346,11 @@ router.post('/register', async (req, res) => {
       // Récupérer les données utilisateur complètes
       const userQuery = `
         SELECT 
-          u.id, u.email, u.display_name, u.xp, u.level, u.avatar_url,
-          u.is_verified, u.created_at,
-          up.bio, up.location, up.website, up.is_public
+          u.id, u.email, u.xp, u.level, u.avatar_url,
+          u.account_status, u.created_at,
+          p.display_name
         FROM users u
-        LEFT JOIN user_profiles up ON u.id = up.user_id
+        LEFT JOIN profiles p ON u.id = p.user_id
         WHERE u.id = ?
       `;
 
@@ -365,33 +371,39 @@ router.post('/register', async (req, res) => {
           xp: user.xp,
           level: user.level,
           avatarUrl: user.avatar_url,
-          isVerified: user.is_verified,
-          profile: {
-            bio: user.bio,
-            location: user.location,
-            website: user.website,
-            isPublic: user.is_public
-          },
+          accountStatus: user.account_status,
           createdAt: user.created_at
         }
       });
-    });
 
-  } catch (error) {
-    console.error('❌ Erreur inscription:', error);
+    } catch (error) {
+      // En cas d'erreur, faire un rollback de la transaction
+      try {
+        await connection.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Erreur lors du rollback:', rollbackError);
+      }
+    
+      console.error('❌ Erreur inscription:', error);
 
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({
+      if (error.code === 'ER_DUP_ENTRY') {
+        return res.status(409).json({
+          success: false,
+          message: 'Email ou nom d\'affichage déjà utilisé'
+        });
+      }
+
+      res.status(500).json({
         success: false,
-        message: 'Email ou nom d\'affichage déjà utilisé'
+        message: 'Erreur lors de l\'inscription',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-
-    res.status(500).json({
-      success: false,
-      message: 'Erreur lors de l\'inscription',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+  } finally {
+    // Libérer la connexion
+    if (connection) {
+      connection.release();
+    }
   }
 });
 
