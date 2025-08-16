@@ -13,6 +13,9 @@ const authRoutes = require('./src/routes/auth');
 const failRoutes = require('./src/routes/fails');
 const registrationRoutes = require('./src/routes/registration');
 const ageVerificationRoutes = require('./src/routes/ageVerification');
+const uploadRoutes = require('./src/routes/upload');
+const reactionsRoutes = require('./src/routes/reactions');
+const commentsRoutes = require('./src/routes/comments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,6 +69,9 @@ app.get('/health', (req, res) => {
 // Routes API
 app.use('/api/auth', authRoutes);
 app.use('/api/fails', failRoutes);
+app.use('/api/fails', reactionsRoutes);
+app.use('/api/fails', commentsRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/registration', registrationRoutes);
 app.use('/api/age-verification', ageVerificationRoutes);
 

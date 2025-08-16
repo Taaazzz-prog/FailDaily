@@ -303,10 +303,304 @@ const checkEmail = async (req, res) => {
   }
 };
 
+// Récupérer le profil complet de l'utilisateur
+const getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const userProfile = await executeQuery(`
+      SELECT 
+        u.id, u.email, u.role, u.account_status, u.created_at,
+        p.display_name, p.avatar_url, p.bio, p.birth_date,
+        p.registration_completed, p.legal_consent, p.age_verification
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      WHERE u.id = ?
+    `, [userId]);
+
+    if (userProfile.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profil utilisateur non trouvé',
+        code: 'PROFILE_NOT_FOUND'
+      });
+    }
+
+    const profile = userProfile[0];
+
+    res.json({
+      success: true,
+      data: {
+        id: profile.id,
+        email: profile.email,
+        displayName: profile.display_name,
+        avatarUrl: profile.avatar_url,
+        bio: profile.bio,
+        role: profile.role,
+        accountStatus: profile.account_status,
+        registrationCompleted: profile.registration_completed,
+        legalConsent: profile.legal_consent ? JSON.parse(profile.legal_consent) : null,
+        ageVerification: profile.age_verification ? JSON.parse(profile.age_verification) : null,
+        createdAt: profile.created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur récupération profil:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération du profil',
+      code: 'PROFILE_FETCH_ERROR'
+    });
+  }
+};
+
+// Mettre à jour le profil utilisateur
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { displayName, bio, avatarUrl } = req.body;
+
+    // Validation des données
+    if (displayName && displayName.length > 50) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le nom d\'affichage ne peut pas dépasser 50 caractères',
+        code: 'DISPLAY_NAME_TOO_LONG'
+      });
+    }
+
+    if (bio && bio.length > 500) {
+      return res.status(400).json({
+        success: false,
+        message: 'La bio ne peut pas dépasser 500 caractères',
+        code: 'BIO_TOO_LONG'
+      });
+    }
+
+    // Vérifier si le nom d'affichage est déjà pris (si fourni)
+    if (displayName) {
+      const existingProfiles = await executeQuery(
+        'SELECT id FROM profiles WHERE display_name = ? AND user_id != ?',
+        [displayName, userId]
+      );
+
+      if (existingProfiles.length > 0) {
+        return res.status(409).json({
+          success: false,
+          message: 'Ce nom d\'utilisateur est déjà pris',
+          code: 'DISPLAY_NAME_EXISTS'
+        });
+      }
+    }
+
+    // Construire la requête de mise à jour dynamiquement
+    const updateFields = [];
+    const updateValues = [];
+
+    if (displayName !== undefined) {
+      updateFields.push('display_name = ?');
+      updateValues.push(displayName);
+    }
+
+    if (bio !== undefined) {
+      updateFields.push('bio = ?');
+      updateValues.push(bio);
+    }
+
+    if (avatarUrl !== undefined) {
+      updateFields.push('avatar_url = ?');
+      updateValues.push(avatarUrl);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aucune donnée à mettre à jour',
+        code: 'NO_UPDATE_DATA'
+      });
+    }
+
+    updateFields.push('updated_at = NOW()');
+    updateValues.push(userId);
+
+    const updateQuery = `
+      UPDATE profiles 
+      SET ${updateFields.join(', ')} 
+      WHERE user_id = ?
+    `;
+
+    await executeQuery(updateQuery, updateValues);
+
+    // Récupérer le profil mis à jour
+    const updatedProfile = await executeQuery(`
+      SELECT 
+        u.id, u.email, u.role,
+        p.display_name, p.avatar_url, p.bio, p.updated_at
+      FROM users u
+      LEFT JOIN profiles p ON u.id = p.user_id
+      WHERE u.id = ?
+    `, [userId]);
+
+    res.json({
+      success: true,
+      message: 'Profil mis à jour avec succès',
+      data: {
+        id: updatedProfile[0].id,
+        email: updatedProfile[0].email,
+        displayName: updatedProfile[0].display_name,
+        avatarUrl: updatedProfile[0].avatar_url,
+        bio: updatedProfile[0].bio,
+        role: updatedProfile[0].role,
+        updatedAt: updatedProfile[0].updated_at
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur mise à jour profil:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la mise à jour du profil',
+      code: 'PROFILE_UPDATE_ERROR'
+    });
+  }
+};
+
+// Changer le mot de passe
+const changePassword = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+
+    // Validation des données
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Mot de passe actuel et nouveau mot de passe requis',
+        code: 'MISSING_PASSWORDS'
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Le nouveau mot de passe doit contenir au moins 6 caractères',
+        code: 'PASSWORD_TOO_SHORT'
+      });
+    }
+
+    // Récupérer l'utilisateur avec son mot de passe actuel
+    const users = await executeQuery(
+      'SELECT password_hash FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé',
+        code: 'USER_NOT_FOUND'
+      });
+    }
+
+    // Vérifier le mot de passe actuel
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, users[0].password_hash);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: 'Mot de passe actuel incorrect',
+        code: 'INVALID_CURRENT_PASSWORD'
+      });
+    }
+
+    // Hasher le nouveau mot de passe
+    const saltRounds = 12;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Mettre à jour le mot de passe
+    await executeQuery(
+      'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
+      [hashedNewPassword, userId]
+    );
+
+    // Log de l'activité
+    await executeQuery(
+      'INSERT INTO user_activities (id, user_id, activity_type, description, created_at) VALUES (?, ?, ?, ?, NOW())',
+      [uuidv4(), userId, 'password_change', 'Changement de mot de passe']
+    );
+
+    res.json({
+      success: true,
+      message: 'Mot de passe changé avec succès'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur changement mot de passe:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du changement de mot de passe',
+      code: 'PASSWORD_CHANGE_ERROR'
+    });
+  }
+};
+
+// Demande de réinitialisation de mot de passe
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email requis',
+        code: 'MISSING_EMAIL'
+      });
+    }
+
+    // Vérifier si l'utilisateur existe
+    const users = await executeQuery(
+      'SELECT id, email FROM users WHERE email = ?',
+      [email.toLowerCase()]
+    );
+
+    // Toujours retourner succès pour des raisons de sécurité
+    // (ne pas révéler si un email existe ou non)
+    res.json({
+      success: true,
+      message: 'Si cet email existe, un lien de réinitialisation a été envoyé'
+    });
+
+    // Si l'utilisateur existe, générer un token de reset (à implémenter)
+    if (users.length > 0) {
+      // TODO: Implémenter l'envoi d'email avec token de reset
+      console.log(`🔔 Demande de reset de mot de passe pour: ${email}`);
+      
+      // Log de l'activité
+      await executeQuery(
+        'INSERT INTO user_activities (id, user_id, activity_type, description, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [uuidv4(), users[0].id, 'password_reset_request', 'Demande de réinitialisation de mot de passe']
+      );
+    }
+
+  } catch (error) {
+    console.error('❌ Erreur demande reset mot de passe:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la demande de réinitialisation',
+      code: 'PASSWORD_RESET_REQUEST_ERROR'
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   verifyToken,
   logout,
-  checkEmail
+  checkEmail,
+  getProfile,
+  updateProfile,
+  changePassword,
+  requestPasswordReset
 };

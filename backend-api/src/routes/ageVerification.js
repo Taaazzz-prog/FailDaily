@@ -10,7 +10,7 @@ router.post('/verify', AgeVerificationController.verifyAge);
 // Routes protégées (nécessitent une authentification)
 router.put('/update-birth-date', authenticateToken, AgeVerificationController.updateBirthDate);
 router.get('/user-age', authenticateToken, AgeVerificationController.getUserAge);
-router.get('/statistics', authenticateToken, AgeVerificationController.getStatistics);
-router.get('/coppa-compliance', authenticateToken, AgeVerificationController.getCoppaComplianceInfo);
+router.get('/statistics', authenticateToken, AgeVerificationController.getAgeStatistics);
+router.get('/coppa-compliance', authenticateToken, AgeVerificationController.checkCoppaCompliance);
 
 module.exports = router;

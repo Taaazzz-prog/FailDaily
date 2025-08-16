@@ -686,6 +686,413 @@ class FailsController {
       });
     }
   }
+
+  /**
+   * Mettre à jour un fail
+   */
+  static async updateFail(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { id } = req.params;
+      const {
+        title,
+        description,
+        category,
+        tags,
+        isPublic,
+        imageUrl
+      } = req.body;
+
+      const userId = req.user.id;
+
+      // Vérifier que le fail existe et appartient à l'utilisateur
+      const existingFails = await executeQuery(connection, `
+        SELECT id, user_id, title, description 
+        FROM fails 
+        WHERE id = ?
+      `, [id]);
+
+      if (existingFails.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Fail non trouvé',
+          code: 'FAIL_NOT_FOUND'
+        });
+      }
+
+      const existingFail = existingFails[0];
+
+      if (existingFail.user_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Vous ne pouvez modifier que vos propres fails',
+          code: 'ACCESS_DENIED'
+        });
+      }
+
+      // Validation
+      if (title && title.length > 200) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le titre ne peut pas dépasser 200 caractères',
+          code: 'TITLE_TOO_LONG'
+        });
+      }
+
+      if (description && description.length > 2000) {
+        return res.status(400).json({
+          success: false,
+          message: 'La description ne peut pas dépasser 2000 caractères',
+          code: 'DESCRIPTION_TOO_LONG'
+        });
+      }
+
+      // Construire la requête de mise à jour dynamiquement
+      const updateFields = [];
+      const updateValues = [];
+
+      if (title !== undefined) {
+        updateFields.push('title = ?');
+        updateValues.push(title.trim());
+      }
+
+      if (description !== undefined) {
+        updateFields.push('description = ?');
+        updateValues.push(description);
+      }
+
+      if (category !== undefined) {
+        updateFields.push('category = ?');
+        updateValues.push(category);
+      }
+
+      if (tags !== undefined) {
+        updateFields.push('tags = ?');
+        updateValues.push(JSON.stringify(tags));
+      }
+
+      if (isPublic !== undefined) {
+        updateFields.push('is_public = ?');
+        updateValues.push(isPublic ? 1 : 0);
+      }
+
+      if (imageUrl !== undefined) {
+        updateFields.push('image_url = ?');
+        updateValues.push(imageUrl);
+      }
+
+      if (updateFields.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Aucune donnée à mettre à jour',
+          code: 'NO_UPDATE_DATA'
+        });
+      }
+
+      updateFields.push('updated_at = NOW()');
+      updateValues.push(parseInt(id));
+
+      const updateQuery = `
+        UPDATE fails 
+        SET ${updateFields.join(', ')} 
+        WHERE id = ?
+      `;
+
+      await executeQuery(connection, updateQuery, updateValues);
+
+      // Récupérer le fail mis à jour
+      const updatedFail = await this.getFailById(parseInt(id), userId, connection);
+
+      res.json({
+        success: true,
+        message: 'Fail mis à jour avec succès',
+        data: updatedFail
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur mise à jour fail:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la mise à jour du fail',
+        code: 'FAIL_UPDATE_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Rechercher des fails
+   */
+  static async searchFails(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { 
+        q: searchQuery, 
+        category, 
+        tags,
+        page = 1, 
+        limit = 20 
+      } = req.query;
+
+      const userId = req.user ? req.user.id : null;
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 20;
+      const offset = (pageNum - 1) * limitNum;
+
+      if (!searchQuery || searchQuery.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Terme de recherche requis',
+          code: 'MISSING_SEARCH_QUERY'
+        });
+      }
+
+      let query = `
+        SELECT 
+          f.*,
+          u.display_name,
+          u.avatar_url,
+          (SELECT COUNT(*) FROM fail_reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM fail_comments fc WHERE fc.fail_id = f.id) as comments_count,
+          ${userId ? `(SELECT reaction_type FROM fail_reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
+        FROM fails f
+        JOIN users u ON f.user_id = u.id
+        WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
+      `;
+
+      const params = [];
+      if (userId) {
+        params.push(userId);
+      }
+
+      const searchTerm = `%${searchQuery}%`;
+      params.push(searchTerm, searchTerm, searchTerm);
+
+      // Filtres de visibilité
+      if (!userId) {
+        query += ' AND f.is_public = 1';
+      } else {
+        query += ' AND (f.is_public = 1 OR f.user_id = ?)';
+        params.push(userId);
+      }
+
+      // Filtre par catégorie
+      if (category) {
+        query += ' AND f.category = ?';
+        params.push(category);
+      }
+
+      // Filtre par tags
+      if (tags) {
+        const tagArray = Array.isArray(tags) ? tags : [tags];
+        tagArray.forEach(tag => {
+          query += ' AND f.tags LIKE ?';
+          params.push(`%"${tag}"%`);
+        });
+      }
+
+      query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
+      params.push(limitNum, offset);
+
+      const fails = await executeQuery(connection, query, params);
+
+      // Compter le total pour la pagination
+      let countQuery = `
+        SELECT COUNT(*) as total
+        FROM fails f
+        WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
+      `;
+      const countParams = [searchTerm, searchTerm, searchTerm];
+
+      if (!userId) {
+        countQuery += ' AND f.is_public = 1';
+      } else {
+        countQuery += ' AND (f.is_public = 1 OR f.user_id = ?)';
+        countParams.push(userId);
+      }
+
+      if (category) {
+        countQuery += ' AND f.category = ?';
+        countParams.push(category);
+      }
+
+      if (tags) {
+        const tagArray = Array.isArray(tags) ? tags : [tags];
+        tagArray.forEach(tag => {
+          countQuery += ' AND f.tags LIKE ?';
+          countParams.push(`%"${tag}"%`);
+        });
+      }
+
+      const totalResult = await executeQuery(connection, countQuery, countParams);
+      const total = totalResult[0].total;
+      const totalPages = Math.ceil(total / limitNum);
+
+      res.json({
+        success: true,
+        data: {
+          fails: fails.map(fail => ({
+            ...fail,
+            tags: JSON.parse(fail.tags || '[]'),
+            location: fail.location ? JSON.parse(fail.location) : null,
+            created_at: new Date(fail.created_at).toISOString(),
+            updated_at: new Date(fail.updated_at).toISOString()
+          })),
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: total,
+            totalPages: totalPages,
+            hasNext: pageNum < totalPages,
+            hasPrev: pageNum > 1
+          },
+          searchQuery: searchQuery
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur recherche fails:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la recherche',
+        code: 'SEARCH_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Récupérer les catégories disponibles
+   */
+  static async getCategories(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const categories = await executeQuery(connection, `
+        SELECT 
+          category,
+          COUNT(*) as count
+        FROM fails 
+        WHERE is_public = 1
+        GROUP BY category
+        ORDER BY count DESC, category ASC
+      `);
+
+      res.json({
+        success: true,
+        data: categories.map(cat => ({
+          name: cat.category,
+          count: cat.count
+        }))
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur récupération catégories:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des catégories',
+        code: 'CATEGORIES_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Récupérer les tags populaires
+   */
+  static async getPopularTags(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { limit = 50 } = req.query;
+      const limitNum = parseInt(limit) || 50;
+
+      // Récupérer tous les tags depuis les fails publics
+      const tagsResults = await executeQuery(connection, `
+        SELECT tags 
+        FROM fails 
+        WHERE is_public = 1 AND tags IS NOT NULL AND tags != '[]'
+      `);
+
+      // Compter la fréquence de chaque tag
+      const tagCounts = {};
+
+      tagsResults.forEach(result => {
+        try {
+          const tags = JSON.parse(result.tags);
+          if (Array.isArray(tags)) {
+            tags.forEach(tag => {
+              if (typeof tag === 'string' && tag.trim().length > 0) {
+                const normalizedTag = tag.trim().toLowerCase();
+                tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
+              }
+            });
+          }
+        } catch (parseError) {
+          console.warn('⚠️ Erreur parsing tags:', parseError);
+        }
+      });
+
+      // Trier par popularité et limiter
+      const sortedTags = Object.entries(tagCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, limitNum)
+        .map(([tag, count]) => ({ name: tag, count }));
+
+      res.json({
+        success: true,
+        data: sortedTags
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur récupération tags populaires:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des tags',
+        code: 'TAGS_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Incrémenter le compteur de vues
+   */
+  static async incrementViewCount(failId, userId, connection) {
+    try {
+      // Vérifier si l'utilisateur a déjà vu ce fail récemment (dans les dernières 24h)
+      if (userId) {
+        const recentViews = await executeQuery(connection, `
+          SELECT id FROM fail_views 
+          WHERE fail_id = ? AND user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+        `, [failId, userId]);
+
+        if (recentViews.length > 0) {
+          return; // Ne pas compter la vue si déjà vue récemment
+        }
+
+        // Enregistrer la vue
+        const { v4: uuidv4 } = require('uuid');
+        await executeQuery(connection, `
+          INSERT INTO fail_views (id, fail_id, user_id, created_at) 
+          VALUES (?, ?, ?, NOW())
+        `, [uuidv4(), failId, userId]);
+      }
+
+      // Incrémenter le compteur global de vues
+      await executeQuery(connection, `
+        UPDATE fails 
+        SET views_count = views_count + 1 
+        WHERE id = ?
+      `, [failId]);
+
+    } catch (error) {
+      console.error('❌ Erreur incrémentation vues:', error);
+      // Ne pas faire échouer la requête principale
+    }
+  }
 }
 
 module.exports = FailsController;

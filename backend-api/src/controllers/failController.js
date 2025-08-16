@@ -317,9 +317,119 @@ const deleteFail = async (req, res) => {
   }
 };
 
+// Modifier un fail
+const updateFail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, category, isPublic } = req.body;
+    const userId = req.user.id;
+
+    // Validation des données
+    if (!title || title.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Le titre est requis',
+        code: 'TITLE_REQUIRED'
+      });
+    }
+
+    if (title.length > 200) {
+      return res.status(400).json({
+        error: 'Le titre ne peut pas dépasser 200 caractères',
+        code: 'TITLE_TOO_LONG'
+      });
+    }
+
+    if (description && description.length > 2000) {
+      return res.status(400).json({
+        error: 'La description ne peut pas dépasser 2000 caractères',
+        code: 'DESCRIPTION_TOO_LONG'
+      });
+    }
+
+    // Vérifier que le fail existe et appartient à l'utilisateur
+    const existingFails = await executeQuery(
+      'SELECT id, user_id FROM fails WHERE id = ?',
+      [id]
+    );
+
+    if (existingFails.length === 0) {
+      return res.status(404).json({
+        error: 'Fail introuvable',
+        code: 'FAIL_NOT_FOUND'
+      });
+    }
+
+    const fail = existingFails[0];
+
+    if (fail.user_id !== userId) {
+      return res.status(403).json({
+        error: 'Vous ne pouvez modifier que vos propres fails',
+        code: 'ACCESS_DENIED'
+      });
+    }
+
+    // Mettre à jour le fail
+    const updateFields = [];
+    const updateValues = [];
+
+    if (title) {
+      updateFields.push('title = ?');
+      updateValues.push(title.trim());
+    }
+
+    if (description !== undefined) {
+      updateFields.push('description = ?');
+      updateValues.push(description);
+    }
+
+    if (category) {
+      updateFields.push('category = ?');
+      updateValues.push(category);
+    }
+
+    if (isPublic !== undefined) {
+      updateFields.push('is_public = ?');
+      updateValues.push(isPublic ? 1 : 0);
+    }
+
+    updateFields.push('updated_at = NOW()');
+    updateValues.push(id);
+
+    await executeQuery(
+      `UPDATE fails SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues
+    );
+
+    // Récupérer le fail mis à jour avec les informations de l'auteur
+    const updatedFails = await executeQuery(`
+      SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at, f.updated_at,
+             p.display_name as author_name, p.avatar_url as author_avatar,
+             u.id as author_id,
+             (SELECT COUNT(*) FROM fail_reactions r WHERE r.fail_id = f.id) as reactions_count
+      FROM fails f
+      JOIN profiles p ON f.user_id = p.user_id
+      JOIN users u ON f.user_id = u.id
+      WHERE f.id = ?
+    `, [id]);
+
+    res.json({
+      message: 'Fail mis à jour avec succès',
+      fail: updatedFails[0]
+    });
+
+  } catch (error) {
+    console.error('Erreur modification fail:', error);
+    res.status(500).json({
+      error: 'Erreur interne du serveur',
+      code: 'INTERNAL_ERROR'
+    });
+  }
+};
+
 module.exports = {
   createFail,
   getFails,
   getFailById,
+  updateFail,
   deleteFail
 };

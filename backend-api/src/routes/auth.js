@@ -1,6 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, verifyToken, logout, checkEmail } = require('../controllers/authController');
+const { 
+  register, 
+  login, 
+  verifyToken, 
+  logout, 
+  checkEmail,
+  getProfile,
+  updateProfile,
+  changePassword,
+  requestPasswordReset
+} = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 
 // POST /api/auth/register - Inscription
@@ -18,15 +28,19 @@ router.post('/logout', authenticateToken, logout);
 // GET /api/auth/check-email - Vérifier si un email existe
 router.get('/check-email', checkEmail);
 
-// GET /api/auth/profile - Récupérer le profil utilisateur (placeholder)
-router.get('/profile', authenticateToken, (req, res) => {
-  res.json({
-    user: req.user,
-    message: 'Profile endpoint - implementation en cours'
-  });
-});
+// GET /api/auth/profile - Récupérer le profil utilisateur complet
+router.get('/profile', authenticateToken, getProfile);
 
-// PUT /api/auth/profile - Mettre à jour le profil utilisateur (placeholder)
+// PUT /api/auth/profile - Mettre à jour le profil utilisateur
+router.put('/profile', authenticateToken, updateProfile);
+
+// PUT /api/auth/password - Changer le mot de passe
+router.put('/password', authenticateToken, changePassword);
+
+// POST /api/auth/password-reset - Demande de réinitialisation de mot de passe
+router.post('/password-reset', requestPasswordReset);
+
+module.exports = router;
 router.put('/profile', authenticateToken, (req, res) => {
   res.json({
     success: true,

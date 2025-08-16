@@ -1,0 +1,481 @@
+const { executeQuery, executeTransaction } = require('../config/database');
+const { v4: uuidv4 } = require('uuid');
+
+/**
+ * Contrôleur pour la gestion des commentaires aux fails
+ */
+class CommentsController {
+
+  /**
+   * Ajouter un commentaire à un fail
+   */
+  static async addComment(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { id: failId } = req.params;
+      const { content, parentId = null } = req.body;
+      const userId = req.user.id;
+
+      // Validation du contenu
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le contenu du commentaire est requis',
+          code: 'MISSING_CONTENT'
+        });
+      }
+
+      if (content.length > 1000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le commentaire ne peut pas dépasser 1000 caractères',
+          code: 'CONTENT_TOO_LONG'
+        });
+      }
+
+      // Vérifier que le fail existe et est accessible
+      const fails = await executeQuery(connection, `
+        SELECT id, user_id, is_public 
+        FROM fails 
+        WHERE id = ?
+      `, [failId]);
+
+      if (fails.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Fail non trouvé',
+          code: 'FAIL_NOT_FOUND'
+        });
+      }
+
+      const fail = fails[0];
+
+      // Vérifier les permissions (fail public ou propriétaire)
+      if (!fail.is_public && fail.user_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès non autorisé à ce fail',
+          code: 'ACCESS_DENIED'
+        });
+      }
+
+      // Vérifier le commentaire parent s'il existe
+      if (parentId) {
+        const parentComments = await executeQuery(connection, `
+          SELECT id, fail_id 
+          FROM fail_comments 
+          WHERE id = ?
+        `, [parentId]);
+
+        if (parentComments.length === 0) {
+          return res.status(404).json({
+            success: false,
+            message: 'Commentaire parent non trouvé',
+            code: 'PARENT_COMMENT_NOT_FOUND'
+          });
+        }
+
+        if (parentComments[0].fail_id !== parseInt(failId)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Le commentaire parent n\'appartient pas à ce fail',
+            code: 'INVALID_PARENT_COMMENT'
+          });
+        }
+      }
+
+      // Créer le commentaire
+      const commentId = uuidv4();
+      
+      await executeQuery(connection, `
+        INSERT INTO fail_comments (
+          id, fail_id, user_id, content, parent_id, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+      `, [commentId, failId, userId, content.trim(), parentId]);
+
+      // Récupérer le commentaire créé avec les infos de l'utilisateur
+      const newComment = await executeQuery(connection, `
+        SELECT 
+          fc.id,
+          fc.content,
+          fc.parent_id,
+          fc.created_at,
+          fc.updated_at,
+          p.display_name,
+          p.avatar_url,
+          u.id as user_id
+        FROM fail_comments fc
+        JOIN users u ON fc.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
+        WHERE fc.id = ?
+      `, [commentId]);
+
+      res.status(201).json({
+        success: true,
+        message: 'Commentaire ajouté avec succès',
+        data: {
+          id: newComment[0].id,
+          content: newComment[0].content,
+          parentId: newComment[0].parent_id,
+          user: {
+            id: newComment[0].user_id,
+            displayName: newComment[0].display_name,
+            avatarUrl: newComment[0].avatar_url
+          },
+          createdAt: newComment[0].created_at,
+          updatedAt: newComment[0].updated_at
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur ajout commentaire:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de l\'ajout du commentaire',
+        code: 'COMMENT_CREATE_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Récupérer tous les commentaires d'un fail
+   */
+  static async getComments(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { id: failId } = req.params;
+      const { page = 1, limit = 20 } = req.query;
+      const userId = req.user ? req.user.id : null;
+
+      const pageNum = parseInt(page) || 1;
+      const limitNum = parseInt(limit) || 20;
+      const offset = (pageNum - 1) * limitNum;
+
+      // Vérifier que le fail existe et est accessible
+      const fails = await executeQuery(connection, `
+        SELECT id, user_id, is_public 
+        FROM fails 
+        WHERE id = ?
+      `, [failId]);
+
+      if (fails.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Fail non trouvé',
+          code: 'FAIL_NOT_FOUND'
+        });
+      }
+
+      const fail = fails[0];
+
+      // Vérifier les permissions (fail public ou propriétaire)
+      if (!fail.is_public && (!userId || fail.user_id !== userId)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès non autorisé à ce fail',
+          code: 'ACCESS_DENIED'
+        });
+      }
+
+      // Récupérer les commentaires avec pagination
+      const comments = await executeQuery(connection, `
+        SELECT 
+          fc.id,
+          fc.content,
+          fc.parent_id,
+          fc.created_at,
+          fc.updated_at,
+          p.display_name,
+          p.avatar_url,
+          u.id as user_id,
+          (SELECT COUNT(*) FROM fail_comments WHERE parent_id = fc.id) as replies_count
+        FROM fail_comments fc
+        JOIN users u ON fc.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
+        WHERE fc.fail_id = ?
+        ORDER BY fc.created_at ASC
+        LIMIT ? OFFSET ?
+      `, [failId, limitNum, offset]);
+
+      // Compter le total de commentaires
+      const totalResult = await executeQuery(connection, `
+        SELECT COUNT(*) as total
+        FROM fail_comments 
+        WHERE fail_id = ?
+      `, [failId]);
+
+      const total = totalResult[0].total;
+      const totalPages = Math.ceil(total / limitNum);
+
+      // Organiser les commentaires en arbre (parents et réponses)
+      const commentsMap = new Map();
+      const rootComments = [];
+
+      comments.forEach(comment => {
+        const commentData = {
+          id: comment.id,
+          content: comment.content,
+          user: {
+            id: comment.user_id,
+            displayName: comment.display_name,
+            avatarUrl: comment.avatar_url
+          },
+          createdAt: comment.created_at,
+          updatedAt: comment.updated_at,
+          repliesCount: comment.replies_count,
+          replies: []
+        };
+
+        commentsMap.set(comment.id, commentData);
+
+        if (comment.parent_id) {
+          // C'est une réponse
+          const parent = commentsMap.get(comment.parent_id);
+          if (parent) {
+            parent.replies.push(commentData);
+          }
+        } else {
+          // C'est un commentaire racine
+          rootComments.push(commentData);
+        }
+      });
+
+      res.json({
+        success: true,
+        data: {
+          comments: rootComments,
+          pagination: {
+            page: pageNum,
+            limit: limitNum,
+            total: total,
+            totalPages: totalPages,
+            hasNext: pageNum < totalPages,
+            hasPrev: pageNum > 1
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur récupération commentaires:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des commentaires',
+        code: 'COMMENTS_FETCH_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Modifier un commentaire
+   */
+  static async updateComment(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { id: failId, commentId } = req.params;
+      const { content } = req.body;
+      const userId = req.user.id;
+
+      // Validation du contenu
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le contenu du commentaire est requis',
+          code: 'MISSING_CONTENT'
+        });
+      }
+
+      if (content.length > 1000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Le commentaire ne peut pas dépasser 1000 caractères',
+          code: 'CONTENT_TOO_LONG'
+        });
+      }
+
+      // Vérifier que le commentaire existe et appartient à l'utilisateur
+      const comments = await executeQuery(connection, `
+        SELECT id, user_id, fail_id
+        FROM fail_comments 
+        WHERE id = ? AND fail_id = ?
+      `, [commentId, failId]);
+
+      if (comments.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Commentaire non trouvé',
+          code: 'COMMENT_NOT_FOUND'
+        });
+      }
+
+      const comment = comments[0];
+
+      if (comment.user_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Vous ne pouvez modifier que vos propres commentaires',
+          code: 'ACCESS_DENIED'
+        });
+      }
+
+      // Mettre à jour le commentaire
+      await executeQuery(connection, `
+        UPDATE fail_comments 
+        SET content = ?, updated_at = NOW() 
+        WHERE id = ?
+      `, [content.trim(), commentId]);
+
+      // Récupérer le commentaire mis à jour
+      const updatedComment = await executeQuery(connection, `
+        SELECT 
+          fc.id,
+          fc.content,
+          fc.parent_id,
+          fc.created_at,
+          fc.updated_at,
+          p.display_name,
+          p.avatar_url,
+          u.id as user_id
+        FROM fail_comments fc
+        JOIN users u ON fc.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
+        WHERE fc.id = ?
+      `, [commentId]);
+
+      res.json({
+        success: true,
+        message: 'Commentaire mis à jour avec succès',
+        data: {
+          id: updatedComment[0].id,
+          content: updatedComment[0].content,
+          parentId: updatedComment[0].parent_id,
+          user: {
+            id: updatedComment[0].user_id,
+            displayName: updatedComment[0].display_name,
+            avatarUrl: updatedComment[0].avatar_url
+          },
+          createdAt: updatedComment[0].created_at,
+          updatedAt: updatedComment[0].updated_at
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur modification commentaire:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la modification du commentaire',
+        code: 'COMMENT_UPDATE_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Supprimer un commentaire
+   */
+  static async deleteComment(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const { id: failId, commentId } = req.params;
+      const userId = req.user.id;
+
+      // Vérifier que le commentaire existe et appartient à l'utilisateur
+      const comments = await executeQuery(connection, `
+        SELECT id, user_id, fail_id
+        FROM fail_comments 
+        WHERE id = ? AND fail_id = ?
+      `, [commentId, failId]);
+
+      if (comments.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: 'Commentaire non trouvé',
+          code: 'COMMENT_NOT_FOUND'
+        });
+      }
+
+      const comment = comments[0];
+
+      if (comment.user_id !== userId) {
+        return res.status(403).json({
+          success: false,
+          message: 'Vous ne pouvez supprimer que vos propres commentaires',
+          code: 'ACCESS_DENIED'
+        });
+      }
+
+      // Supprimer le commentaire et ses réponses en cascade
+      const result = await executeQuery(connection, `
+        DELETE FROM fail_comments 
+        WHERE id = ? OR parent_id = ?
+      `, [commentId, commentId]);
+
+      res.json({
+        success: true,
+        message: `Commentaire supprimé avec succès (${result.affectedRows} éléments)`,
+        data: {
+          deletedCount: result.affectedRows
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur suppression commentaire:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la suppression du commentaire',
+        code: 'COMMENT_DELETE_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+
+  /**
+   * Récupérer les statistiques des commentaires d'un utilisateur
+   */
+  static async getUserCommentStats(req, res) {
+    const connection = req.dbConnection;
+    
+    try {
+      const userId = req.user.id;
+
+      // Compter les commentaires écrits par l'utilisateur
+      const writtenComments = await executeQuery(connection, `
+        SELECT COUNT(*) as count
+        FROM fail_comments 
+        WHERE user_id = ?
+      `, [userId]);
+
+      // Compter les commentaires reçus sur les fails de l'utilisateur
+      const receivedComments = await executeQuery(connection, `
+        SELECT COUNT(*) as count
+        FROM fail_comments fc
+        JOIN fails f ON fc.fail_id = f.id
+        WHERE f.user_id = ? AND fc.user_id != ?
+      `, [userId, userId]);
+
+      res.json({
+        success: true,
+        data: {
+          written: writtenComments[0].count,
+          received: receivedComments[0].count
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Erreur stats commentaires utilisateur:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erreur lors de la récupération des statistiques',
+        code: 'USER_STATS_ERROR',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  }
+}
+
+module.exports = CommentsController;

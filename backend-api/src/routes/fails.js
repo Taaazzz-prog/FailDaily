@@ -2,7 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const { createFail, getFails, getFailById, deleteFail } = require('../controllers/failController');
+const { createFail, getFails, getFailById, updateFail, deleteFail } = require('../controllers/failController');
+const CommentsController = require('../controllers/commentsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
 // Configuration multer pour l'upload d'images
@@ -42,37 +43,16 @@ router.get('/', authenticateToken, getFails);
 // GET /api/fails/:id - Récupérer un fail spécifique
 router.get('/:id', authenticateToken, getFailById);
 
-// PUT /api/fails/:id - Modifier un fail (placeholder)
-router.put('/:id', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Fail update endpoint - implementation en cours'
-  });
-});
+// PUT /api/fails/:id - Modifier un fail
+router.put('/:id', authenticateToken, updateFail);
 
 // DELETE /api/fails/:id - Supprimer un fail
 router.delete('/:id', authenticateToken, deleteFail);
 
-// GET /api/fails/:id/comments - Récupérer les commentaires d'un fail (placeholder)
-router.get('/:id/comments', authenticateToken, (req, res) => {
-  res.json({
-    comments: [],
-    message: 'Comments endpoint - implementation en cours'
-  });
-});
+// GET /api/fails/:id/comments - Récupérer les commentaires d'un fail
+router.get('/:id/comments', authenticateToken, CommentsController.getComments);
 
-// POST /api/fails/:id/comments - Ajouter un commentaire (placeholder)
-router.post('/:id/comments', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    comment: {
-      id: Date.now(),
-      content: req.body.content,
-      author: req.user.email,
-      created_at: new Date()
-    },
-    message: 'Comment creation endpoint - implementation en cours'
-  });
-});
+// POST /api/fails/:id/comments - Ajouter un commentaire
+router.post('/:id/comments', authenticateToken, CommentsController.addComment);
 
 module.exports = router;
