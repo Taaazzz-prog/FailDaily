@@ -37,7 +37,7 @@ async function testJWTVerification() {
     const userData = {
       email: testEmail,
       password: testPassword,
-      displayName: 'Test JWT User',
+      displayName: 'Test JWT User ' + Date.now(),
       birthDate: TEST_UTILS.generateBirthDate(22),
       agreeToTerms: true
     };

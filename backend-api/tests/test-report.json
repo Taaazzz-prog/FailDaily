@@ -1,22 +1,22 @@
 {
-  "timestamp": "2025-08-18T09:59:26.551Z",
-  "duration": 13191,
+  "timestamp": "2025-08-18T10:02:21.485Z",
+  "duration": 14869,
   "summary": {
     "total": 9,
-    "passed": 6,
-    "failed": 3,
-    "successRate": 67
+    "passed": 9,
+    "failed": 0,
+    "successRate": 100
   },
   "tests": [
     {
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 77,
+      "duration": 68,
       "details": {
         "connection": true,
         "tablesCount": 19,
-        "usersCount": 10,
+        "usersCount": 19,
         "errors": []
       }
     },
@@ -24,7 +24,7 @@
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 56,
+      "duration": 44,
       "details": {
         "tables": {
           "users": {
@@ -283,7 +283,7 @@
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 380,
+      "duration": 375,
       "details": {
         "validRegistrationAdult": true,
         "emailUniqueness": true,
@@ -299,7 +299,7 @@
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 1926,
+      "duration": 1903,
       "details": {
         "userCreated": true,
         "validLogin": true,
@@ -313,26 +313,24 @@
     {
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
-      "success": false,
-      "duration": 8,
+      "success": true,
+      "duration": 655,
       "details": {
-        "userCreated": false,
-        "tokenReceived": false,
-        "tokenVerification": false,
-        "invalidToken": false,
-        "missingToken": false,
+        "userCreated": true,
+        "tokenReceived": true,
+        "tokenVerification": true,
+        "invalidToken": true,
+        "missingToken": true,
         "expiredToken": false,
-        "middleware": false,
-        "errors": [
-          "Impossible d'obtenir un token valide"
-        ]
+        "middleware": true,
+        "errors": []
       }
     },
     {
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
       "success": true,
-      "duration": 1248,
+      "duration": 1195,
       "details": {
         "protectedEndpoints": 11,
         "blockedEndpoints": 11,
@@ -433,7 +431,7 @@
       "name": "3.1 - Création de Fails",
       "category": "Fails",
       "success": true,
-      "duration": 407,
+      "duration": 403,
       "details": {
         "userCreated": true,
         "tokenObtained": true,
@@ -449,37 +447,34 @@
     {
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
-      "success": false,
-      "duration": 6,
+      "success": true,
+      "duration": 426,
       "details": {
-        "userCreated": false,
-        "failsCreated": 0,
-        "getAllFails": false,
-        "getFailById": false,
-        "publicOnlyFilter": false,
-        "pagination": false,
-        "categoryFilter": false,
-        "unauthorizedAccess": false,
-        "errors": [
-          "Impossible de créer utilisateur de test"
-        ]
+        "userCreated": true,
+        "failsCreated": 4,
+        "getAllFails": true,
+        "getFailById": true,
+        "publicOnlyFilter": true,
+        "pagination": true,
+        "categoryFilter": true,
+        "unauthorizedAccess": true,
+        "errors": [],
+        "formatValidation": true
       }
     },
     {
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
-      "success": false,
-      "duration": 6,
+      "success": true,
+      "duration": 710,
       "details": {
-        "userRegistration": false,
-        "userLogin": false,
-        "failCreation": false,
-        "failRetrieval": false,
+        "userRegistration": true,
+        "userLogin": true,
+        "failCreation": true,
+        "failRetrieval": true,
         "userStats": false,
-        "endToEndFlow": false,
-        "errors": [
-          "Inscription échouée: Ce nom d'utilisateur est déjà pris"
-        ]
+        "endToEndFlow": true,
+        "errors": []
       }
     }
   ]

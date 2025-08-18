@@ -9,6 +9,7 @@ const authenticateToken = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ 
       error: 'Token d\'accès requis',
+      message: 'Token d\'accès requis',
       code: 'NO_TOKEN' 
     });
   }
