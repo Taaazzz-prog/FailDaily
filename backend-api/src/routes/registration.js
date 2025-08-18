@@ -147,6 +147,15 @@ router.post('/register', async (req, res) => {
       age--;
     }
 
+    // Bloquer < 13 ans
+    if (age < 13) {
+      return res.status(400).json({
+        success: false,
+        message: 'Âge minimum requis: 13 ans',
+        code: 'AGE_RESTRICTION'
+      });
+    }
+
     // 13-16 ans : besoin autorisation parentale (0)
     // 17+ ans : inscription complète directement (1)
     const registrationCompleted = age >= 17 ? 1 : 0;
@@ -196,26 +205,28 @@ router.post('/register', async (req, res) => {
     try {
       // Préparer toutes les requêtes pour la transaction
       const queries = [
-        // Insérer l'utilisateur
+        // Insérer l'utilisateur (déclenchera le trigger users_after_insert qui crée un profil)
         {
           query: `INSERT INTO users (
             id, email, password_hash, role, account_status, registration_step, created_at
           ) VALUES (?, ?, ?, 'user', 'active', 'basic', NOW())`,
           params: [userId, email.toLowerCase(), hashedPassword]
         },
-        // Créer le profil utilisateur avec logique d'âge
+        // Mettre à jour le profil créé par le trigger avec les bonnes données
         {
-          query: `INSERT INTO profiles (
-            id, user_id, display_name, registration_completed, 
-            legal_consent, age_verification, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          query: `UPDATE profiles 
+                  SET display_name = ?, 
+                      registration_completed = ?,
+                      legal_consent = ?,
+                      age_verification = ?,
+                      updated_at = NOW()
+                  WHERE user_id = ?`,
           params: [
-            profileId, 
-            userId, 
-            displayName, 
-            registrationCompleted, // 1 si 17+, 0 si 13-16
-            JSON.stringify({ birthDate, agreeToTerms, acceptedAt: new Date() }), 
-            JSON.stringify({ birthDate, age, verified: true })
+            displayName,
+            registrationCompleted,
+            JSON.stringify({ birthDate, agreeToTerms, acceptedAt: new Date() }),
+            JSON.stringify({ birthDate, age, verified: true }),
+            userId
           ]
         }
       ];
@@ -223,37 +234,7 @@ router.post('/register', async (req, res) => {
       // Les codes de parrainage ne sont pas implémentés pour l'instant
       // (table referral_codes inexistante)
 
-      // Vérifier s'il y a un badge de bienvenue et l'ajouter
-      const welcomeBadge = await executeQuery(
-        'SELECT id FROM badge_definitions WHERE name = "Bienvenue"',
-        []
-      );
-
-      if (welcomeBadge.length > 0) {
-        const badgeInfo = welcomeBadge[0];
-        queries.push(
-          // Attribuer le badge dans la table badges (complète)
-          {
-            query: `INSERT INTO badges (
-              id, user_id, name, description, icon, category, rarity, badge_type, unlocked_at, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, 'welcome', NOW(), NOW())`,
-            params: [
-              uuidv4(), // ID du badge attribué
-              userId, 
-              badgeInfo.name,
-              badgeInfo.description,
-              badgeInfo.icon,
-              badgeInfo.category,
-              badgeInfo.rarity
-            ]
-          },
-          // Ajouter les XP du badge
-          {
-            query: 'UPDATE users SET xp = xp + 5 WHERE id = ?',
-            params: [userId]
-          }
-        );
-      }
+  // Attribution de badge/XP désactivée: colonnes et données non garanties dans le schéma actuel
 
       // Exécuter toutes les requêtes dans une transaction
       await executeTransaction(queries);
@@ -274,7 +255,7 @@ router.post('/register', async (req, res) => {
       // Récupérer les données utilisateur complètes
       const userQuery = `
         SELECT 
-          u.id, u.email, u.xp, u.level, u.avatar_url,
+          u.id, u.email,
           u.account_status, u.created_at,
           p.display_name
         FROM users u
@@ -293,10 +274,7 @@ router.post('/register', async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-          displayName: user.display_name,
-          xp: user.xp,
-          level: user.level,
-          avatarUrl: user.avatar_url,
+    displayName: user.display_name,
           accountStatus: user.account_status,
           createdAt: user.created_at
         }

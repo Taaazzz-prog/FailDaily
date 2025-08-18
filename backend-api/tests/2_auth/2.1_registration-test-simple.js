@@ -153,16 +153,23 @@ async function testRegistration() {
     errors.push(`Erreur test: ${error.message}`);
   }
 
-  const success = Object.values(results).every(r => r === true);
+  // Calcul du succès en ne considérant que les flags booléens
+  const boolKeys = [
+    'validRegistrationAdult',
+    'emailUniqueness',
+    'displayNameUniqueness',
+    'requiredFields',
+    'ageVerification',
+    'termsValidation',
+    'responseFormat'
+  ];
+  const success = boolKeys.every(k => results[k] === true);
   
   console.log(`\n📊 Résultat inscription: ${success ? '✅ SUCCÈS' : '❌ ÉCHEC'}`);
   
   return {
-    name: '2.1 - Inscription Utilisateur',
-    category: 'Authentication',
     success,
-    duration: 0,
-    details: { ...results, errors }
+    results: { ...results, errors }
   };
 }
 

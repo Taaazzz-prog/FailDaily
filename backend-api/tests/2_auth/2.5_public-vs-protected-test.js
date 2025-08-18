@@ -25,13 +25,13 @@ async function testPublicVsProtectedEndpoints() {
     {
       name: 'Health Check',
       method: 'GET',
-      url: `${API_CONFIG.baseUrl}/api/health`,
+      url: `${API_CONFIG.baseUrl}/health`,
       shouldBeAccessible: true
     },
     {
-      name: 'App Info',
+      name: 'Root Info',
       method: 'GET', 
-      url: `${API_CONFIG.baseUrl}/api/info`,
+      url: `${API_CONFIG.baseUrl}/`,
       shouldBeAccessible: true
     },
     {

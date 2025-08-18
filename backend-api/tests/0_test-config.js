@@ -6,7 +6,9 @@
  * Contient les URLs, utilisateurs de test, et utilitaires communs
  */
 
-require('dotenv').config({ path: '../.env' });
+const path = require('path');
+// Charger le .env du dossier backend-api (et non celui du dossier parent)
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Configuration de l'API
 const API_CONFIG = {

@@ -1,0 +1,16 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "run-backend-tests",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoProfile",
+				"-NonInteractive",
+				"-Command",
+				"$env:NODE_ENV='development'; cd 'd:/Web API/FailDaily/backend-api'; node server.js & Start-Sleep -Seconds 2; node ./tests/run-all-tests.js; $LASTEXITCODE"
+			]
+		}
+	]
+}

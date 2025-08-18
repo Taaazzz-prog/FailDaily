@@ -1,22 +1,22 @@
 {
-  "timestamp": "2025-08-16T19:56:18.653Z",
-  "duration": 12753,
+  "timestamp": "2025-08-18T09:59:26.551Z",
+  "duration": 13191,
   "summary": {
     "total": 9,
-    "passed": 3,
-    "failed": 6,
-    "successRate": 33
+    "passed": 6,
+    "failed": 3,
+    "successRate": 67
   },
   "tests": [
     {
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 137,
+      "duration": 77,
       "details": {
         "connection": true,
         "tablesCount": 19,
-        "usersCount": 2,
+        "usersCount": 10,
         "errors": []
       }
     },
@@ -24,7 +24,7 @@
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 218,
+      "duration": 56,
       "details": {
         "tables": {
           "users": {
@@ -282,31 +282,39 @@
     {
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
-      "success": false,
-      "duration": 1778
+      "success": true,
+      "duration": 380,
+      "details": {
+        "validRegistrationAdult": true,
+        "emailUniqueness": true,
+        "displayNameUniqueness": true,
+        "requiredFields": true,
+        "ageVerification": true,
+        "termsValidation": true,
+        "responseFormat": true,
+        "errors": []
+      }
     },
     {
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
-      "success": false,
-      "duration": 20,
+      "success": true,
+      "duration": 1926,
       "details": {
-        "userCreated": false,
-        "validLogin": false,
-        "invalidPassword": false,
-        "invalidEmail": false,
+        "userCreated": true,
+        "validLogin": true,
+        "invalidPassword": true,
+        "invalidEmail": true,
         "missingFields": false,
-        "tokenFormat": false,
-        "errors": [
-          "Impossible de créer utilisateur de test"
-        ]
+        "tokenFormat": true,
+        "errors": []
       }
     },
     {
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
       "success": false,
-      "duration": 20,
+      "duration": 8,
       "details": {
         "userCreated": false,
         "tokenReceived": false,
@@ -324,7 +332,7 @@
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
       "success": true,
-      "duration": 1424,
+      "duration": 1248,
       "details": {
         "protectedEndpoints": 11,
         "blockedEndpoints": 11,
@@ -424,27 +432,25 @@
     {
       "name": "3.1 - Création de Fails",
       "category": "Fails",
-      "success": false,
-      "duration": 22,
+      "success": true,
+      "duration": 407,
       "details": {
-        "userCreated": false,
-        "tokenObtained": false,
-        "validFailCreation": false,
-        "missingTitle": false,
-        "publicFail": false,
-        "privateFail": false,
-        "categoryValidation": false,
-        "responseFormat": false,
-        "errors": [
-          "Impossible de créer utilisateur de test"
-        ]
+        "userCreated": true,
+        "tokenObtained": true,
+        "validFailCreation": true,
+        "missingTitle": true,
+        "publicFail": true,
+        "privateFail": true,
+        "categoryValidation": true,
+        "responseFormat": true,
+        "errors": []
       }
     },
     {
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
       "success": false,
-      "duration": 30,
+      "duration": 6,
       "details": {
         "userCreated": false,
         "failsCreated": 0,
@@ -463,7 +469,7 @@
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
       "success": false,
-      "duration": 23,
+      "duration": 6,
       "details": {
         "userRegistration": false,
         "userLogin": false,
@@ -472,7 +478,7 @@
         "userStats": false,
         "endToEndFlow": false,
         "errors": [
-          "Inscription échouée: Tous les champs obligatoires doivent être remplis"
+          "Inscription échouée: Ce nom d'utilisateur est déjà pris"
         ]
       }
     }

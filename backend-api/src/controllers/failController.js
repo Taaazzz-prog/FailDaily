@@ -38,55 +38,24 @@ const createFail = async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
     `, [failId, userId, title, description, category, req.file?.filename || null, isPublic || false]);
 
-    // Mettre à jour les statistiques du profil
+  // (Optionnel) Mise à jour des stats utilisateur ou attribution de badges
+  // Désactivé car les colonnes/tables attendues ne sont pas standardisées dans le schéma actuel.
+
+    // Log de l'activité (schéma user_activities actuel)
     await executeQuery(
-      // Ne pas mettre à jour les compteurs car les colonnes n'existent pas
-      // 'UPDATE profiles SET total_fails = total_fails + 1 WHERE user_id = ?',
-      [userId]
-    );
-
-    // Attribution du badge "First Fail" si c'est le premier
-    if (todayFails[0].count === 0) {
-      const firstFailBadge = await executeQuery(
-        'SELECT id FROM badges WHERE code = "first_fail"'
-      );
-      
-      if (firstFailBadge.length > 0) {
-        // Vérifier si l'utilisateur a déjà ce badge
-        const existingBadge = await executeQuery(
-          'SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?',
-          [userId, firstFailBadge[0].id]
-        );
-
-        if (existingBadge.length === 0) {
-          await executeQuery(
-            'INSERT INTO user_badges (id, user_id, badge_id, earned_at) VALUES (?, ?, ?, NOW())',
-            [uuidv4(), userId, firstFailBadge[0].id]
-          );
-
-          await executeQuery(
-            // Ne pas mettre à jour les compteurs car les colonnes n'existent pas
-            // 'UPDATE profiles SET total_badges = total_badges + 1, total_points = total_points + 10 WHERE user_id = ?',
-            [userId]
-          );
-        }
-      }
-    }
-
-    // Log de l'activité
-    await executeQuery(
-      'INSERT INTO user_activities (id, user_id, activity_type, description, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [uuidv4(), userId, 'create_fail', `Fail créé: ${title}`]
+      'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
+      [uuidv4(), userId, 'create_fail', JSON.stringify({ title })]
     );
 
     res.status(201).json({
       message: 'Fail créé avec succès',
       fail: {
         id: failId,
+        user_id: userId,
         title,
         description,
         category,
-        isPublic: isPublic || false,
+        isPublic: !!isPublic,
         createdAt: new Date().toISOString()
       }
     });
@@ -110,14 +79,11 @@ const getFails = async (req, res) => {
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 20;
 
+    // Sélection minimale pour respecter l'anonymat et le format attendu
     let query = `
-      SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
-             p.display_name as author_name, p.avatar_url as author_avatar,
-             u.id as author_id,
+      SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
              (SELECT COUNT(*) FROM reactions r WHERE r.fail_id = f.id) as reactions_count
       FROM fails f
-      JOIN profiles p ON f.user_id = p.user_id
-      JOIN users u ON f.user_id = u.id
       WHERE 1=1
     `;
 
@@ -139,13 +105,13 @@ const getFails = async (req, res) => {
       params.push(category);
     }
 
-    query += ' ORDER BY f.created_at DESC';
+  query += ' ORDER BY f.created_at DESC';
 
     // Pagination
     const offset = (pageNum - 1) * limitNum;
     query += ` LIMIT ${limitNum} OFFSET ${offset}`;
 
-    const fails = await executeQuery(query, params);
+  const fails = await executeQuery(query, params);
 
     // Compter le total pour la pagination
     let countQuery = `
@@ -176,24 +142,20 @@ const getFails = async (req, res) => {
     res.json({
       fails: fails.map(fail => ({
         id: fail.id,
+        user_id: fail.user_id,
         title: fail.title,
         description: fail.description,
         category: fail.category,
         imageUrl: fail.image_url,
-        isPublic: fail.is_public,
+        isPublic: !!fail.is_public,
         createdAt: fail.created_at,
-        author: {
-          id: fail.author_id,
-          name: fail.author_name,
-          avatar: fail.author_avatar
-        },
         reactionsCount: fail.reactions_count
       })),
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        currentPage: pageNum,
+        limit: limitNum,
         total,
-        pages: Math.ceil(total / limit)
+        totalPages: Math.ceil(total / limitNum)
       }
     });
 
@@ -213,13 +175,9 @@ const getFailById = async (req, res) => {
     const currentUserId = req.user?.id;
 
     const fails = await executeQuery(`
-      SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
-             p.display_name as author_name, p.avatar_url as author_avatar,
-             u.id as author_id,
+      SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
              (SELECT COUNT(*) FROM reactions r WHERE r.fail_id = f.id) as reactions_count
       FROM fails f
-      JOIN profiles p ON f.user_id = p.user_id
-      JOIN users u ON f.user_id = u.id
       WHERE f.id = ?
     `, [id]);
 
@@ -233,7 +191,7 @@ const getFailById = async (req, res) => {
     const fail = fails[0];
 
     // Vérifier les permissions de lecture
-    if (!fail.is_public && (!currentUserId || fail.author_id !== currentUserId)) {
+    if (!fail.is_public && (!currentUserId || fail.user_id !== currentUserId)) {
       return res.status(403).json({
         error: 'Accès non autorisé',
         code: 'ACCESS_DENIED'
@@ -241,19 +199,17 @@ const getFailById = async (req, res) => {
     }
 
     res.json({
-      id: fail.id,
-      title: fail.title,
-      description: fail.description,
-      category: fail.category,
-      imageUrl: fail.image_url,
-      isPublic: fail.is_public,
-      createdAt: fail.created_at,
-      author: {
-        id: fail.author_id,
-        name: fail.author_name,
-        avatar: fail.author_avatar
-      },
-      reactionsCount: fail.reactions_count
+      fail: {
+        id: fail.id,
+        user_id: fail.user_id,
+        title: fail.title,
+        description: fail.description,
+        category: fail.category,
+        imageUrl: fail.image_url,
+        isPublic: !!fail.is_public,
+        createdAt: fail.created_at,
+        reactionsCount: fail.reactions_count
+      }
     });
 
   } catch (error) {
@@ -405,7 +361,7 @@ const updateFail = async (req, res) => {
       SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at, f.updated_at,
              p.display_name as author_name, p.avatar_url as author_avatar,
              u.id as author_id,
-             (SELECT COUNT(*) FROM fail_reactions r WHERE r.fail_id = f.id) as reactions_count
+             (SELECT COUNT(*) FROM reactions r WHERE r.fail_id = f.id) as reactions_count
       FROM fails f
       JOIN profiles p ON f.user_id = p.user_id
       JOIN users u ON f.user_id = u.id

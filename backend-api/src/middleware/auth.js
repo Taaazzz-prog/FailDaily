@@ -49,13 +49,15 @@ const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
+      return res.status(403).json({ 
         error: 'Token expiré',
+        message: 'Token expiré ou invalide',
         code: 'TOKEN_EXPIRED' 
       });
     } else if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
+      return res.status(403).json({ 
         error: 'Token invalide',
+        message: 'Token invalide',
         code: 'INVALID_TOKEN' 
       });
     }

@@ -124,25 +124,32 @@ class AgeVerificationController {
         });
       }
 
-      // Vérifier si l'utilisateur existe
-      const users = await executeQuery(
+      // Vérifier si le profil existe
+      const profiles = await executeQuery(
         req.dbConnection,
-        'SELECT id, birth_date FROM users WHERE id = ?',
+        'SELECT id, age_verification FROM profiles WHERE user_id = ?',
         [userId]
       );
 
-      if (users.length === 0) {
+      if (profiles.length === 0) {
         return res.status(404).json({
           success: false,
-          message: 'Utilisateur non trouvé'
+          message: 'Profil utilisateur non trouvé'
         });
       }
 
-      // Mettre à jour la date de naissance
+      // Mettre à jour le JSON age_verification dans profiles
       await executeQuery(
         req.dbConnection,
-        'UPDATE users SET birth_date = ?, updated_at = NOW() WHERE id = ?',
-        [birthDate, userId]
+        `UPDATE profiles 
+         SET age_verification = JSON_SET(COALESCE(age_verification, JSON_OBJECT()),
+           '$.birthDate', ?,
+           '$.age', ?,
+           '$.verified', true,
+           '$.isMinor', ?
+         ), updated_at = NOW()
+         WHERE user_id = ?`,
+        [birthDate, age, age < 18, userId]
       );
 
       // Log de la mise à jour
@@ -174,15 +181,39 @@ class AgeVerificationController {
         req.dbConnection,
         `SELECT 
           COUNT(*) as total_users,
-          AVG(YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d'))) as average_age,
-          COUNT(CASE WHEN YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d')) BETWEEN 13 AND 17 THEN 1 END) as teens,
-          COUNT(CASE WHEN YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d')) BETWEEN 18 AND 24 THEN 1 END) as young_adults,
-          COUNT(CASE WHEN YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d')) BETWEEN 25 AND 34 THEN 1 END) as adults_25_34,
-          COUNT(CASE WHEN YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d')) BETWEEN 35 AND 44 THEN 1 END) as adults_35_44,
-          COUNT(CASE WHEN YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d')) BETWEEN 45 AND 54 THEN 1 END) as adults_45_54,
-          COUNT(CASE WHEN YEAR(CURDATE()) - YEAR(birth_date) - (DATE_FORMAT(CURDATE(), '%m%d') < DATE_FORMAT(birth_date, '%m%d')) >= 55 THEN 1 END) as seniors
-        FROM users 
-        WHERE birth_date IS NOT NULL`
+          AVG(
+            TIMESTAMPDIFF(YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            )
+          ) as average_age,
+          COUNT(CASE WHEN TIMESTAMPDIFF(
+              YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            ) BETWEEN 13 AND 17 THEN 1 END) as teens,
+          COUNT(CASE WHEN TIMESTAMPDIFF(YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            ) BETWEEN 18 AND 24 THEN 1 END) as young_adults,
+          COUNT(CASE WHEN TIMESTAMPDIFF(YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            ) BETWEEN 25 AND 34 THEN 1 END) as adults_25_34,
+          COUNT(CASE WHEN TIMESTAMPDIFF(YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            ) BETWEEN 35 AND 44 THEN 1 END) as adults_35_44,
+          COUNT(CASE WHEN TIMESTAMPDIFF(YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            ) BETWEEN 45 AND 54 THEN 1 END) as adults_45_54,
+          COUNT(CASE WHEN TIMESTAMPDIFF(YEAR,
+              STR_TO_DATE(JSON_UNQUOTE(JSON_EXTRACT(age_verification, '$.birthDate')), '%Y-%m-%d'),
+              CURDATE()
+            ) >= 55 THEN 1 END) as seniors
+        FROM profiles 
+        WHERE JSON_EXTRACT(age_verification, '$.birthDate') IS NOT NULL`
       );
 
       const ageStats = stats[0];
@@ -292,29 +323,32 @@ class AgeVerificationController {
     try {
       const userId = req.user.id;
 
-      const users = await executeQuery(
+      const profiles = await executeQuery(
         req.dbConnection,
-        'SELECT birth_date FROM users WHERE id = ?',
+        'SELECT age_verification FROM profiles WHERE user_id = ?',
         [userId]
       );
 
-      if (users.length === 0) {
+      if (profiles.length === 0) {
         return res.status(404).json({
           success: false,
-          message: 'Utilisateur non trouvé'
+          message: 'Profil utilisateur non trouvé'
         });
       }
 
-      const user = users[0];
+      const profile = profiles[0];
+      const birthDate = profile.age_verification 
+        ? JSON.parse(profile.age_verification).birthDate 
+        : null;
 
-      if (!user.birth_date) {
+      if (!birthDate) {
         return res.status(400).json({
           success: false,
           message: 'Date de naissance non renseignée'
         });
       }
 
-      const age = this.calculateAge(new Date(user.birth_date));
+      const age = this.calculateAge(new Date(birthDate));
       const ageCategory = this.getAgeCategory(age);
 
       res.json({
@@ -322,7 +356,7 @@ class AgeVerificationController {
         age_info: {
           age,
           age_category: ageCategory,
-          birth_date: user.birth_date,
+          birth_date: birthDate,
           is_adult: age >= 18,
           is_teen: age >= 13 && age < 18
         }

@@ -40,7 +40,7 @@ async function testFailRetrieval() {
     const userData = {
       email: testEmail,
       password: testPassword,
-      displayName: 'Test Retrieval User'
+      displayName: 'Test Retrieval User ' + Date.now()
     };
 
     const registerResponse = await fetch(registerUrl, {

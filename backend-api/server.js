@@ -53,6 +53,12 @@ if (process.env.NODE_ENV === 'development') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Attacher une connexion DB au req pour les contrôleurs qui l'utilisent
+app.use(async (req, res, next) => {
+  req.dbConnection = database.pool; // pool compatible avec executeQuery
+  next();
+});
+
 // Servir les fichiers statiques (uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -63,6 +69,19 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     version: '1.0.0'
+  });
+});
+
+// Alias API pour health/info (compatibilité tests)
+app.get('/api/health', (req, res) => {
+  res.redirect(307, '/health');
+});
+
+app.get('/api/info', (req, res) => {
+  res.json({
+    name: 'FailDaily API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 

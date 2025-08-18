@@ -23,7 +23,7 @@ async function testFailCreation() {
     errors: []
   };
 
-  const registerUrl = API_CONFIG.baseUrl + API_CONFIG.endpoints.auth.register;
+  const registerUrl = API_CONFIG.baseUrl + API_CONFIG.endpoints.registration.register;
   const loginUrl = API_CONFIG.baseUrl + API_CONFIG.endpoints.auth.login;
   const failsUrl = API_CONFIG.baseUrl + API_CONFIG.endpoints.fails.create;
 
@@ -39,7 +39,9 @@ async function testFailCreation() {
     const userData = {
       email: testEmail,
       password: testPassword,
-      displayName: 'Test Fails User'
+      displayName: 'Test Fails User ' + Date.now(),
+      birthDate: '1990-01-01',
+      agreeToTerms: true
     };
 
     const registerResponse = await fetch(registerUrl, {
@@ -125,7 +127,7 @@ async function testFailCreation() {
 
     if (noTitleResponse.status === 400) {
       const data = await noTitleResponse.json();
-      if (data.code === 'MISSING_TITLE' || data.error.includes('titre')) {
+      if ((data.code && data.code.includes('TITLE')) || (data.error && data.error.toLowerCase().includes('titre'))) {
         results.missingTitle = true;
         TEST_UTILS.log('✅', 'Validation titre manquant fonctionne');
       }

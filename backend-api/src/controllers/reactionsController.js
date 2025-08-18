@@ -56,7 +56,7 @@ class ReactionsController {
       // Vérifier si une réaction existe déjà
       const existingReactions = await executeQuery(connection, `
         SELECT id, reaction_type 
-        FROM fail_reactions 
+        FROM reactions 
         WHERE fail_id = ? AND user_id = ?
       `, [failId, userId]);
 
@@ -66,7 +66,7 @@ class ReactionsController {
         // Si c'est la même réaction, la supprimer (toggle)
         if (existingReaction.reaction_type === reactionType) {
           await executeQuery(connection, `
-            DELETE FROM fail_reactions 
+            DELETE FROM reactions 
             WHERE id = ?
           `, [existingReaction.id]);
 
@@ -81,8 +81,8 @@ class ReactionsController {
         } else {
           // Sinon, la modifier
           await executeQuery(connection, `
-            UPDATE fail_reactions 
-            SET reaction_type = ?, updated_at = NOW() 
+            UPDATE reactions 
+            SET reaction_type = ?, created_at = NOW() 
             WHERE id = ?
           `, [reactionType, existingReaction.id]);
 
@@ -100,7 +100,7 @@ class ReactionsController {
         const reactionId = uuidv4();
         
         await executeQuery(connection, `
-          INSERT INTO fail_reactions (id, fail_id, user_id, reaction_type, created_at) 
+          INSERT INTO reactions (id, fail_id, user_id, reaction_type, created_at) 
           VALUES (?, ?, ?, ?, NOW())
         `, [reactionId, failId, userId, reactionType]);
 
@@ -137,7 +137,7 @@ class ReactionsController {
 
       // Supprimer la réaction de l'utilisateur pour ce fail
       const result = await executeQuery(connection, `
-        DELETE FROM fail_reactions 
+        DELETE FROM reactions 
         WHERE fail_id = ? AND user_id = ?
       `, [failId, userId]);
 
@@ -204,17 +204,17 @@ class ReactionsController {
       // Récupérer toutes les réactions avec les informations des utilisateurs
       const reactions = await executeQuery(connection, `
         SELECT 
-          fr.id,
-          fr.reaction_type,
-          fr.created_at,
+          r.id,
+          r.reaction_type,
+          r.created_at,
           p.display_name,
           p.avatar_url,
           u.id as user_id
-        FROM fail_reactions fr
-        JOIN users u ON fr.user_id = u.id
+        FROM reactions r
+        JOIN users u ON r.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
-        WHERE fr.fail_id = ?
-        ORDER BY fr.created_at DESC
+        WHERE r.fail_id = ?
+        ORDER BY r.created_at DESC
       `, [failId]);
 
       // Compter les réactions par type
@@ -222,7 +222,7 @@ class ReactionsController {
         SELECT 
           reaction_type,
           COUNT(*) as count
-        FROM fail_reactions 
+        FROM reactions 
         WHERE fail_id = ?
         GROUP BY reaction_type
       `, [failId]);
@@ -232,7 +232,7 @@ class ReactionsController {
       if (userId) {
         const userReactions = await executeQuery(connection, `
           SELECT reaction_type 
-          FROM fail_reactions 
+          FROM reactions 
           WHERE fail_id = ? AND user_id = ?
         `, [failId, userId]);
         
@@ -289,7 +289,7 @@ class ReactionsController {
         SELECT 
           reaction_type,
           COUNT(*) as count
-        FROM fail_reactions 
+        FROM reactions 
         WHERE user_id = ?
         GROUP BY reaction_type
       `, [userId]);
@@ -297,12 +297,12 @@ class ReactionsController {
       // Compter les réactions reçues sur les fails de l'utilisateur
       const receivedReactions = await executeQuery(connection, `
         SELECT 
-          fr.reaction_type,
+          r.reaction_type,
           COUNT(*) as count
-        FROM fail_reactions fr
-        JOIN fails f ON fr.fail_id = f.id
-        WHERE f.user_id = ? AND fr.user_id != ?
-        GROUP BY fr.reaction_type
+        FROM reactions r
+        JOIN fails f ON r.fail_id = f.id
+        WHERE f.user_id = ? AND r.user_id != ?
+        GROUP BY r.reaction_type
       `, [userId, userId]);
 
       const givenStats = {};

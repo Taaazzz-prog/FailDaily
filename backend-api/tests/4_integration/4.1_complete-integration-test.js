@@ -38,7 +38,7 @@ async function testCompleteIntegration() {
     const registerData = {
       email: testEmail,
       password: testPassword,
-      displayName: 'Utilisateur Intégration Test'
+      displayName: 'Utilisateur Intégration Test ' + Date.now()
     };
 
     const registerResponse = await fetch(`${baseUrl}/api/auth/register`, {
