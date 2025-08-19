@@ -16,6 +16,7 @@ const ageVerificationRoutes = require('./src/routes/ageVerification');
 const uploadRoutes = require('./src/routes/upload');
 const reactionsRoutes = require('./src/routes/reactions');
 const commentsRoutes = require('./src/routes/comments');
+const logsRoutes = require('./src/routes/logs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -93,6 +94,7 @@ app.use('/api/fails', commentsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/registration', registrationRoutes);
 app.use('/api/age-verification', ageVerificationRoutes);
+app.use('/api/logs', logsRoutes);
 
 // Route temporaire pour les stats utilisateur
 app.get('/api/user/stats', require('./src/middleware/auth').authenticateToken, (req, res) => {

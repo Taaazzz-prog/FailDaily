@@ -99,19 +99,27 @@ export class MysqlService {
   }
 
   private saveAuthData(token: string, user: User): void {
-    localStorage.setItem('auth_token', token);
-    localStorage.setItem('current_user', JSON.stringify(user));
+    // ✅ FIX: Utiliser les mêmes clés que l'AuthService
+    localStorage.setItem('faildaily_token', token);
+    localStorage.setItem('faildaily_user', JSON.stringify(user));
     this.currentUser.next(user);
+    console.log('🔐 MysqlService: Données d\'authentification sauvegardées');
   }
 
   private clearAuthData(): void {
+    // ✅ FIX: Utiliser les mêmes clés que l'AuthService
+    localStorage.removeItem('faildaily_token');
+    localStorage.removeItem('faildaily_user');
+    localStorage.removeItem('faildaily_user_cache');
+    // Nettoyage des anciennes clés pour compatibilité
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
     this.currentUser.next(null);
+    console.log('🔐 MysqlService: Toutes les données d\'authentification nettoyées');
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
@@ -164,49 +172,41 @@ export class MysqlService {
     }
   }
 
-  async signUp(email: string, password: string, displayName: string): Promise<any> {
+  async signUp(email: string, password: string, displayName: string, birthDate: string, agreeToTerms: boolean, agreeToNewsletter: boolean = false): Promise<any> {
     try {
-      console.log('📝 Tentative d\'inscription:', email);
+      console.log('📝 Tentative d\'inscription complète:', email);
       
-      const response: any = await this.http.post(`${this.apiUrl}/auth/register`, {
+      const response: any = await this.http.post(`${this.apiUrl}/registration/register`, {
         email,
         password,
         displayName,
-        role: 'user'
+        birthDate,
+        agreeToTerms,
+        agreeToNewsletter
       }).toPromise();
 
+      console.log('🔍 DEBUT DEBUG - Réponse complète du backend:', response);
+      console.log('🔍 response.success:', response.success);
+      console.log('🔍 response.token:', response.token ? 'présent' : 'absent');
+      console.log('🔍 response.user:', response.user ? 'présent' : 'absent');
+      console.log('🔍 response.message:', response.message);
+
+      // ✅ Utiliser la bonne route qui retourne success: true
       if (response.success && response.token && response.user) {
         this.saveAuthData(response.token, response.user);
         console.log('✅ Inscription réussie pour:', response.user.email);
         return { data: { user: response.user, session: { access_token: response.token } } };
       } else {
+        console.log('❌ Condition échouée - lancement d\'erreur avec message:', response.message);
         throw new Error(response.message || 'Erreur lors de l\'inscription');
       }
     } catch (error: any) {
       console.error('❌ Erreur inscription:', error);
-      throw { message: error.error?.message || error.message || 'Erreur lors de l\'inscription' };
-    }
-  }
-
-  async completeRegistration(userId: string, legalConsent: any, ageVerification: any): Promise<any> {
-    try {
-      console.log('🔧 MysqlService - Completing registration for user:', userId);
-
-      const response: any = await this.http.put(`${this.apiUrl}/auth/complete-registration`, {
-        userId,
-        legalConsent,
-        ageVerification
-      }, { headers: this.getAuthHeaders() }).toPromise();
-
-      if (response.success) {
-        console.log('🔧 MysqlService - Registration completed successfully');
-        return response.data;
-      } else {
-        throw new Error(response.message || 'Erreur lors de la finalisation d\'inscription');
+      // Gérer les erreurs spécifiques du backend
+      if (error.error?.code === 'AGE_RESTRICTION') {
+        throw { message: error.error.message, code: 'AGE_RESTRICTION' };
       }
-    } catch (error: any) {
-      console.error('🔧 MysqlService - Error completing registration:', error);
-      throw error;
+      throw { message: error.error?.message || error.message || 'Erreur lors de l\'inscription' };
     }
   }
 
@@ -332,7 +332,7 @@ export class MysqlService {
         updated_at: new Date().toISOString()
       };
 
-      const response: any = await this.http.post(`${this.apiUrl}/users/profile`, profileData, {
+      const response: any = await this.http.post(`${this.apiUrl}/auth/profile`, profileData, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -414,7 +414,7 @@ export class MysqlService {
         params.set('excludeUserId', excludeUserId);
       }
 
-      const response: any = await this.http.get(`${this.apiUrl}/users/check-display-name?${params.toString()}`, {
+      const response: any = await this.http.get(`${this.apiUrl}/registration/check-display-name?${params.toString()}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -427,7 +427,7 @@ export class MysqlService {
 
   async generateUniqueDisplayName(baseDisplayName: string): Promise<string> {
     try {
-      const response: any = await this.http.post(`${this.apiUrl}/users/generate-display-name`, {
+      const response: any = await this.http.post(`${this.apiUrl}/registration/generate-display-name`, {
         baseDisplayName
       }, { headers: this.getAuthHeaders() }).toPromise();
 

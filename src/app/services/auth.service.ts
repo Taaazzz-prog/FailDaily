@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, from, catchError, switchMap } from 'rxjs';
+import { Observable, BehaviorSubject, from, catchError, switchMap, map, of, throwError } from 'rxjs';
 import { User } from '../models/user.model';
 import { UserRole } from '../models/user-role.model';
 import { MysqlService } from './mysql.service';
@@ -17,8 +17,19 @@ export interface RegisterData {
   email: string;
   password: string;
   displayName: string;
-  legalConsent?: any;
-  ageVerification?: any;
+  legalConsent: {
+    documentsAccepted: string[];
+    consentDate: string;
+    consentVersion: string;
+    marketingOptIn: boolean;
+  };
+  ageVerification: {
+    birthDate: Date;
+    isMinor: boolean;
+    needsParentalConsent: boolean;
+    parentEmail?: string;
+    parentConsentDate?: Date;
+  };
 }
 
 @Injectable({ providedIn: 'root' })
@@ -69,6 +80,25 @@ export class AuthService {
   private getCachedUser(): User | null {
     try {
       console.log('🔐 AuthService: Vérification du cache localStorage...');
+      
+      // Debug complet de l'état du localStorage
+      console.log('🔍 CACHE DEBUG:');
+      console.log('  - faildaily_user:', localStorage.getItem('faildaily_user'));
+      console.log('  - faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
+      console.log('  - faildaily_token:', localStorage.getItem('faildaily_token'));
+      console.log('  - auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - current_user:', localStorage.getItem('current_user'));
+      console.log('  - Toutes les clés localStorage:', Object.keys(localStorage));
+      
+      // ✅ CORRECTION CRITIQUE : Vérifier qu'on a un token avant de retourner l'utilisateur
+      const token = localStorage.getItem('faildaily_token');
+      if (!token) {
+        console.log('🚨 AUCUN TOKEN TROUVÉ - Suppression du cache utilisateur');
+        localStorage.removeItem('faildaily_user_cache');
+        localStorage.removeItem('faildaily_user');
+        return null;
+      }
+      
       const cached = localStorage.getItem('faildaily_user_cache');
       if (cached) {
         console.log('🔐 AuthService: Cache trouvé, parsing...');
@@ -128,16 +158,38 @@ export class AuthService {
 
   private async initializeAuth() {
     console.log('🔐 AuthService: initializeAuth called');
+    
+      // Debug complet de l'état à l'initialisation
+      console.log('🔍 DEBUG INITIALISATION:');
+      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
+      console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
+      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
+      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
 
-    try {
-      // ✅ CORRECTION : Vérifier d'abord le cache localStorage pour une réponse IMMEDIATE
-      const cachedUser = this.getCachedUser();
-      if (cachedUser) {
-        console.log('🔐 AuthService: Cache trouvé - utilisateur défini immédiatement');
-        this.currentUserSubject.next(cachedUser);
-      }
+      try {
+        // ✅ CORRECTION CRITIQUE : Vérifier d'abord qu'on a un TOKEN valide
+        const token = localStorage.getItem('faildaily_token');
+        if (!token) {
+          console.log('🚨 AUCUN TOKEN - Suppression complète du cache et déconnexion');
+          // Supprimer TOUT le cache si pas de token
+          localStorage.removeItem('faildaily_user_cache');
+          localStorage.removeItem('faildaily_user');
+          localStorage.removeItem('faildaily_token');
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('current_user');
+          this.currentUserSubject.next(null);
+          return;
+        }
 
-      // ✅ CORRECTION : Maintenant que mysqlService persiste les sessions, vérification plus simple
+        // ✅ CORRECTION : Vérifier d'abord le cache localStorage pour une réponse IMMEDIATE
+        const cachedUser = this.getCachedUser();
+        if (cachedUser && token) {
+          console.log('🔐 AuthService: Cache ET token trouvés - utilisateur défini immédiatement:', cachedUser.email);
+          this.currentUserSubject.next(cachedUser);
+        } else {
+          console.log('🔐 AuthService: Aucun cache utilisateur trouvé OU pas de token');
+        }      // ✅ CORRECTION : Maintenant que mysqlService persiste les sessions, vérification plus simple
       console.log('🔐 AuthService: Vérification de la session mysqlService...');
       const currentUser = await this.mysqlService.getCurrentUser();
 
@@ -482,72 +534,143 @@ export class AuthService {
   register(data: RegisterData): Observable<User | null> {
     console.log('🔐 AuthService: Registration attempt for:', data.email);
 
-    // ✅ ÉTAPE 1: Vérifier et générer un display_name unique AVANT de créer le compte
-    return from(this.mysqlService.generateUniqueDisplayName(data.displayName))
+    // ✅ ÉTAPE 1: Vérifier et générer un display_name unique AVANT d'envoyer au backend
+    return from(this.validateDisplayNameRealTime(data.displayName))
       .pipe(
-        switchMap(async (uniqueDisplayName) => {
-          console.log('✅ AuthService: Unique display_name generated:', uniqueDisplayName);
+        switchMap(async (displayNameResult) => {
+          let finalDisplayName = data.displayName;
+          
+          // Si le nom n'est pas disponible, utiliser la suggestion
+          if (!displayNameResult.isAvailable && displayNameResult.suggestedName) {
+            finalDisplayName = displayNameResult.suggestedName;
+            console.log('✅ AuthService: Using suggested unique display_name:', finalDisplayName);
+          } else if (!displayNameResult.isAvailable) {
+            throw new Error('Le nom d\'affichage n\'est pas disponible');
+          }
 
-          // ✅ ÉTAPE 2: Créer le compte avec le nom unique
-          const result = await this.mysqlService.signUp(data.email, data.password, uniqueDisplayName);
+          // ✅ ÉTAPE 2: Préparer les données pour l'API backend
+          const registerData = {
+            email: data.email,
+            password: data.password,
+            displayName: finalDisplayName, // Utiliser le nom unique
+            birthDate: data.ageVerification.birthDate instanceof Date 
+              ? data.ageVerification.birthDate.toISOString().split('T')[0] 
+              : data.ageVerification.birthDate,
+            agreeToTerms: data.legalConsent.documentsAccepted?.length > 0 || false,
+            agreeToNewsletter: data.legalConsent.marketingOptIn || false,
+            // ✅ Ajouter l'email parent si fourni pour les mineurs
+            parentEmail: data.ageVerification.parentEmail
+          };
 
-          if (result?.user) {
-            console.log('✅ AuthService: User registered successfully with unique name');
+          console.log('🔍 AuthService: Sending registration data to backend API:', registerData);
 
-            // Logger l'inscription réussie
-            await this.logger.logAuth('register_success', `Inscription réussie`, {
+          // ✅ ÉTAPE 3: Appel à l'API backend
+          const response = await fetch('http://localhost:3001/api/registration/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(registerData)
+          });
+
+          const result = await response.json();
+          console.log('🔍 AuthService: Backend response:', result);
+
+          if (!response.ok) {
+            throw new Error(result.message || 'Erreur lors de l\'inscription');
+          }
+
+          // ✅ GESTION DES DEUX CAS DE RÉPONSE
+          if (result.requiresParentalConsent) {
+            // Cas mineur: pas de token, retour informations utilisateur
+            console.log('👶 AuthService: Mineur - autorisation parentale requise');
+            
+            // Logger l'inscription en attente
+            this.logger.logAuth('register_pending', `Inscription en attente - autorisation parentale`, {
               email: data.email,
-              displayName: uniqueDisplayName,
-              registrationMethod: 'email'
+              displayName: finalDisplayName,
+              age: result.user.age
             }, true);
 
-            // ✅ ÉTAPE 3: Créer le profil (qui utilisera automatiquement le nom unique des metadata)
-            try {
-              const profile = await this.mysqlService.createProfile(result.user);
-              console.log('✅ AuthService: Profile created with display_name:', profile?.display_name);
+            // Retourner les informations utilisateur avec statut spécial
+            const user: User = {
+              id: result.user.id,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              avatar: DEFAULT_AVATAR,
+              joinDate: new Date(),
+              totalFails: 0,
+              couragePoints: 0,
+              badges: [],
+              role: UserRole.USER,
+              emailConfirmed: true,
+              registrationCompleted: false, // Inscription non complète
+              ageVerification: {
+                birthDate: new Date(data.ageVerification.birthDate),
+                isMinor: true,
+                needsParentalConsent: true,
+                parentEmail: data.ageVerification.parentEmail,
+                parentConsentDate: undefined
+              },
+              legalConsent: {
+                documentsAccepted: data.legalConsent.documentsAccepted,
+                consentDate: new Date(data.legalConsent.consentDate),
+                consentVersion: data.legalConsent.consentVersion,
+                marketingOptIn: data.legalConsent.marketingOptIn
+              },
+              preferences: this.getDefaultPreferences()
+            };
 
-              // Retourner l'utilisateur avec le display_name unique confirmé
-              const user: User = {
-                id: result.user.id,
-                email: data.email,
-                displayName: uniqueDisplayName, // ✅ Utiliser le nom unique généré
-                avatar: 'assets/anonymous-avatar.svg',
-                joinDate: new Date(),
-                totalFails: 0,
-                couragePoints: 0,
-                badges: [],
-                role: UserRole.USER, // ✅ Rôle par défaut pour nouveaux utilisateurs
-                emailConfirmed: true,
-                registrationCompleted: false,
-                legalConsent: undefined,
-                ageVerification: undefined,
-                // ✅ Ajout des préférences avec bio vide pour nouveau user
-                preferences: {
-                  bio: '',
-                  theme: 'light',
-                  darkMode: false,
-                  notificationsEnabled: true,
-                  reminderTime: '09:00',
-                  anonymousMode: false,
-                  shareLocation: false,
-                  soundEnabled: true,
-                  hapticsEnabled: true,
-                  notifications: {
-                    encouragement: true,
-                    reminderFrequency: 'weekly'
-                  }
-                }
-              };
+            // NE PAS stocker le token ni mettre à jour currentUserSubject pour les mineurs
+            return user;
 
-              this.currentUserSubject.next(user);
-              return user;
-            } catch (error) {
-              console.error('❌ AuthService: Error creating profile:', error);
-              throw error;
-            }
+          } else if (result.token && result.user) {
+            // Cas adulte: inscription complète avec token
+            console.log('🎂 AuthService: Adulte - inscription complète');
+            
+            // Stocker le token
+            localStorage.setItem('faildaily_token', result.token);
+            
+            // Logger l'inscription réussie
+            this.logger.logAuth('register_success', `Inscription réussie`, {
+              email: result.user.email,
+              displayName: result.user.displayName
+            }, true);
+
+            // Créer l'objet utilisateur complet
+            const user: User = {
+              id: result.user.id,
+              email: result.user.email,
+              displayName: result.user.displayName,
+              avatar: DEFAULT_AVATAR,
+              joinDate: new Date(result.user.createdAt),
+              totalFails: 0,
+              couragePoints: 0,
+              badges: [],
+              role: UserRole.USER,
+              emailConfirmed: true,
+              registrationCompleted: true,
+              ageVerification: {
+                birthDate: new Date(data.ageVerification.birthDate),
+                isMinor: false,
+                needsParentalConsent: false,
+                parentEmail: undefined,
+                parentConsentDate: undefined
+              },
+              legalConsent: {
+                documentsAccepted: data.legalConsent.documentsAccepted,
+                consentDate: new Date(data.legalConsent.consentDate),
+                consentVersion: data.legalConsent.consentVersion,
+                marketingOptIn: data.legalConsent.marketingOptIn
+              },
+              preferences: this.getDefaultPreferences()
+            };
+
+            this.currentUserSubject.next(user);
+            return user;
+          } else {
+            throw new Error('Réponse invalide du serveur');
           }
-          console.log('❌ AuthService: No user returned from signUp');
-          return null;
         }),
         catchError((error) => {
           // Logger l'échec d'inscription
@@ -562,60 +685,74 @@ export class AuthService {
       );
   }
 
-  async completeRegistration(legalConsent: any, ageVerification: any): Promise<User | null> {
-    console.log('🔐 AuthService: Starting registration completion...');
-
-    const currentUser = this.getCurrentUser();
-    if (!currentUser) {
-      console.error('🔐 AuthService: ERREUR CRITIQUE - Aucun utilisateur connecté pour finaliser l\'inscription');
-      throw new Error('Aucun utilisateur connecté - impossible de finaliser l\'inscription');
-    }
-
-    console.log('🔐 AuthService: User found for completion:', currentUser.email, currentUser.id);
-
-    try {
-      console.log('🔐 AuthService: Calling mysqlService.completeRegistration...');
-      await this.mysqlService.completeRegistration(currentUser.id, legalConsent, ageVerification);
-
-      // Recharger le profil complet
-      console.log('🔐 AuthService: Reloading complete profile...');
-      const profile = await this.mysqlService.getProfile(currentUser.id);
-      const updatedUser: User = {
-        ...currentUser,
-        legalConsent: {
-          documentsAccepted: legalConsent.documentsAccepted,
-          consentDate: new Date(legalConsent.consentDate),
-          consentVersion: legalConsent.consentVersion,
-          marketingOptIn: legalConsent.marketingOptIn
-        },
-        ageVerification: {
-          birthDate: new Date(ageVerification.birthDate),
-          isMinor: ageVerification.isMinor,
-          needsParentalConsent: ageVerification.needsParentalConsent,
-          parentEmail: ageVerification.parentEmail,
-          parentConsentDate: ageVerification.parentConsentDate ?
-            new Date(ageVerification.parentConsentDate) : undefined
-        },
-        registrationCompleted: true
-      };
-
-      // Mettre à jour le cache utilisateur
-      this.setCachedUser(updatedUser);
-      this.currentUserSubject.next(updatedUser);
-      console.log('🔐 AuthService: Registration completion successful');
-
-      return updatedUser;
-    } catch (error) {
-      console.error('Complete registration error:', error);
-      throw error;
-    }
+  /**
+   * Retourne les préférences par défaut
+   */
+  private getDefaultPreferences() {
+    return {
+      bio: '',
+      theme: 'light' as 'light' | 'dark' | 'auto',
+      darkMode: false,
+      notificationsEnabled: true,
+      reminderTime: '09:00',
+      anonymousMode: false,
+      shareLocation: false,
+      soundEnabled: true,
+      hapticsEnabled: true,
+      notifications: {
+        encouragement: true,
+        reminderFrequency: 'weekly' as 'daily' | 'weekly' | 'monthly'
+      }
+    };
   }
 
+  /**
+   * ✅ MÉTHODE DE NETTOYAGE COMPLET pour supprimer TOUS les résidus d'authentification
+   */
+  private clearAllAuthData(): void {
+    console.log('🧹 Nettoyage COMPLET de toutes les données d\'authentification');
+    
+    // Liste EXHAUSTIVE de toutes les clés possibles
+    const keysToRemove = [
+      'faildaily_token',
+      'faildaily_user',
+      'faildaily_user_cache',
+      'auth_token',
+      'current_user',
+      'user_token',
+      'user_data',
+      'session_token',
+      'login_token'
+    ];
+    
+    console.log('🔍 AVANT nettoyage - localStorage keys:', Object.keys(localStorage));
+    
+    keysToRemove.forEach(key => {
+      const value = localStorage.getItem(key);
+      if (value) {
+        console.log(`🗑️ Suppression de ${key}:`, value.substring(0, 50) + '...');
+        localStorage.removeItem(key);
+      }
+    });
+    
+    console.log('🔍 APRÈS nettoyage - localStorage keys:', Object.keys(localStorage));
+  }
 
 
   async logout(): Promise<void> {
     try {
       const currentUser = this.getCurrentUser();
+      console.log('🔐 AuthService: Début logout - Utilisateur actuel:', currentUser?.email || 'aucun');
+      
+      // Debug complet de l'état avant logout
+      console.log('🔍 DEBUG AVANT LOGOUT:');
+      console.log('  - currentUserSubject.value:', this.currentUserSubject.value);
+      console.log('  - isAuthenticated():', this.isAuthenticated());
+      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
+      console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
+      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
+      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
 
       // Logger la déconnexion avant de nettoyer les données utilisateur
       if (currentUser) {
@@ -625,10 +762,31 @@ export class AuthService {
         }, true);
       }
 
+      // Nettoyer toutes les données d'authentification
       await this.mysqlService.signOut();
       this.clearCachedUser(); // ✅ Nettoyer le cache lors de la déconnexion
+      
+      // ✅ Utiliser la méthode de nettoyage complet
+      this.clearAllAuthData();
+      
+      // Mettre à jour l'état ET forcer la notification
       this.currentUserSubject.next(null);
-      console.log('🔐 AuthService: Utilisateur déconnecté et cache nettoyé');
+      
+      // Debug complet de l'état après logout
+      console.log('� DEBUG APRÈS LOGOUT:');
+      console.log('  - currentUserSubject.value:', this.currentUserSubject.value);
+      console.log('  - isAuthenticated():', this.isAuthenticated());
+      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
+      console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
+      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
+      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
+      
+      console.log('🔐 AuthService: Utilisateur déconnecté - État final:', this.isAuthenticated());
+      
+      // TODO: Ajouter événement de déconnexion quand disponible
+      // this.eventBus.emit(AppEvents.USER_LOGGED_OUT);
+      
     } catch (error) {
       console.error('Logout error:', error);
       throw error;

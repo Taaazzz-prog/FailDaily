@@ -64,12 +64,23 @@ export class HomePage implements OnInit, ViewWillEnter {
 
   ionViewWillEnter() {
     console.log('🏠 HomePage - ionViewWillEnter called');
-    // Recharger les fails chaque fois que la page devient active
-    this.loadInitialData();
+    // Recharger les fails chaque fois que la page devient active seulement si connecté
+    if (this.authService.isAuthenticated()) {
+      this.loadInitialData();
+    } else {
+      console.log('🏠 HomePage - User not authenticated, skipping data load');
+    }
   }
 
   async loadInitialData() {
     console.log('🏠 HomePage - loadInitialData called');
+    
+    // Vérification supplémentaire de l'authentification
+    if (!this.authService.isAuthenticated()) {
+      console.log('🏠 HomePage - User not authenticated, aborting data load');
+      return;
+    }
+
     this.isLoading = true;
 
     // Charger les fails depuis Supabase
@@ -87,6 +98,14 @@ export class HomePage implements OnInit, ViewWillEnter {
 
   async handleRefresh(event: RefresherCustomEvent) {
     console.log('🏠 HomePage - handleRefresh called');
+    
+    // Vérifier l'authentification avant de rafraîchir
+    if (!this.authService.isAuthenticated()) {
+      console.log('🏠 HomePage - User not authenticated, aborting refresh');
+      event.target.complete();
+      return;
+    }
+
     try {
       console.log('🏠 HomePage - Refreshing fails via pull-to-refresh...');
       await this.failService.refreshFails();

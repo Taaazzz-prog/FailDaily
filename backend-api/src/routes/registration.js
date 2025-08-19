@@ -61,6 +61,7 @@ router.get('/check-display-name', async (req, res) => {
 
     res.json({
       success: true,
+      available: users.length === 0,
       exists: users.length > 0
     });
 
@@ -69,6 +70,70 @@ router.get('/check-display-name', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la vérification du nom d\'affichage'
+    });
+  }
+});
+
+/**
+ * Route pour générer un nom d'affichage unique
+ */
+router.post('/generate-display-name', async (req, res) => {
+  try {
+    const { baseDisplayName } = req.body;
+
+    if (!baseDisplayName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nom de base requis'
+      });
+    }
+
+    let displayName = baseDisplayName.trim();
+    let counter = 1;
+    let isUnique = false;
+
+    // Vérifier la disponibilité du nom de base
+    const existingUsers = await executeQuery(
+      'SELECT id FROM profiles WHERE display_name = ?',
+      [displayName]
+    );
+
+    if (existingUsers.length === 0) {
+      isUnique = true;
+    } else {
+      // Générer un nom unique en ajoutant un numéro
+      while (!isUnique && counter < 1000) {
+        const candidateName = `${baseDisplayName} ${counter}`;
+        const users = await executeQuery(
+          'SELECT id FROM profiles WHERE display_name = ?',
+          [candidateName]
+        );
+        
+        if (users.length === 0) {
+          displayName = candidateName;
+          isUnique = true;
+        }
+        counter++;
+      }
+    }
+
+    if (!isUnique) {
+      return res.status(400).json({
+        success: false,
+        message: 'Impossible de générer un nom unique'
+      });
+    }
+
+    res.json({
+      success: true,
+      displayName: displayName
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur génération nom d\'affichage:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la génération du nom d\'affichage'
     });
   }
 });
@@ -108,7 +173,8 @@ router.post('/register', async (req, res) => {
       birthDate,
       agreeToTerms,
       agreeToNewsletter = false,
-      referralCode = null
+      referralCode = null,
+      parentEmail = null // ✅ Ajout de l'email parent optionnel
     } = req.body;
 
     // Validation des données
@@ -149,6 +215,7 @@ router.post('/register', async (req, res) => {
 
     // Bloquer < 13 ans
     if (age < 13) {
+      console.log(`❌ Inscription bloquée - Âge insuffisant: ${age} ans (${email})`);
       return res.status(400).json({
         success: false,
         message: 'Âge minimum requis: 13 ans',
@@ -159,6 +226,8 @@ router.post('/register', async (req, res) => {
     // 13-16 ans : besoin autorisation parentale (0)
     // 17+ ans : inscription complète directement (1)
     const registrationCompleted = age >= 17 ? 1 : 0;
+    
+    console.log(`ℹ️ Inscription - Âge: ${age} ans, registrationCompleted: ${registrationCompleted}`)
 
     // Vérifier que l'email n'existe pas déjà
     const existingUsers = await executeQuery(
@@ -241,7 +310,31 @@ router.post('/register', async (req, res) => {
 
       console.log(`✅ Utilisateur inscrit: ${email} (ID: ${userId})`);
 
-      // Générer le token JWT
+      // Pour les mineurs (13-16 ans), ne pas créer de token et envoyer email parental
+      if (registrationCompleted === 0) {
+        console.log(`📧 Envoi email autorisation parentale pour: ${email} (${age} ans)`);
+        
+        // TODO: Implémenter l'envoi d'email parental
+        // if (parentEmail) {
+        //   await sendParentalConsentEmail(parentEmail, displayName, userId);
+        // }
+        
+        return res.status(201).json({
+          success: true,
+          message: 'Inscription en attente - Autorisation parentale requise',
+          requiresParentalConsent: true,
+          user: {
+            id: userId,
+            email: email.toLowerCase(),
+            displayName: displayName,
+            age: age,
+            status: 'pending_parental_consent',
+            parentEmail: parentEmail // ✅ Retourner l'email parent si fourni
+          }
+        });
+      }
+
+      // Générer le token JWT SEULEMENT pour les adultes (17+)
       const token = jwt.sign(
         { 
           userId: userId,
@@ -266,7 +359,7 @@ router.post('/register', async (req, res) => {
       const userData = await executeQuery(userQuery, [userId]);
       const user = userData[0];
 
-      // Retourner la réponse de succès
+      // Retourner la réponse de succès POUR LES ADULTES UNIQUEMENT
       res.status(201).json({
         success: true,
         message: 'Inscription réussie',
@@ -274,7 +367,7 @@ router.post('/register', async (req, res) => {
         user: {
           id: user.id,
           email: user.email,
-    displayName: user.display_name,
+          displayName: user.display_name,
           accountStatus: user.account_status,
           createdAt: user.created_at
         }

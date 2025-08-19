@@ -171,4 +171,34 @@ router.delete('/cleanup', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/logs/comprehensive
+ * Endpoint pour les logs compréhensifs du frontend
+ */
+router.post('/comprehensive', (req, res) => {
+  try {
+    const logData = req.body;
+    
+    // Pour l'instant, on log juste dans la console
+    // Plus tard on peut ajouter une vraie persistence
+    console.log('📊 Frontend Log:', {
+      timestamp: new Date().toISOString(),
+      ...logData
+    });
+    
+    res.json({
+      success: true,
+      message: 'Log reçu avec succès',
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur lors du traitement du log:', error);
+    res.status(500).json({
+      error: 'Erreur lors du traitement du log',
+      code: 'LOG_PROCESSING_ERROR'
+    });
+  }
+});
+
 module.exports = router;

@@ -28,8 +28,12 @@ export class FailService {
     private logger: ComprehensiveLoggerService
   ) {
     console.log('FailService: Constructor called - initializing fail service with MySQL backend');
-    // Charger les fails au démarrage
-    this.loadFails();
+    // Ne charger les fails que si l'utilisateur est connecté
+    if (this.mysqlService.getCurrentUserSync()) {
+      this.loadFails();
+    } else {
+      console.log('FailService: User not authenticated, skipping initial load');
+    }
   }
 
   async createFail(failData: CreateFailData): Promise<void> {
@@ -104,6 +108,13 @@ export class FailService {
 
   private async loadFails(): Promise<void> {
     try {
+      // Vérifier l'authentification avant de charger
+      if (!this.mysqlService.getCurrentUserSync()) {
+        console.log('FailService: User not authenticated, cannot load fails');
+        this.failsSubject.next([]);
+        return;
+      }
+
       const fails = await this.mysqlService.getFails();
       const formattedFails = await Promise.all(
         fails.map(fail => this.formatFailWithAuthor(fail))
@@ -266,6 +277,12 @@ export class FailService {
   }
 
   async refreshFails(): Promise<void> {
+    // Vérifier l'authentification avant de rafraîchir
+    if (!this.mysqlService.getCurrentUserSync()) {
+      console.log('FailService: User not authenticated, cannot refresh fails');
+      return;
+    }
+    
     await this.loadFails();
   }
 }

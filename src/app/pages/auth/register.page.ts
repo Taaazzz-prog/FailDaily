@@ -209,22 +209,7 @@ export class RegisterPage implements OnInit {
       const { displayName, email, password } = this.registerForm.value;
       console.log('📝 RegisterPage - Registration data:', { displayName, email });
 
-      // Étape 1: Créer le compte utilisateur
-      const registerData = {
-        email,
-        password,
-        displayName
-      };
-      console.log('📝 RegisterPage - Calling authService.register');
-
-      const registeredUser = await this.authService.register(registerData).toPromise();
-      console.log('📝 RegisterPage - User registration successful:', registeredUser?.email);
-
-      if (!registeredUser) {
-        throw new Error('Erreur lors de la création du compte');
-      }
-
-      // Étape 2: Préparer les données de consentement légal
+      // Préparer les données de consentement légal
       const legalConsent = {
         documentsAccepted: this.consentData.documentsAccepted,
         consentDate: this.consentData.timestamp || new Date().toISOString(),
@@ -233,71 +218,81 @@ export class RegisterPage implements OnInit {
       };
       console.log('📝 RegisterPage - Legal consent data:', legalConsent);
 
-      // Étape 3: Préparer les données de vérification d'âge
+      // Préparer les données de vérification d'âge
       const ageVerification = {
         birthDate: this.consentData.birthDate,
         isMinor: this.consentData.needsParentalConsent || false,
         needsParentalConsent: this.consentData.needsParentalConsent || false,
-        parentEmail: this.consentData.parentEmail || null,
-        parentConsentDate: null // Sera rempli quand le parent accepte
+        parentEmail: this.consentData.parentEmail || undefined,
+        parentConsentDate: undefined // Sera rempli quand le parent accepte
       };
 
-      // Si consentement parental requis
-      if (this.consentData.needsParentalConsent && this.consentData.parentEmail) {
-        await this.handleParentalConsentRequired(this.consentData.parentEmail, displayName);
+      // ✅ NOUVELLE APPROCHE: Envoyer toutes les données en une seule fois
+      const registerData = {
+        email,
+        password,
+        displayName,
+        legalConsent,
+        ageVerification
+      };
 
-        // Le compte sera completé plus tard après validation parentale
-        // Pour l'instant, on laisse l'inscription partielle
+      console.log('📝 RegisterPage - Calling authService.register with complete data');
+      const registeredUser = await this.authService.register(registerData).toPromise();
+      console.log('📝 RegisterPage - User registration successful:', registeredUser?.email);
+
+      if (!registeredUser) {
+        throw new Error('Erreur lors de la création du compte');
+      }
+
+      // Gestion selon l'âge et la réponse du backend
+      if (!registeredUser.registrationCompleted && registeredUser.ageVerification?.needsParentalConsent) {
+        // Cas mineur avec consentement parental requis
+        console.log('👶 RegisterPage - Mineur: autorisation parentale requise');
+        
+        if (registeredUser.ageVerification.parentEmail) {
+          await this.handleParentalConsentRequired(registeredUser.ageVerification.parentEmail, displayName);
+        }
+
         const toast = await this.toastController.create({
-          message: `Un email de validation a été envoyé à ${this.consentData.parentEmail}. Le compte sera activé après autorisation parentale.`,
+          message: `Inscription en attente. Un email de validation a été envoyé${registeredUser.ageVerification.parentEmail ? ' à ' + registeredUser.ageVerification.parentEmail : ''}. Le compte sera activé après autorisation parentale.`,
           duration: 5000,
           color: 'warning'
         });
         await toast.present();
 
-        // Ne pas rediriger vers l'app, rester sur la page de login
         this.router.navigate(['/auth/login']);
         return;
       }
 
-      // Étape 4: Finaliser l'inscription pour les adultes
-      try {
-        await this.authService.completeRegistration(legalConsent, ageVerification);
+      // Cas adulte - inscription complète
+      const toast = await this.toastController.create({
+        message: 'Inscription réussie ! Bienvenue dans FailDaily 🎉',
+        duration: 3000,
+        color: 'success',
+        cssClass: 'toast-encourage'
+      });
+      await toast.present();
 
-        const toast = await this.toastController.create({
-          message: 'Inscription réussie ! Bienvenue dans FailDaily 🎉',
-          duration: 3000,
-          color: 'success',
-          cssClass: 'toast-encourage'
-        });
-        await toast.present();
-
-        this.router.navigate(['/']);
-      } catch (completeError) {
-        console.error('Erreur lors de la finalisation:', completeError);
-
-        // Le compte de base est créé mais pas finalisé
-        const toast = await this.toastController.create({
-          message: 'Compte créé mais finalisation incomplète. Veuillez vous reconnecter.',
-          duration: 5000,
-          color: 'warning'
-        });
-        await toast.present();
-
-        this.router.navigate(['/auth/login']);
-      }
+      this.router.navigate(['/']);
 
     } catch (error: any) {
       console.error('Erreur lors de l\'inscription:', error);
 
       let errorMessage = 'Erreur lors de l\'inscription. Réessayez.';
 
-      if (error.message?.includes('User already registered')) {
+      // Gérer l'erreur d'âge minimum
+      if (error.code === 'AGE_RESTRICTION') {
+        errorMessage = error.message || 'Âge minimum requis: 13 ans';
+      } else if (error.message?.includes('User already registered')) {
         errorMessage = 'Un compte avec cet email existe déjà.';
       } else if (error.message?.includes('Password')) {
         errorMessage = 'Le mot de passe ne respecte pas les critères requis.';
       } else if (error.message?.includes('Email')) {
         errorMessage = 'Format d\'email invalide.';
+      } else if (error.message?.includes('displayName')) {
+        errorMessage = 'Nom d\'utilisateur invalide ou déjà pris.';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
 
       const toast = await this.toastController.create({
@@ -306,9 +301,11 @@ export class RegisterPage implements OnInit {
         color: 'danger'
       });
       await toast.present();
-    }
 
-    this.isLoading = false;
+    } finally {
+      this.isLoading = false;
+      console.log('📝 RegisterPage - Loading ended');
+    }
   }
 
   /**

@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-08-18T10:02:21.485Z",
-  "duration": 14869,
+  "timestamp": "2025-08-19T11:14:37.983Z",
+  "duration": 18171,
   "summary": {
     "total": 9,
     "passed": 9,
@@ -12,11 +12,11 @@
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 68,
+      "duration": 80,
       "details": {
         "connection": true,
         "tablesCount": 19,
-        "usersCount": 19,
+        "usersCount": 25,
         "errors": []
       }
     },
@@ -24,7 +24,7 @@
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 44,
+      "duration": 183,
       "details": {
         "tables": {
           "users": {
@@ -283,7 +283,7 @@
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 375,
+      "duration": 697,
       "details": {
         "validRegistrationAdult": true,
         "emailUniqueness": true,
@@ -299,7 +299,7 @@
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 1903,
+      "duration": 2879,
       "details": {
         "userCreated": true,
         "validLogin": true,
@@ -314,7 +314,7 @@
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
       "success": true,
-      "duration": 655,
+      "duration": 1007,
       "details": {
         "userCreated": true,
         "tokenReceived": true,
@@ -330,7 +330,7 @@
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
       "success": true,
-      "duration": 1195,
+      "duration": 1387,
       "details": {
         "protectedEndpoints": 11,
         "blockedEndpoints": 11,
@@ -431,7 +431,7 @@
       "name": "3.1 - Création de Fails",
       "category": "Fails",
       "success": true,
-      "duration": 403,
+      "duration": 785,
       "details": {
         "userCreated": true,
         "tokenObtained": true,
@@ -448,7 +448,7 @@
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
       "success": true,
-      "duration": 426,
+      "duration": 868,
       "details": {
         "userCreated": true,
         "failsCreated": 4,
@@ -466,7 +466,7 @@
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
       "success": true,
-      "duration": 710,
+      "duration": 1227,
       "details": {
         "userRegistration": true,
         "userLogin": true,
