@@ -7,9 +7,9 @@ services:
       dockerfile: ../docker/frontend.Dockerfile
     container_name: faildaily_frontend
     ports:
-      - "80:80"
+      - "8080:80"
     env_file:
-      - ../frontend/.env
+      - .env
     depends_on:
       - backend
     networks:
@@ -24,7 +24,7 @@ services:
     ports:
       - "3000:3000"
     env_file:
-      - ../backend-api/.env
+      - .env
     depends_on:
       - db
     networks:
@@ -34,11 +34,17 @@ services:
     image: mysql:8.0
     container_name: faildaily_db
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
     networks:
       - app-network
 
