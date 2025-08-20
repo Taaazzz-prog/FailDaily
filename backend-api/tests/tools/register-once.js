@@ -11,7 +11,7 @@ async function main() {
     agreeToTerms: true,
     agreeToNewsletter: false
   };
-  const url = `http://localhost:${process.env.PORT || 3001}/api/registration/register`;
+  const url = `http://localhost:${process.env.PORT || 3000}/api/registration/register`;
   try {
     const res = await fetch(url, {
       method: 'POST',

@@ -12,7 +12,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 // Configuration de l'API
 const API_CONFIG = {
-  baseUrl: 'http://localhost:3001',
+  baseUrl: 'http://localhost:3000',
   endpoints: {
     auth: {
       register: '/api/auth/register',

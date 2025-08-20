@@ -52,7 +52,7 @@ export interface UserStats {
   providedIn: 'root'
 })
 export class MysqlService {
-  private apiUrl = environment.api.baseUrl || 'http://localhost:3001/api';
+  private apiUrl = environment.api.baseUrl || 'http://localhost:3000/api';
   
   // States management - équivalent service de base de données
   private currentUser: BehaviorSubject<User | null> = new BehaviorSubject<User | null>(null);

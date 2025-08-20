@@ -1,6 +1,6 @@
 param(
-  [int]$Port = 3001,
-  [string]$Env = 'development',
+  [int]$Port = 3000,
+  [string]$Env = 'test',
   [string]$Script = '.\\tests\\run-all-tests.js',
   [string[]]$ScriptArgs
 )

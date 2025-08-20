@@ -35,7 +35,7 @@ app.use(cors({
 // Rate limiting
 const limiter = rateLimit({
   windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000, // 15 minutes
-  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100,
+  max: process.env.NODE_ENV === 'test' ? 10000 : (process.env.RATE_LIMIT_MAX_REQUESTS || 100), // Limite élevée pour les tests
   message: {
     error: 'Trop de requêtes, veuillez réessayer plus tard',
     code: 'RATE_LIMIT_EXCEEDED'

@@ -29,7 +29,7 @@ tests/
 ### Prérequis
 - Serveur MySQL démarré (WampServer)
 - Base de données `faildaily` créée
-- Backend API lancé sur `localhost:3001`
+- Backend API lancé sur `localhost:3000`
 
 ### Commandes
 
@@ -173,7 +173,7 @@ Chaque test affiche des logs détaillés avec emojis :
    - Credentials corrects
 
 2. **API non accessible**
-   - Backend lancé sur port 3001
+   - Backend lancé sur port 3000
    - Aucun firewall bloquant
 
 3. **Tests auth échouent**

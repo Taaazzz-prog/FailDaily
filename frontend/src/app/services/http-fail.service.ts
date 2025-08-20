@@ -25,7 +25,7 @@ export interface FailsResponse {
   providedIn: 'root'
 })
 export class HttpFailService {
-  private apiUrl = environment.api.baseUrl || 'http://localhost:3001/api';
+  private apiUrl = environment.api.baseUrl || 'http://localhost:3000/api';
   private failsSubject = new BehaviorSubject<Fail[]>([]);
   public fails$ = this.failsSubject.asObservable();
 

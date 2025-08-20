@@ -1,6 +1,6 @@
 {
-  "timestamp": "2025-08-19T11:14:37.983Z",
-  "duration": 18171,
+  "timestamp": "2025-08-20T13:59:12.484Z",
+  "duration": 16924,
   "summary": {
     "total": 9,
     "passed": 9,
@@ -12,11 +12,11 @@
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 80,
+      "duration": 58,
       "details": {
         "connection": true,
         "tablesCount": 19,
-        "usersCount": 25,
+        "usersCount": 51,
         "errors": []
       }
     },
@@ -24,7 +24,7 @@
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 183,
+      "duration": 185,
       "details": {
         "tables": {
           "users": {
@@ -283,7 +283,7 @@
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 697,
+      "duration": 789,
       "details": {
         "validRegistrationAdult": true,
         "emailUniqueness": true,
@@ -299,7 +299,7 @@
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 2879,
+      "duration": 2450,
       "details": {
         "userCreated": true,
         "validLogin": true,
@@ -314,7 +314,7 @@
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
       "success": true,
-      "duration": 1007,
+      "duration": 744,
       "details": {
         "userCreated": true,
         "tokenReceived": true,
@@ -330,7 +330,7 @@
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
       "success": true,
-      "duration": 1387,
+      "duration": 1423,
       "details": {
         "protectedEndpoints": 11,
         "blockedEndpoints": 11,
@@ -338,7 +338,7 @@
           {
             "name": "GET /api/fails",
             "method": "GET",
-            "url": "http://localhost:3001/api/fails",
+            "url": "http://localhost:3000/api/fails",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -346,7 +346,7 @@
           {
             "name": "POST /api/fails",
             "method": "POST",
-            "url": "http://localhost:3001/api/fails",
+            "url": "http://localhost:3000/api/fails",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -354,7 +354,7 @@
           {
             "name": "GET /api/fails/:id",
             "method": "GET",
-            "url": "http://localhost:3001/api/fails/123",
+            "url": "http://localhost:3000/api/fails/123",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -362,7 +362,7 @@
           {
             "name": "PUT /api/fails/:id",
             "method": "PUT",
-            "url": "http://localhost:3001/api/fails/123",
+            "url": "http://localhost:3000/api/fails/123",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -370,7 +370,7 @@
           {
             "name": "DELETE /api/fails/:id",
             "method": "DELETE",
-            "url": "http://localhost:3001/api/fails/123",
+            "url": "http://localhost:3000/api/fails/123",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -378,7 +378,7 @@
           {
             "name": "GET /api/auth/profile",
             "method": "GET",
-            "url": "http://localhost:3001/api/auth/profile",
+            "url": "http://localhost:3000/api/auth/profile",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -386,7 +386,7 @@
           {
             "name": "PUT /api/auth/profile",
             "method": "PUT",
-            "url": "http://localhost:3001/api/auth/profile",
+            "url": "http://localhost:3000/api/auth/profile",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -394,7 +394,7 @@
           {
             "name": "GET /api/auth/verify",
             "method": "GET",
-            "url": "http://localhost:3001/api/auth/verify",
+            "url": "http://localhost:3000/api/auth/verify",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -402,7 +402,7 @@
           {
             "name": "GET /api/user/stats",
             "method": "GET",
-            "url": "http://localhost:3001/api/user/stats",
+            "url": "http://localhost:3000/api/user/stats",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -410,7 +410,7 @@
           {
             "name": "GET /api/fails/:id/comments",
             "method": "GET",
-            "url": "http://localhost:3001/api/fails/123/comments",
+            "url": "http://localhost:3000/api/fails/123/comments",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -418,7 +418,7 @@
           {
             "name": "POST /api/fails/:id/comments",
             "method": "POST",
-            "url": "http://localhost:3001/api/fails/123/comments",
+            "url": "http://localhost:3000/api/fails/123/comments",
             "expectedStatus": 401,
             "actualStatus": 401,
             "blocked": true
@@ -431,7 +431,7 @@
       "name": "3.1 - Création de Fails",
       "category": "Fails",
       "success": true,
-      "duration": 785,
+      "duration": 526,
       "details": {
         "userCreated": true,
         "tokenObtained": true,
@@ -448,7 +448,7 @@
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
       "success": true,
-      "duration": 868,
+      "duration": 464,
       "details": {
         "userCreated": true,
         "failsCreated": 4,
@@ -466,7 +466,7 @@
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
       "success": true,
-      "duration": 1227,
+      "duration": 1209,
       "details": {
         "userRegistration": true,
         "userLogin": true,

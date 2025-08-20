@@ -1,26 +1,36 @@
-# Créer le .gitignore pour exclure les fichiers volumineux
-# FailDaily - Ionic Angular Project
+# FailDaily - Monorepo Project
 
 # Environment variables (SECURITY)
 .env
 .env.local
 .env.production
 *.env
+frontend/.env
+backend-api/.env
 
 # Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+frontend/node_modules/
+backend-api/node_modules/
 
 # Build outputs
 /dist/
 /www/
 /platforms/
 /.angular/
+frontend/dist/
+frontend/www/
+frontend/platforms/
+frontend/.angular/
+backend-api/dist/
+backend-api/build/
 
 # Capacitor
 capacitor.config.json.bak
+frontend/capacitor.config.json.bak
 
 # IDE
 .vscode/settings.json
@@ -34,20 +44,22 @@ Thumbs.db
 
 # Logs
 *.log
+logs/
 
-# Environment variables (sécurité)
-.env
-.env.local
-.env.production
-
-# Firebase
-.firebase/
+# Docker
+docker/data/
+*.pid
 
 # TypeScript
 *.tsbuildinfo
 
 # Ionic
 .ionic/
+frontend/.ionic/
+
+# Temporary files
+tmp/
+temp/
 
 # Testing
 /coverage/

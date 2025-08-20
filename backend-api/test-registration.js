@@ -1,7 +1,7 @@
 const { default: fetch } = require('node-fetch');
 
 async function testRegistration() {
-  const baseUrl = 'http://localhost:3001';
+  const baseUrl = 'http://localhost:3000';
   const registerUrl = `${baseUrl}/api/auth/register`;
   
   const testData = {

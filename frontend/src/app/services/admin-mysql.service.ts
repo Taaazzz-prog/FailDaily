@@ -8,7 +8,7 @@ import { DebugService } from './debug.service';
     providedIn: 'root'
 })
 export class AdminMysqlService {
-    private apiUrl = environment.api.baseUrl || 'http://localhost:3001/api';
+    private apiUrl = environment.api.baseUrl || 'http://localhost:3000/api';
 
     constructor(
         private http: HttpClient,

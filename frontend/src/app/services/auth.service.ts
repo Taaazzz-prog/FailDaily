@@ -565,7 +565,7 @@ export class AuthService {
           console.log('🔍 AuthService: Sending registration data to backend API:', registerData);
 
           // ✅ ÉTAPE 3: Appel à l'API backend
-          const response = await fetch('http://localhost:3001/api/registration/register', {
+          const response = await fetch('http://localhost:3000/api/auth/register', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'

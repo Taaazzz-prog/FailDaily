@@ -26,7 +26,7 @@ export const environment = {
 
   // APIs backend MySQL et externes
   api: {
-    baseUrl: 'http://localhost:3001/api', // API MySQL backend Node.js
+    baseUrl: 'http://localhost:3000/api', // API MySQL backend Node.js
     moderationUrl: 'https://api.openai.com/v1',
     moderationKey: 'your-openai-dev-key',
     uploadMaxSize: 5 * 1024 * 1024, // 5MB max
@@ -45,7 +45,7 @@ export const environment = {
 
   // Configuration du storage local (système moderne)
   storage: {
-    baseUrl: 'http://localhost:3001/storage',
+    baseUrl: 'http://localhost:3000/storage',
     uploadsPath: '/uploads',
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],

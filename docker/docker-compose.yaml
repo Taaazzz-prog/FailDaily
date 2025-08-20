@@ -3,13 +3,13 @@ version: '3.8'
 services:
   frontend:
     build:
-      context: ./src
-      dockerfile: ../Dockerfile/frontend.Dockerfile
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
     container_name: faildaily_frontend
     ports:
       - "80:80"
     env_file:
-      - ./src/.env
+      - ../frontend/.env
     depends_on:
       - backend
     networks:
@@ -17,14 +17,14 @@ services:
 
   backend:
     build:
-      context: ./BackEnd
-      dockerfile: ../Dockerfile/backend.Dockerfile
+      context: ../backend-api
+      dockerfile: ../docker/backend.Dockerfile
     container_name: faildaily_backend
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
-      - ./BackEnd/.env
+      - ../backend-api/.env
     depends_on:
       - db
     networks:

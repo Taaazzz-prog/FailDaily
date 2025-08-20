@@ -30,7 +30,7 @@ export interface AuthResponse {
   providedIn: 'root'
 })
 export class HttpAuthService {
-  private apiUrl = environment.api.baseUrl || 'http://localhost:3001/api';
+  private apiUrl = environment.api.baseUrl || 'http://localhost:3000/api';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
 

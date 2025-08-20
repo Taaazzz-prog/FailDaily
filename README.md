@@ -8,7 +8,29 @@
 
 FailDaily révolutionne les réseaux sociaux en encourageant la **vulnérabilité positive** et l'**apprentissage par l'échec**. Contrairement aux plateformes traditionnelles qui cultivent la perfection artificielle, FailDaily célèbre l'imperfection humaine et transforme les échecs en opportunités de croissance collective.
 
-## 🏗️ **Architecture Technique**
+## 🏗️ **Architecture Projet**
+
+```
+FailDaily/
+├── frontend/                   # 📱 Application Ionic/Angular
+│   ├── src/                   # Code source frontend
+│   ├── android/               # Build Android
+│   ├── ios/                   # Build iOS
+│   ├── capacitor.config.ts    # Config Capacitor
+│   ├── ionic.config.json      # Config Ionic
+│   └── package.json           # Dépendances frontend
+├── backend-api/               # 🚀 API Node.js
+│   ├── src/                   # Code source API
+│   ├── tests/                 # Tests API
+│   ├── package.json           # Dépendances backend
+│   └── .env                   # Config backend
+├── docker/                    # 🐳 Configuration Docker
+│   ├── frontend.Dockerfile
+│   ├── backend.Dockerfile
+│   └── docker-compose.yaml
+├── docs/                      # 📚 Documentation
+└── README.md                  # Documentation principale
+```
 
 ### **Stack Technologique**
 - **Frontend** : Angular 18 + Ionic 8 (PWA/Mobile)
@@ -16,18 +38,6 @@ FailDaily révolutionne les réseaux sociaux en encourageant la **vulnérabilit�
 - **Base de données** : MySQL 8.0 (WampServer local)
 - **Authentification** : JWT + bcrypt
 - **Services** : 15+ services Angular modulaires
-
-### **Infrastructure**
-```
-├── Frontend Angular/Ionic
-│   ├── 13 pages fonctionnelles
-│   ├── 15+ services spécialisés
-│   └── Système d'état centralisé
-├── API Backend MySQL
-│   ├── 30+ endpoints REST
-│   ├── Authentification JWT sécurisée
-│   └── Middleware de validation
-└── Base de données MySQL
     ├── 8 tables principales
     ├── Système de badges dynamique
     └── Triggers automatisés
