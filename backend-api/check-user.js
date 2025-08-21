@@ -8,7 +8,7 @@ const dbConfig = {
   host: 'localhost',
   port: 3306,
   user: 'root',
-  password: '', // Mot de passe WampServer si configuré
+  password: '@51008473@Alexia@', // Mot de passe WampServer 
   database: 'faildaily'
 };
 
@@ -21,17 +21,26 @@ async function checkUsers() {
 
     console.log('✅ Connexion établie');
 
-    // Vérifier les utilisateurs
+    // D'abord vérifier la structure de la table users
+    console.log('\n🔍 === STRUCTURE DE LA TABLE USERS ===');
+    
+    const structure = await connection.execute('DESCRIBE users');
+    console.log('\n📋 Colonnes de la table users:');
+    structure[0].forEach((column, index) => {
+      console.log(`${index + 1}. ${column.Field} (${column.Type}) - ${column.Null === 'YES' ? 'NULL' : 'NOT NULL'} - ${column.Key} - Default: ${column.Default}`);
+    });
+
+    // Maintenant vérifier les utilisateurs avec les vraies colonnes
     console.log('\n📊 === VÉRIFICATION DES UTILISATEURS ===');
     
-    const users = await connection.execute('SELECT id, email, display_name, created_at FROM users ORDER BY created_at DESC');
+    const users = await connection.execute('SELECT * FROM users ORDER BY created_at DESC');
     
     console.log(`\n👥 Nombre total d'utilisateurs: ${users[0].length}`);
     
     if (users[0].length > 0) {
       console.log('\n📋 Liste des utilisateurs:');
       users[0].forEach((user, index) => {
-        console.log(`${index + 1}. ID: ${user.id} | Email: ${user.email} | Nom: ${user.display_name} | Créé: ${user.created_at}`);
+        console.log(`${index + 1}. ID: ${user.id} | Email: ${user.email} | Créé: ${user.created_at}`);
       });
     } else {
       console.log('❌ Aucun utilisateur trouvé');
@@ -39,19 +48,37 @@ async function checkUsers() {
 
     // Vérifier les profils
     console.log('\n📊 === VÉRIFICATION DES PROFILS ===');
-    
-    const profiles = await connection.execute(`
-      SELECT up.user_id, u.email, up.bio, up.location 
-      FROM user_profiles up 
-      JOIN users u ON up.user_id = u.id
-    `);
-    
-    console.log(`\n👤 Nombre de profils: ${profiles[0].length}`);
-    
-    if (profiles[0].length > 0) {
-      profiles[0].forEach((profile, index) => {
-        console.log(`${index + 1}. User ID: ${profile.user_id} | Email: ${profile.email} | Bio: ${profile.bio || 'Vide'} | Lieu: ${profile.location || 'Non spécifié'}`);
+    try {
+      const profiles = await connection.execute(`
+        SELECT p.user_id, u.email, p.display_name, p.username, p.registration_completed 
+        FROM profiles p 
+        JOIN users u ON p.user_id = u.id
+      `);
+      
+      console.log(`\n👤 Nombre de profils: ${profiles[0].length}`);
+      
+      if (profiles[0].length > 0) {
+        console.log('\n📋 Liste des profils:');
+        profiles[0].forEach((profile, index) => {
+          console.log(`${index + 1}. Email: ${profile.email} | Display Name: ${profile.display_name || 'N/A'} | Username: ${profile.username || 'N/A'} | Complété: ${profile.registration_completed}`);
+        });
+      } else {
+        console.log('❌ Aucun profil trouvé - L\'utilisateur n\'a pas terminé son inscription');
+      }
+    } catch (error) {
+      console.log('❌ Erreur lors de la vérification des profils:', error);
+    }
+
+    // Vérifier les tables disponibles
+    console.log('\n📊 === TABLES DISPONIBLES ===');
+    try {
+      const tables = await connection.execute('SHOW TABLES');
+      console.log('\n� Tables dans la base faildaily:');
+      tables[0].forEach((table, index) => {
+        console.log(`${index + 1}. ${Object.values(table)[0]}`);
       });
+    } catch (error) {
+      console.log('❌ Erreur lors de la vérification des tables:', error);
     }
 
     // Vérifier les fails

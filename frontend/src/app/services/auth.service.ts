@@ -266,28 +266,28 @@ export class AuthService {
           const user: User = {
             id: currentUser.id,
             email: currentUser.email!,
-            displayName: profile?.displayName || currentUser.displayName || 'Utilisateur',
-            avatar: profile?.avatar_url || DEFAULT_AVATAR,
-            joinDate: new Date(profile?.created_at || currentUser.joinDate),
-            totalFails: profile?.stats?.totalFails || 0,
-            couragePoints: profile?.stats?.couragePoints || 0,
-            badges: profile?.stats?.badges || [],
+            displayName: profile?.data?.displayName || currentUser.displayName || 'Utilisateur',
+            avatar: profile?.data?.avatarUrl || DEFAULT_AVATAR,
+            joinDate: new Date(profile?.data?.createdAt || currentUser.joinDate),
+            totalFails: profile?.data?.stats?.totalFails || 0,
+            couragePoints: profile?.data?.stats?.couragePoints || 0,
+            badges: profile?.data?.stats?.badges || [],
             role: currentUser.role || UserRole.USER, // ✅ Rôle depuis currentUser
-            emailConfirmed: profile?.email_confirmed || false,
-            registrationCompleted: profile?.registration_completed || false,
-            legalConsent: profile?.legal_consent ? {
-              documentsAccepted: profile.legal_consent.documentsAccepted,
-              consentDate: new Date(profile.legal_consent.consentDate),
-              consentVersion: profile.legal_consent.consentVersion,
-              marketingOptIn: profile.legal_consent.marketingOptIn
+            emailConfirmed: profile?.data?.emailConfirmed || false,
+            registrationCompleted: profile?.data?.registrationCompleted || false,
+            legalConsent: profile?.data?.legalConsent ? {
+              documentsAccepted: profile.data.legalConsent.documentsAccepted,
+              consentDate: new Date(profile.data.legalConsent.consentDate),
+              consentVersion: profile.data.legalConsent.consentVersion,
+              marketingOptIn: profile.data.legalConsent.marketingOptIn
             } : undefined,
-            ageVerification: profile?.age_verification ? {
-              birthDate: new Date(profile.age_verification.birthDate),
-              isMinor: profile.age_verification.isMinor,
-              needsParentalConsent: profile.age_verification.needsParentalConsent,
-              parentEmail: profile.age_verification.parentEmail,
-              parentConsentDate: profile.age_verification.parentConsentDate ?
-                new Date(profile.age_verification.parentConsentDate) : undefined
+            ageVerification: profile?.data?.ageVerification ? {
+              birthDate: new Date(profile.data.ageVerification.birthDate),
+              isMinor: profile.data.ageVerification.isMinor,
+              needsParentalConsent: profile.data.ageVerification.needsParentalConsent,
+              parentEmail: profile.data.ageVerification.parentEmail,
+              parentConsentDate: profile.data.ageVerification.parentConsentDate ?
+                new Date(profile.data.ageVerification.parentConsentDate) : undefined
             } : undefined,
             // ✅ Ajout des préférences avec bio
             preferences: {
@@ -365,28 +365,28 @@ export class AuthService {
             const user: User = {
               id: mysqlServiceUser.id,
               email: mysqlServiceUser.email!,
-              displayName: profile?.displayName || 'Utilisateur',
-              avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
-              joinDate: new Date(profile?.created_at || mysqlServiceUser.created_at),
-              totalFails: profile?.stats?.totalFails || 0,
-              couragePoints: profile?.stats?.couragePoints || 0,
-              badges: profile?.stats?.badges || [],
+              displayName: profile?.data?.displayName || 'Utilisateur',
+              avatar: profile?.data?.avatarUrl || 'assets/anonymous-avatar.svg',
+              joinDate: new Date(profile?.data?.createdAt || mysqlServiceUser.created_at),
+              totalFails: profile?.data?.stats?.totalFails || 0,
+              couragePoints: profile?.data?.stats?.couragePoints || 0,
+              badges: profile?.data?.stats?.badges || [],
               role: (mysqlServiceUser.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
-              emailConfirmed: profile?.email_confirmed || false,
-              registrationCompleted: profile?.registration_completed || false,
-              legalConsent: profile?.legal_consent ? {
-                documentsAccepted: profile.legal_consent.documentsAccepted,
-                consentDate: new Date(profile.legal_consent.consentDate),
-                consentVersion: profile.legal_consent.consentVersion,
-                marketingOptIn: profile.legal_consent.marketingOptIn
+              emailConfirmed: profile?.data?.emailConfirmed || false,
+              registrationCompleted: profile?.data?.registrationCompleted || false,
+              legalConsent: profile?.data?.legalConsent ? {
+                documentsAccepted: profile.data.legalConsent.documentsAccepted,
+                consentDate: new Date(profile.data.legalConsent.consentDate),
+                consentVersion: profile.data.legalConsent.consentVersion,
+                marketingOptIn: profile.data.legalConsent.marketingOptIn
               } : undefined,
-              ageVerification: profile?.age_verification ? {
-                birthDate: new Date(profile.age_verification.birthDate),
-                isMinor: profile.age_verification.isMinor,
-                needsParentalConsent: profile.age_verification.needsParentalConsent,
-                parentEmail: profile.age_verification.parentEmail,
-                parentConsentDate: profile.age_verification.parentConsentDate ?
-                  new Date(profile.age_verification.parentConsentDate) : undefined
+              ageVerification: profile?.data?.ageVerification ? {
+                birthDate: new Date(profile.data.ageVerification.birthDate),
+                isMinor: profile.data.ageVerification.isMinor,
+                needsParentalConsent: profile.data.ageVerification.needsParentalConsent,
+                parentEmail: profile.data.ageVerification.parentEmail,
+                parentConsentDate: profile.data.ageVerification.parentConsentDate ?
+                  new Date(profile.data.ageVerification.parentConsentDate) : undefined
               } : undefined,
               // ✅ Ajout des préférences avec bio
               preferences: {
@@ -455,39 +455,39 @@ export class AuthService {
         const user: User = {
           id: result.data.user.id,
           email: result.data.user.email!,
-          displayName: profile?.displayName || 'Utilisateur',
-          avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
-          joinDate: new Date(profile?.created_at || result.data.user.created_at),
-          totalFails: profile?.stats?.totalFails || 0,
-          couragePoints: profile?.stats?.couragePoints || 0,
-          badges: profile?.stats?.badges || [],
+          displayName: profile?.data?.displayName || 'Utilisateur',
+          avatar: profile?.data?.avatarUrl || 'assets/anonymous-avatar.svg',
+          joinDate: new Date(profile?.data?.createdAt || result.data.user.created_at),
+          totalFails: profile?.data?.stats?.totalFails || 0,
+          couragePoints: profile?.data?.stats?.couragePoints || 0,
+          badges: profile?.data?.stats?.badges || [],
           role: (result.data.user.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
-          emailConfirmed: profile?.email_confirmed || false,
-          registrationCompleted: profile?.registration_completed || false,
-          legalConsent: profile?.legal_consent ? {
-            documentsAccepted: profile.legal_consent.documentsAccepted,
-            consentDate: new Date(profile.legal_consent.consentDate),
-            consentVersion: profile.legal_consent.consentVersion,
-            marketingOptIn: profile.legal_consent.marketingOptIn
+          emailConfirmed: profile?.data?.emailConfirmed || false,
+          registrationCompleted: profile?.data?.registrationCompleted || false,
+          legalConsent: profile?.data?.legalConsent ? {
+            documentsAccepted: profile.data.legalConsent.documentsAccepted,
+            consentDate: new Date(profile.data.legalConsent.consentDate),
+            consentVersion: profile.data.legalConsent.consentVersion,
+            marketingOptIn: profile.data.legalConsent.marketingOptIn
           } : undefined,
-          ageVerification: profile?.age_verification ? {
-            birthDate: new Date(profile.age_verification.birthDate),
-            isMinor: profile.age_verification.isMinor,
-            needsParentalConsent: profile.age_verification.needsParentalConsent,
-            parentEmail: profile.age_verification.parentEmail,
-            parentConsentDate: profile.age_verification.parentConsentDate ?
-              new Date(profile.age_verification.parentConsentDate) : undefined
+          ageVerification: profile?.data?.ageVerification ? {
+            birthDate: new Date(profile.data.ageVerification.birthDate),
+            isMinor: profile.data.ageVerification.isMinor,
+            needsParentalConsent: profile.data.ageVerification.needsParentalConsent,
+            parentEmail: profile.data.ageVerification.parentEmail,
+            parentConsentDate: profile.data.ageVerification.parentConsentDate ?
+              new Date(profile.data.ageVerification.parentConsentDate) : undefined
           } : undefined,
           // ✅ Ajout des préférences avec bio
           preferences: {
-            bio: profile?.bio || '',
-            theme: profile?.preferences?.theme || 'light',
-            darkMode: (profile?.preferences?.theme || 'light') === 'dark',
-            notificationsEnabled: profile?.preferences?.notifications?.enabled ?? true,
-            reminderTime: profile?.preferences?.notifications?.reminderTime || '09:00',
-            anonymousMode: profile?.preferences?.privacy?.anonymousMode ?? false,
-            shareLocation: profile?.preferences?.privacy?.shareLocation ?? false,
-            soundEnabled: profile?.preferences?.accessibility?.soundEnabled ?? true,
+            bio: profile?.data?.bio || '',
+            theme: profile?.data?.preferences?.theme || 'light',
+            darkMode: (profile?.data?.preferences?.theme || 'light') === 'dark',
+            notificationsEnabled: profile?.data?.preferences?.notifications?.enabled ?? true,
+            reminderTime: profile?.data?.preferences?.notifications?.reminderTime || '09:00',
+            anonymousMode: profile?.data?.preferences?.privacy?.anonymousMode ?? false,
+            shareLocation: profile?.data?.preferences?.privacy?.shareLocation ?? false,
+            soundEnabled: profile?.data?.preferences?.accessibility?.soundEnabled ?? true,
             hapticsEnabled: profile?.preferences?.accessibility?.hapticsEnabled ?? true,
             notifications: profile?.preferences?.notifications || {
               encouragement: true,
@@ -902,12 +902,12 @@ export class AuthService {
         // Mettre à jour l'utilisateur local avec les nouvelles données
         updatedUser = {
           ...currentUser,
-          displayName: updatedProfile.displayName || currentUser.displayName,
-          avatar: updatedProfile.avatar_url || currentUser.avatar,
+          displayName: updatedProfile.data?.displayName || currentUser.displayName,
+          avatar: updatedProfile.data?.avatarUrl || currentUser.avatar,
           preferences: {
             ...currentUser.preferences,
-            ...updatedProfile.preferences,
-            bio: updatedProfile.bio
+            ...updatedProfile.data?.preferences,
+            bio: updatedProfile.data?.bio
           }
         };
 

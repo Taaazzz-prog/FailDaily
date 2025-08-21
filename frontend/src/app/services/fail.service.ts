@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, from, map, switchMap, catchError, of, BehaviorSubject } from 'rxjs';
 import { MysqlService } from './mysql.service';
+import { AuthService } from './auth.service';
 import { EventBusService, AppEvents } from './event-bus.service';
 import { Fail } from '../models/fail.model';
 import { User } from '../models/user.model';
@@ -24,21 +25,27 @@ export class FailService {
 
   constructor(
     private mysqlService: MysqlService,
+    private authService: AuthService,
     private eventBus: EventBusService,
     private logger: ComprehensiveLoggerService
   ) {
     console.log('FailService: Constructor called - initializing fail service with MySQL backend');
-    // Ne charger les fails que si l'utilisateur est connecté
-    if (this.mysqlService.getCurrentUserSync()) {
-      this.loadFails();
-    } else {
-      console.log('FailService: User not authenticated, skipping initial load');
-    }
+    
+    // Écouter les changements d'authentification pour charger/décharger les fails
+    this.authService.currentUser$.subscribe(user => {
+      if (user) {
+        console.log('FailService: User authenticated, loading fails...');
+        this.loadFails();
+      } else {
+        console.log('FailService: User not authenticated, clearing fails');
+        this.failsSubject.next([]);
+      }
+    });
   }
 
   async createFail(failData: CreateFailData): Promise<void> {
-    // Utiliser la méthode synchrone pour éviter les problèmes de concurrence
-    const user = this.mysqlService.getCurrentUserSync();
+    // Utiliser AuthService pour vérifier l'authentification
+    const user = this.authService.getCurrentUser();
     if (!user) {
       throw new Error('Utilisateur non connecté');
     }
@@ -109,19 +116,25 @@ export class FailService {
   private async loadFails(): Promise<void> {
     try {
       // Vérifier l'authentification avant de charger
-      if (!this.mysqlService.getCurrentUserSync()) {
+      if (!this.authService.isAuthenticated()) {
         console.log('FailService: User not authenticated, cannot load fails');
         this.failsSubject.next([]);
         return;
       }
 
+      console.log('FailService: Loading fails from backend...');
       const fails = await this.mysqlService.getFails();
+      console.log('FailService: Received fails from backend:', fails);
+      
       const formattedFails = await Promise.all(
         fails.map(fail => this.formatFailWithAuthor(fail))
       );
+      console.log('FailService: Formatted fails:', formattedFails);
+      
       this.failsSubject.next(formattedFails);
+      console.log('FailService: Fails loaded and published to subscribers');
     } catch (error) {
-      console.error('Erreur lors du chargement des fails:', error);
+      console.error('❌ FailService: Erreur lors du chargement des fails:', error);
       this.failsSubject.next([]);
     }
   }
@@ -278,7 +291,7 @@ export class FailService {
 
   async refreshFails(): Promise<void> {
     // Vérifier l'authentification avant de rafraîchir
-    if (!this.mysqlService.getCurrentUserSync()) {
+    if (!this.authService.isAuthenticated()) {
       console.log('FailService: User not authenticated, cannot refresh fails');
       return;
     }

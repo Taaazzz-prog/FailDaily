@@ -83,8 +83,8 @@ export class MysqlService {
   }
 
   private loadStoredUser(): void {
-    const token = localStorage.getItem('auth_token');
-    const userData = localStorage.getItem('current_user');
+    const token = localStorage.getItem('faildaily_token');
+    const userData = localStorage.getItem('faildaily_user_cache');
     
     if (token && userData) {
       try {
@@ -101,7 +101,7 @@ export class MysqlService {
   private saveAuthData(token: string, user: User): void {
     // ✅ FIX: Utiliser les mêmes clés que l'AuthService
     localStorage.setItem('faildaily_token', token);
-    localStorage.setItem('faildaily_user', JSON.stringify(user));
+    localStorage.setItem('faildaily_user_cache', JSON.stringify(user));
     this.currentUser.next(user);
     console.log('🔐 MysqlService: Données d\'authentification sauvegardées');
   }
@@ -127,7 +127,7 @@ export class MysqlService {
   }
 
   private getMultipartHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     return new HttpHeaders({
       'Authorization': token ? `Bearer ${token}` : ''
     });
@@ -150,7 +150,7 @@ export class MysqlService {
         return this.currentUser.value;
       }
 
-      const token = localStorage.getItem('auth_token');
+      const token = localStorage.getItem('faildaily_token');
       if (!token) {
         return null;
       }
@@ -499,10 +499,13 @@ export class MysqlService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success) {
+      // ✅ FIX: Le backend retourne directement { fails: [...], pagination: {...} }
+      // Pas de propriété 'success', donc on vérifie directement 'fails'
+      if (response && response.fails) {
+        console.log('✅ MysqlService: Fails récupérés avec succès:', response.fails.length, 'fails');
         return response.fails;
       } else {
-        throw new Error(response.message || 'Erreur lors de la récupération des fails');
+        throw new Error('Réponse invalide du serveur');
       }
     } catch (error: any) {
       console.error('❌ Erreur récupération fails:', error);
