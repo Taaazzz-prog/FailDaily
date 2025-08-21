@@ -10,8 +10,6 @@ class ReactionsController {
    * Ajouter ou modifier une réaction à un fail
    */
   static async addReaction(req, res) {
-    const connection = req.dbConnection;
-    
     try {
       const { id: failId } = req.params;
       const { reactionType } = req.body;
@@ -28,7 +26,7 @@ class ReactionsController {
       }
 
       // Vérifier que le fail existe et est accessible
-      const fails = await executeQuery(connection, `
+      const fails = await executeQuery(`
         SELECT id, user_id, is_public 
         FROM fails 
         WHERE id = ?
@@ -54,7 +52,7 @@ class ReactionsController {
       }
 
       // Vérifier si une réaction existe déjà
-      const existingReactions = await executeQuery(connection, `
+      const existingReactions = await executeQuery(`
         SELECT id, reaction_type 
         FROM reactions 
         WHERE fail_id = ? AND user_id = ?
@@ -65,7 +63,7 @@ class ReactionsController {
         
         // Si c'est la même réaction, la supprimer (toggle)
         if (existingReaction.reaction_type === reactionType) {
-          await executeQuery(connection, `
+          await executeQuery(`
             DELETE FROM reactions 
             WHERE id = ?
           `, [existingReaction.id]);
@@ -80,7 +78,7 @@ class ReactionsController {
           });
         } else {
           // Sinon, la modifier
-          await executeQuery(connection, `
+          await executeQuery(`
             UPDATE reactions 
             SET reaction_type = ?, created_at = NOW() 
             WHERE id = ?
@@ -99,7 +97,7 @@ class ReactionsController {
         // Ajouter une nouvelle réaction
         const reactionId = uuidv4();
         
-        await executeQuery(connection, `
+        await executeQuery(`
           INSERT INTO reactions (id, fail_id, user_id, reaction_type, created_at) 
           VALUES (?, ?, ?, ?, NOW())
         `, [reactionId, failId, userId, reactionType]);
@@ -129,14 +127,12 @@ class ReactionsController {
    * Supprimer une réaction
    */
   static async removeReaction(req, res) {
-    const connection = req.dbConnection;
-    
     try {
       const { id: failId } = req.params;
       const userId = req.user.id;
 
       // Supprimer la réaction de l'utilisateur pour ce fail
-      const result = await executeQuery(connection, `
+      const result = await executeQuery(`
         DELETE FROM reactions 
         WHERE fail_id = ? AND user_id = ?
       `, [failId, userId]);
@@ -169,14 +165,12 @@ class ReactionsController {
    * Récupérer toutes les réactions d'un fail
    */
   static async getReactions(req, res) {
-    const connection = req.dbConnection;
-    
     try {
       const { id: failId } = req.params;
       const userId = req.user ? req.user.id : null;
 
       // Vérifier que le fail existe et est accessible
-      const fails = await executeQuery(connection, `
+      const fails = await executeQuery(`
         SELECT id, user_id, is_public 
         FROM fails 
         WHERE id = ?
@@ -202,7 +196,7 @@ class ReactionsController {
       }
 
       // Récupérer toutes les réactions avec les informations des utilisateurs
-      const reactions = await executeQuery(connection, `
+      const reactions = await executeQuery(`
         SELECT 
           r.id,
           r.reaction_type,
@@ -218,7 +212,7 @@ class ReactionsController {
       `, [failId]);
 
       // Compter les réactions par type
-      const reactionCounts = await executeQuery(connection, `
+      const reactionCounts = await executeQuery(`
         SELECT 
           reaction_type,
           COUNT(*) as count
@@ -230,7 +224,7 @@ class ReactionsController {
       // Récupérer la réaction de l'utilisateur actuel s'il est connecté
       let userReaction = null;
       if (userId) {
-        const userReactions = await executeQuery(connection, `
+        const userReactions = await executeQuery(`
           SELECT reaction_type 
           FROM reactions 
           WHERE fail_id = ? AND user_id = ?
@@ -279,13 +273,11 @@ class ReactionsController {
    * Récupérer les statistiques des réactions d'un utilisateur
    */
   static async getUserReactionStats(req, res) {
-    const connection = req.dbConnection;
-    
     try {
       const userId = req.user.id;
 
       // Compter les réactions données par l'utilisateur
-      const givenReactions = await executeQuery(connection, `
+      const givenReactions = await executeQuery(`
         SELECT 
           reaction_type,
           COUNT(*) as count
@@ -295,7 +287,7 @@ class ReactionsController {
       `, [userId]);
 
       // Compter les réactions reçues sur les fails de l'utilisateur
-      const receivedReactions = await executeQuery(connection, `
+      const receivedReactions = await executeQuery(`
         SELECT 
           r.reaction_type,
           COUNT(*) as count

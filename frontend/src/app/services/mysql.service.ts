@@ -631,11 +631,15 @@ export class MysqlService {
       const currentUser = this.getCurrentUserSync();
       if (!currentUser) return null;
 
-      const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/my-reaction`, {
+      // ✅ FIX: Utiliser l'endpoint existant /reactions qui retourne userReaction
+      const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/reactions`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      return response.success ? response.reactionType : null;
+      if (response.success && response.data) {
+        return response.data.userReaction;
+      }
+      return null;
     } catch (error: any) {
       console.warn('⚠️ Erreur récupération réaction utilisateur:', error);
       return null;
@@ -647,11 +651,15 @@ export class MysqlService {
       const currentUser = this.getCurrentUserSync();
       if (!currentUser) return [];
 
-      const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/user-reactions`, {
+      // ✅ FIX: Utiliser l'endpoint existant /reactions qui retourne toutes les réactions
+      const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/reactions`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      return response.success ? response.reactions : [];
+      if (response.success && response.data && response.data.reactions) {
+        return response.data.reactions.map((r: any) => r.type);
+      }
+      return [];
     } catch (error: any) {
       console.warn('⚠️ Erreur récupération réactions utilisateur:', error);
       return [];
