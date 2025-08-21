@@ -15,25 +15,27 @@ export const routes: Routes = [
       {
         path: 'home',
         loadComponent: () => import('./home/home.page').then(m => m.HomePage)
+        // Pas de guard ici - la page home doit être accessible à tous
       },
       {
         path: 'post-fail',
-        loadComponent: () => import('./pages/post-fail/post-fail.page').then(m => m.PostFailPage)
+        loadComponent: () => import('./pages/post-fail/post-fail.page').then(m => m.PostFailPage),
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: 'profile',
         loadComponent: () => import('./pages/profile/profile.page').then(m => m.ProfilePage),
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: 'badges',
         loadComponent: () => import('./pages/badges/badges.page').then(m => m.BadgesPage),
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: 'admin',
         loadComponent: () => import('./pages/admin/admin.page').then(m => m.AdminPage),
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: 'privacy-settings',
@@ -41,17 +43,17 @@ export const routes: Routes = [
           console.log('Chargement du composant PrivacySettings...', !!m.PrivacySettingsPage);
           return m.PrivacySettingsPage;
         }),
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: 'edit-profile',
         loadComponent: () => import('./pages/edit-profile/edit-profile.page').then(m => m.EditProfilePage),
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: 'change-photo',
         loadComponent: () => import('./pages/change-photo/change-photo.page').then(m => m.ChangePhotoPage),
-        canActivate: [AuthGuard]
+        canActivate: [AuthGuard] // Protection obligatoire
       },
       {
         path: '',

@@ -416,3 +416,49 @@ ion-icon {
         background-repeat: no-repeat;
     }
 }
+
+/**
+ * Styles d'authentification
+ * -----------------------------------------------------
+ */
+
+/* Styles pour les éléments nécessitant une authentification */
+.auth-required {
+  position: relative;
+  cursor: pointer;
+}
+
+.auth-required::after {
+  content: '🔒';
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 12px;
+  background: #ff6b6b;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  z-index: 10;
+}
+
+.auth-required:hover::after {
+  animation: authPulse 0.5s infinite;
+}
+
+@keyframes authPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Modal pour les actions restreintes */
+.auth-required-modal {
+  --width: 90%;
+  --max-width: 400px;
+  --border-radius: 16px;
+}

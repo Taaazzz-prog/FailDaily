@@ -1,0 +1,56 @@
+.auth-modal-container {
+  padding: 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  
+  h2 {
+    margin: 0;
+    font-family: 'Comfortaa', sans-serif;
+    color: #6366f1;
+  }
+}
+
+.modal-content {
+  text-align: center;
+  margin-bottom: 30px;
+  
+  .icon-section {
+    margin-bottom: 20px;
+    
+    ion-icon {
+      font-size: 3rem;
+    }
+  }
+  
+  .message {
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 10px;
+    color: #374151;
+  }
+  
+  .sub-message {
+    font-size: 0.9rem;
+    color: #6b7280;
+    margin-bottom: 0;
+  }
+}
+
+.modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  
+  ion-button {
+    --border-radius: 12px;
+    height: 48px;
+    font-weight: 600;
+  }
+}

@@ -1,0 +1,31 @@
+<div class="auth-modal-container">
+  <div class="modal-header">
+    <h2>{{ title }}</h2>
+    <ion-button fill="clear" size="small" (click)="dismiss()">
+      <ion-icon name="close-outline"></ion-icon>
+    </ion-button>
+  </div>
+  
+  <div class="modal-content">
+    <div class="icon-section">
+      <ion-icon name="log-in-outline" size="large" color="primary"></ion-icon>
+    </div>
+    
+    <ion-text>
+      <p class="message">{{ message }}</p>
+      <p class="sub-message">Rejoignez la communauté FailDaily pour {{ actionName }}</p>
+    </ion-text>
+  </div>
+  
+  <div class="modal-actions">
+    <ion-button expand="block" (click)="goToLogin()" color="primary">
+      <ion-icon name="log-in-outline" slot="start"></ion-icon>
+      Se connecter
+    </ion-button>
+    
+    <ion-button expand="block" fill="outline" (click)="goToRegister()" color="primary">
+      <ion-icon name="person-add-outline" slot="start"></ion-icon>
+      Créer un compte
+    </ion-button>
+  </div>
+</div>

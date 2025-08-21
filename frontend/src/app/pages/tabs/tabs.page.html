@@ -1,26 +1,45 @@
 <ion-tabs>
   <ion-tab-bar slot="bottom" class="custom-tab-bar">
-    <ion-tab-button tab="home">
+    <!-- Accueil - Toujours visible -->
+    <ion-tab-button tab="home" (click)="onTabClick('home', $event)">
       <ion-icon name="home-outline"></ion-icon>
       <ion-label>Accueil</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="post-fail" class="add-fail-button">
+    <!-- Ajouter un Fail - Visible seulement si connecté -->
+    <ion-tab-button 
+      *ngIf="canShowTab('post-fail')" 
+      tab="post-fail" 
+      class="add-fail-button"
+      (click)="onTabClick('post-fail', $event)">
       <ion-icon name="add-circle" size="large"></ion-icon>
       <ion-label>Ajouter</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="badges">
+    <!-- Badges - Visible seulement si connecté -->
+    <ion-tab-button 
+      *ngIf="canShowTab('badges')" 
+      tab="badges"
+      (click)="onTabClick('badges', $event)">
       <ion-icon name="ribbon-outline"></ion-icon>
       <ion-label>Badges</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="profile">
+    <!-- Profil - Visible seulement si connecté -->
+    <ion-tab-button 
+      *ngIf="canShowTab('profile')" 
+      tab="profile"
+      (click)="onTabClick('profile', $event)">
       <ion-icon name="person-outline"></ion-icon>
       <ion-label>Profil</ion-label>
     </ion-tab-button>
 
-    <ion-tab-button tab="admin" class="admin-tab">
+    <!-- Admin - Visible seulement si admin -->
+    <ion-tab-button 
+      *ngIf="canShowTab('admin')" 
+      tab="admin" 
+      class="admin-tab"
+      (click)="onTabClick('admin', $event)">
       <ion-icon name="settings-outline"></ion-icon>
       <ion-label>Admin</ion-label>
     </ion-tab-button>

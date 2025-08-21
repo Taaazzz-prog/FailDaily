@@ -53,6 +53,20 @@ export class AuthService {
   ) {
     console.log('🔐 AuthService: Constructor called - initializing authentication service');
     this.initializeAuth();
+    
+    // ✅ Nettoyer lors de la fermeture de l'onglet/application
+    window.addEventListener('beforeunload', () => {
+      if (!this.isAuthenticated()) {
+        this.clearAllAuthData();
+      }
+    });
+    
+    // ✅ Nettoyer lors de la navigation
+    window.addEventListener('pagehide', () => {
+      if (!this.isAuthenticated()) {
+        this.clearAllAuthData();
+      }
+    });
   }
 
   /**
@@ -156,8 +170,40 @@ export class AuthService {
 
 
 
+  /**
+   * ✅ Nettoie automatiquement les données incohérentes au démarrage
+   */
+  private cleanupInconsistentData(): void {
+    const token = localStorage.getItem('faildaily_token');
+    const user = localStorage.getItem('faildaily_user');
+    
+    // Si on a un token mais pas d'utilisateur, ou vice versa, nettoyer
+    if ((token && !user) || (!token && user)) {
+      console.log('🧹 Détection de données incohérentes - nettoyage automatique');
+      this.clearAllAuthData();
+    }
+    
+    // Si on a un token expiré, le nettoyer
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const now = Math.floor(Date.now() / 1000);
+        if (payload.exp && payload.exp < now) {
+          console.log('🧹 Token expiré détecté - nettoyage automatique');
+          this.clearAllAuthData();
+        }
+      } catch (error) {
+        console.log('🧹 Token invalide détecté - nettoyage automatique');
+        this.clearAllAuthData();
+      }
+    }
+  }
+
   private async initializeAuth() {
     console.log('🔐 AuthService: initializeAuth called');
+    
+    // ✅ Nettoyer les données incohérentes en premier
+    this.cleanupInconsistentData();
     
       // Debug complet de l'état à l'initialisation
       console.log('🔍 DEBUG INITIALISATION:');
@@ -722,7 +768,9 @@ export class AuthService {
       'user_token',
       'user_data',
       'session_token',
-      'login_token'
+      'login_token',
+      'CapacitorStorage.currentUser',
+      'CapacitorStorage.fails'
     ];
     
     console.log('🔍 AVANT nettoyage - localStorage keys:', Object.keys(localStorage));
@@ -734,8 +782,22 @@ export class AuthService {
         localStorage.removeItem(key);
       }
     });
+
+    // Nettoyage agressif : supprimer TOUTES les clés qui commencent par faildaily, user_, auth_, etc.
+    const allKeys = Object.keys(localStorage);
+    const patternsToRemove = ['faildaily', 'user_', 'auth_', 'session_', 'login_'];
+    
+    allKeys.forEach(key => {
+      if (patternsToRemove.some(pattern => key.toLowerCase().includes(pattern.toLowerCase()))) {
+        console.log(`🗑️ Suppression automatique de ${key}`);
+        localStorage.removeItem(key);
+      }
+    });
     
     console.log('🔍 APRÈS nettoyage - localStorage keys:', Object.keys(localStorage));
+    
+    // Force la réinitialisation de l'état
+    this.sessionInitialized = false;
   }
 
 
@@ -791,6 +853,26 @@ export class AuthService {
       console.error('Logout error:', error);
       throw error;
     }
+  }
+
+  /**
+   * ✅ Force un rafraîchissement complet de l'authentification
+   */
+  async forceRefreshAuth(): Promise<void> {
+    console.log('🔄 AuthService: Force refresh de l\'authentification');
+    
+    // Réinitialiser l'état
+    this.sessionInitialized = false;
+    this.processingProfileLoad = false;
+    this.lastProcessedUserId = null;
+    this.initPromise = null;
+    
+    // Nettoyer et réinitialiser
+    this.clearAllAuthData();
+    this.currentUserSubject.next(null);
+    
+    // Redémarrer l'initialisation
+    await this.initializeAuth();
   }
 
   getCurrentUser(): User | null {

@@ -3,15 +3,14 @@
     <ion-title class="handwriting">FailDaily</ion-title>
     <ion-buttons slot="end">
       @if (!(currentUser$ | async)) {
-      <ion-button (click)="goToLogin()">
-        <ion-icon name="person" slot="icon-only"></ion-icon>
-      </ion-button>
-      <ion-button (click)="goToRegister()">
-        <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+      <ion-button (click)="goToLogin()" color="primary">
+        <ion-icon name="person" slot="start"></ion-icon>
+        Connexion
       </ion-button>
       } @else {
-      <ion-button (click)="goToPostFail()">
-        <ion-icon name="add-circle" slot="icon-only"></ion-icon>
+      <ion-button (click)="goToPostFail()" color="primary">
+        <ion-icon name="add-circle" slot="start"></ion-icon>
+        Publier
       </ion-button>
       }
     </ion-buttons>
@@ -36,32 +35,76 @@
           La communauté qui célèbre l'imperfection et transforme chaque échec en apprentissage
         </p>
 
-        <!-- Carrousel de présentation -->
-        <div class="features-carousel">
-          <div class="feature-slide active">
+        <!-- Preview des fonctionnalités -->
+        <div class="features-preview">
+          <div class="feature-card">
             <ion-icon name="heart" size="large" class="feature-icon"></ion-icon>
             <h3>Partage authentique</h3>
             <p>Racontez vos échecs sans jugement dans une communauté bienveillante</p>
+            <ion-button 
+              fill="outline" 
+              size="small" 
+              [appAuthAction]="true"
+              authMessage="Connectez-vous pour partager vos fails"
+              authRedirect="/auth/login">
+              Essayer maintenant
+            </ion-button>
           </div>
-          <div class="feature-slide">
+
+          <div class="feature-card">
             <ion-icon name="people" size="large" class="feature-icon"></ion-icon>
             <h3>Soutien communautaire</h3>
             <p>Recevez des encouragements et partagez vos expériences</p>
+            <ion-button 
+              fill="outline" 
+              size="small"
+              [appAuthAction]="true"
+              authMessage="Rejoignez la communauté pour recevoir du soutien"
+              authRedirect="/auth/register">
+              Rejoindre
+            </ion-button>
           </div>
-          <div class="feature-slide">
+
+          <div class="feature-card">
             <ion-icon name="trophy" size="large" class="feature-icon"></ion-icon>
             <h3>Badges de courage</h3>
             <p>Gagnez des récompenses pour votre authenticité et votre courage</p>
+            <ion-button 
+              fill="outline" 
+              size="small"
+              [appAuthAction]="true"
+              authMessage="Créez un compte pour débloquer des badges"
+              authRedirect="/auth/register">
+              Découvrir
+            </ion-button>
           </div>
         </div>
 
-        <div class="cta-buttons">
-          <ion-button expand="block" (click)="goToLogin()" class="primary-cta">
-            Rejoindre la communauté
-          </ion-button>
-          <ion-button expand="block" fill="outline" (click)="goToRegister()" class="secondary-cta">
-            Créer un compte
-          </ion-button>
+        <div class="cta-section">
+          <h2 class="handwriting">Prêt à commencer votre aventure ?</h2>
+          <div class="cta-buttons">
+            <ion-button expand="block" (click)="goToRegister()" class="primary-cta" size="large">
+              <ion-icon name="person-add-outline" slot="start"></ion-icon>
+              Créer un compte gratuit
+            </ion-button>
+            <ion-button expand="block" fill="outline" (click)="goToLogin()" class="secondary-cta">
+              <ion-icon name="log-in-outline" slot="start"></ion-icon>
+              J'ai déjà un compte
+            </ion-button>
+          </div>
+        </div>
+
+        <!-- Témoignages factices pour crédibilité -->
+        <div class="testimonials-section">
+          <h3 class="handwriting">Ce que disent nos membres</h3>
+          <div class="testimonial">
+            <p>"FailDaily m'a aidé à voir mes échecs comme des opportunités d'apprentissage"</p>
+            <span>- Alex, membre depuis 6 mois</span>
+          </div>
+          <div class="testimonial">
+            <p>"Une communauté bienveillante où je peux être authentique"</p>
+            <span>- Marie, membre depuis 1 an</span>
+          </div>
         </div>
       </div>
     </div>

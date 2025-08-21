@@ -10,7 +10,7 @@ ion-tab-button {
   --background-selected: #6366f1;
   border-radius: 16px;
   margin: 0 4px;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.3s, transform 0.3s;
 }
 
 ion-tab-button.ion-selected {
@@ -28,23 +28,58 @@ ion-tab-button.add-fail-button {
     color: #f7a4a4;
   }
 
-  &.ion-selected ion-icon {
-    color: #fff;
+  &.ion-selected {
+    box-shadow: 0 2px 8px 0 rgba(247, 164, 164, 0.25);
+    
+    ion-icon {
+      color: #fff;
+    }
   }
 }
 
-// Bouton Admin spécial (temporaire pour debug)
+// Bouton Admin spécial
 ion-tab-button.admin-tab {
-  --color: #f59e0b;
+  --color: #ff6b6b;
   --color-selected: #fff;
-  --background-selected: #f59e0b;
+  --background-selected: #ff6b6b;
 
-  ion-icon {
-    color: #f59e0b;
+  &.ion-selected {
+    box-shadow: 0 2px 8px 0 rgba(255, 107, 107, 0.25);
   }
+}
 
-  &.ion-selected ion-icon {
-    color: #fff;
+// État désactivé pour les tabs non disponibles
+ion-tab-button.disabled {
+  opacity: 0.4;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+// Animations pour les transitions d'état
+ion-tab-button {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive design
+@media (max-width: 480px) {
+  ion-tab-button {
+    margin: 0 2px;
+    border-radius: 12px;
+  }
+  
+  ion-tab-button.add-fail-button ion-icon {
+    font-size: 2.2em !important;
   }
 }
 

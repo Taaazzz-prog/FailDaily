@@ -6,13 +6,14 @@ import {
   RefresherCustomEvent, ViewWillEnter
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { person, addCircle, documentOutline, add, chevronDownCircleOutline, heart, people, trophy } from 'ionicons/icons';
+import { person, addCircle, documentOutline, add, chevronDownCircleOutline, heart, people, trophy, personAddOutline, logInOutline } from 'ionicons/icons';
 import { FailService } from '../services/fail.service';
 import { AuthService } from '../services/auth.service';
 import { Fail } from '../models/fail.model';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { FailCardComponent } from '../components/fail-card/fail-card.component';
+import { AuthActionDirective } from '../directives/auth-action.directive';
 
 @Component({
   selector: 'app-home',
@@ -22,13 +23,14 @@ import { FailCardComponent } from '../components/fail-card/fail-card.component';
     CommonModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
     IonRefresher, IonRefresherContent, IonSpinner,
-    FailCardComponent
+    FailCardComponent,
+    AuthActionDirective
   ],
 })
 export class HomePage implements OnInit, ViewWillEnter {
+  currentUser$ = this.authService.currentUser$;
   fails$: Observable<Fail[]> | null = null;
   isLoading = false;
-  currentUser$ = this.authService.currentUser$;
 
   constructor(
     private failService: FailService,
@@ -38,7 +40,7 @@ export class HomePage implements OnInit, ViewWillEnter {
     // Configuration des icônes
     addIcons({
       person, addCircle, documentOutline, add, chevronDownCircleOutline,
-      heart, people, trophy
+      heart, people, trophy, personAddOutline, logInOutline
     });
 
     console.log('🏠 HomePage - Constructor called');

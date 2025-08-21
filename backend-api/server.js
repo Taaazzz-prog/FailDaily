@@ -26,10 +26,16 @@ app.use(helmet());
 
 // Configuration CORS
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:8100',
+  origin: [
+    'http://localhost:4200',  // Frontend dev server
+    'http://localhost:8100',  // Ionic serve
+    'http://localhost:8101',  // Ionic capacitor serve
+    'http://localhost',       // Production
+    process.env.CORS_ORIGIN || 'http://localhost:4200'
+  ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept']
 }));
 
 // Rate limiting
