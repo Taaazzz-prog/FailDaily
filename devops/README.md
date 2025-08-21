@@ -9,6 +9,7 @@ devops/
 │   ├── start.ps1 / start.sh          # Démarrage du projet
 │   ├── deploy.ps1 / deploy.sh        # Scripts de déploiement
 │   ├── test.ps1 / test.sh            # Scripts de tests
+│   ├── reset-repo.ps1                # Réinitialisation du dépôt Git
 │   └── test-age-validation.js        # Tests spécifiques validation d'âge
 ├── ci-cd/
 │   └── github-actions.yml            # Pipeline CI/CD GitHub Actions
@@ -265,3 +266,51 @@ Pour toute question sur les scripts DevOps :
 1. Consulter cette documentation
 2. Vérifier les logs des scripts
 3. Tester en mode debug : `./script.sh --verbose`
+
+# Scripts DevOps FailDaily
+
+## Scripts disponibles
+
+### reset-repo.ps1
+Automatise la réinitialisation du dépôt Git vers l'état de la branche distante.
+
+```powershell
+# Reset simple
+.\devops\scripts\reset-repo.ps1
+
+# Reset sur une autre branche
+.\devops\scripts\reset-repo.ps1 -Branch develop
+
+# Reset sans confirmation
+.\devops\scripts\reset-repo.ps1 -Force
+```
+
+### dev-workflow.ps1
+Workflow complet de développement.
+
+```powershell
+# Reset du dépôt uniquement
+.\devops\scripts\dev-workflow.ps1 -Action reset
+
+# Construction des conteneurs
+.\devops\scripts\dev-workflow.ps1 -Action build
+
+# Déploiement
+.\devops\scripts\dev-workflow.ps1 -Action deploy
+
+# Reset + Build + Deploy
+.\devops\scripts\dev-workflow.ps1 -Action full-reset
+
+# Affichage du statut
+.\devops\scripts\dev-workflow.ps1 -Action status
+```
+
+## Logs
+
+Les logs sont automatiquement créés dans `devops\logs\` avec horodatage.
+
+## Sécurité
+
+- Vérification de l'état Git avant reset
+- Demande de confirmation pour les changements destructifs
+- Option `-Force` pour automatisation CI/CD
