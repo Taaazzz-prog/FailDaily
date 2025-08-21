@@ -93,13 +93,13 @@ export class TabsPage implements OnInit, OnDestroy {
     
     try {
       // Vérifier la cohérence des données dans localStorage
-      const token = localStorage.getItem('authToken');
-      const userId = localStorage.getItem('userId');
+      const token = localStorage.getItem('faildaily_token');
+      const userCache = localStorage.getItem('faildaily_user_cache');
       const currentUser = this.authService.getCurrentUser();
 
-      if (!token || !userId || !currentUser) {
+      if (!token || !userCache || !currentUser) {
         console.log('🚨 TabsPage: Données d\'authentification incohérentes détectées');
-        console.log('Token:', !!token, 'UserId:', !!userId, 'CurrentUser:', !!currentUser);
+        console.log('Token:', !!token, 'UserCache:', !!userCache, 'CurrentUser:', !!currentUser);
         
         // Forcer un rafraîchissement de l'authentification
         await this.authService.forceRefreshAuth();

@@ -1,6 +1,26 @@
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
 
+// Fonction utilitaire pour obtenir les informations de l'utilisateur et de la requête
+const getUserActivityData = (req, userId, userEmail, userName = null) => {
+  const ip = req.headers['x-forwarded-for'] || 
+             req.connection.remoteAddress || 
+             req.socket.remoteAddress ||
+             (req.connection.socket ? req.connection.socket.remoteAddress : '');
+  
+  const userAgent = req.headers['user-agent'] || '';
+  
+  return {
+    id: uuidv4(),
+    user_id: userId,
+    user_email: userEmail,
+    user_name: userName,
+    ip_address: ip,
+    user_agent: userAgent,
+    created_at: new Date()
+  };
+};
+
 // Créer un fail
 const createFail = async (req, res) => {
   try {
@@ -41,10 +61,11 @@ const createFail = async (req, res) => {
   // (Optionnel) Mise à jour des stats utilisateur ou attribution de badges
   // Désactivé car les colonnes/tables attendues ne sont pas standardisées dans le schéma actuel.
 
-    // Log de l'activité (schéma user_activities actuel)
+    // Log de l'activité avec toutes les données utilisateur
+    const activityData = getUserActivityData(req, userId, req.user.email, req.user.displayName);
     await executeQuery(
-      'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [uuidv4(), userId, 'create_fail', JSON.stringify({ title })]
+      'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+      [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'create_fail', JSON.stringify({ title }), activityData.ip_address, activityData.user_agent]
     );
 
     res.status(201).json({

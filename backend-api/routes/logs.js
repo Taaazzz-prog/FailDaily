@@ -9,6 +9,29 @@ const router = express.Router();
  */
 
 /**
+ * Route pour le logging des connexions utilisateur (appelée par le frontend)
+ */
+router.post('/user-login', async (req, res) => {
+  try {
+    console.log('📊 Réception log connexion utilisateur:', req.body);
+    
+    // Cette route accepte les logs du frontend mais ne fait rien
+    // car le logging est déjà géré côté backend dans authController
+    res.json({
+      success: true,
+      message: 'Log reçu avec succès'
+    });
+
+  } catch (error) {
+    console.error('❌ Erreur log connexion utilisateur:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors du logging de la connexion'
+    });
+  }
+});
+
+/**
  * Récupérer les logs récents
  */
 router.get('/', authenticateToken, async (req, res) => {

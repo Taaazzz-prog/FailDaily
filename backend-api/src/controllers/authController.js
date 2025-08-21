@@ -3,6 +3,26 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
 
+// Fonction utilitaire pour obtenir les informations de l'utilisateur et de la requête
+const getUserActivityData = (req, userId, userEmail, userName = null) => {
+  const ip = req.headers['x-forwarded-for'] || 
+             req.connection.remoteAddress || 
+             req.socket.remoteAddress ||
+             (req.connection.socket ? req.connection.socket.remoteAddress : '');
+  
+  const userAgent = req.headers['user-agent'] || '';
+  
+  return {
+    id: uuidv4(),
+    user_id: userId,
+    user_email: userEmail,
+    user_name: userName,
+    ip_address: ip,
+    user_agent: userAgent,
+    created_at: new Date()
+  };
+};
+
 // Génération du token JWT
 const generateToken = (userId, email) => {
   return jwt.sign(
@@ -121,10 +141,11 @@ const register = async (req, res) => {
     // Générer le token JWT
     const token = generateToken(userId, email);
 
-    // Log de l'inscription
+    // Log de l'inscription avec toutes les données utilisateur
+    const activityData = getUserActivityData(req, userId, email.toLowerCase(), displayName);
     await executeQuery(
-      'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [uuidv4(), userId, 'register', JSON.stringify({ email: email.toLowerCase() })]
+      'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+      [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'register', JSON.stringify({ email: email.toLowerCase() }), activityData.ip_address, activityData.user_agent]
     );
 
     res.status(201).json({
@@ -197,13 +218,15 @@ const login = async (req, res) => {
     // Générer le token JWT
     const token = generateToken(user.id, user.email);
 
-    // Log de la connexion
+    // Log de la connexion avec toutes les données utilisateur
+    const activityData = getUserActivityData(req, user.id, user.email, user.display_name);
     await executeQuery(
-      'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [uuidv4(), user.id, 'login', JSON.stringify({ email: user.email })]
+      'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+      [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'login', JSON.stringify({ email: user.email }), activityData.ip_address, activityData.user_agent]
     );
 
-    res.json({
+    const response = {
+      success: true,
       message: 'Connexion réussie',
       user: {
         id: user.id,
@@ -213,7 +236,10 @@ const login = async (req, res) => {
         role: user.role
       },
       token
-    });
+    };
+
+    console.log('🔐 Réponse de connexion envoyée:', JSON.stringify(response, null, 2));
+    res.json(response);
 
   } catch (error) {
     console.error('Erreur connexion:', error);
@@ -265,10 +291,11 @@ const verifyToken = async (req, res) => {
 // Déconnexion (côté client principalement)
 const logout = async (req, res) => {
   try {
-    // Log de la déconnexion
+    // Log de la déconnexion avec toutes les données utilisateur
+    const activityData = getUserActivityData(req, req.user.id, req.user.email, req.user.displayName);
     await executeQuery(
-      'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [uuidv4(), req.user.id, 'logout', JSON.stringify({ reason: 'user_logout' })]
+      'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+      [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'logout', JSON.stringify({ reason: 'user_logout' }), activityData.ip_address, activityData.user_agent]
     );
 
     res.json({
@@ -537,10 +564,11 @@ const changePassword = async (req, res) => {
       [hashedNewPassword, userId]
     );
 
-    // Log de l'activité
+    // Log de l'activité avec toutes les données utilisateur
+    const activityData = getUserActivityData(req, userId, users[0].email, users[0].display_name);
     await executeQuery(
-      'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
-      [uuidv4(), userId, 'password_change', JSON.stringify({})]
+      'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+      [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'password_change', JSON.stringify({}), activityData.ip_address, activityData.user_agent]
     );
 
     res.json({
@@ -589,10 +617,11 @@ const requestPasswordReset = async (req, res) => {
       // TODO: Implémenter l'envoi d'email avec token de reset
       console.log(`🔔 Demande de reset de mot de passe pour: ${email}`);
       
-      // Log de l'activité
+      // Log de l'activité avec toutes les données utilisateur
+      const activityData = getUserActivityData(req, users[0].id, users[0].email, null);
       await executeQuery(
-        'INSERT INTO user_activities (id, user_id, action, details, created_at) VALUES (?, ?, ?, ?, NOW())',
-        [uuidv4(), users[0].id, 'password_reset_request', JSON.stringify({ email })]
+        'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
+        [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'password_reset_request', JSON.stringify({ email }), activityData.ip_address, activityData.user_agent]
       );
     }
 

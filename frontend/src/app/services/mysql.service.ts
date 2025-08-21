@@ -300,15 +300,13 @@ export class MysqlService {
 
   async getProfile(userId: string): Promise<any> {
     try {
-      const response: any = await this.http.get(`${this.apiUrl}/users/${userId}/profile`, {
+      console.log('🔍 MysqlService: Getting profile for user:', userId);
+      const response: any = await this.http.get(`${this.apiUrl}/auth/profile`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success) {
-        return response.profile;
-      } else {
-        throw new Error(response.message || 'Erreur lors de la récupération du profil');
-      }
+      console.log('✅ MysqlService: Profile response:', response);
+      return response;
     } catch (error: any) {
       console.error('❌ Erreur récupération profil:', error);
       throw error;
@@ -472,7 +470,7 @@ export class MysqlService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fail) {
+      if (response.fail) {
         console.log('✅ Fail créé avec succès:', response.fail.id);
         
         // Ajouter des points de courage pour la création
@@ -1302,11 +1300,13 @@ export class MysqlService {
 
   async logUserLogin(userId: string, ip?: string, userAgent?: string): Promise<void> {
     try {
-      await this.http.post(`${this.apiUrl}/admin/logs/user-login`, {
-        userId,
-        ip,
-        userAgent
-      }, { headers: this.getAuthHeaders() }).toPromise();
+      // Temporairement désactivé car la route n'existe pas encore
+      // await this.http.post(`${this.apiUrl}/admin/logs/user-login`, {
+      //   userId,
+      //   ip,
+      //   userAgent
+      // }, { headers: this.getAuthHeaders() }).toPromise();
+      console.log('📊 Log connexion utilisateur (désactivé temporairement):', { userId, ip, userAgent });
     } catch (error) {
       console.warn('⚠️ Erreur log connexion utilisateur:', error);
     }

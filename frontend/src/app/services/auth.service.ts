@@ -266,7 +266,7 @@ export class AuthService {
           const user: User = {
             id: currentUser.id,
             email: currentUser.email!,
-            displayName: profile?.display_name || currentUser.displayName || 'Utilisateur',
+            displayName: profile?.displayName || currentUser.displayName || 'Utilisateur',
             avatar: profile?.avatar_url || DEFAULT_AVATAR,
             joinDate: new Date(profile?.created_at || currentUser.joinDate),
             totalFails: profile?.stats?.totalFails || 0,
@@ -365,7 +365,7 @@ export class AuthService {
             const user: User = {
               id: mysqlServiceUser.id,
               email: mysqlServiceUser.email!,
-              displayName: profile?.display_name || 'Utilisateur',
+              displayName: profile?.displayName || 'Utilisateur',
               avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
               joinDate: new Date(profile?.created_at || mysqlServiceUser.created_at),
               totalFails: profile?.stats?.totalFails || 0,
@@ -432,8 +432,9 @@ export class AuthService {
     try {
       // Authentification mysqlService - retour immédiat
       const result = await this.mysqlService.signIn(credentials.email, credentials.password);
+      console.log('🔐 AuthService: Login result structure:', JSON.stringify(result, null, 2));
 
-      if (result?.user) {
+      if (result?.data?.user) {
         console.log('✅ AuthService: User authenticated successfully');
 
         // Logger la connexion réussie
@@ -443,24 +444,24 @@ export class AuthService {
         }, true);
 
         // Récupérer immédiatement le profil utilisateur
-        let profile = await this.mysqlService.getProfile(result.user.id);
+        let profile = await this.mysqlService.getProfile(result.data.user.id);
 
         if (!profile) {
           console.log('� AuthService: No profile found, creating one');
-          profile = await this.mysqlService.createProfile(result.user);
+          profile = await this.mysqlService.createProfile(result.data.user);
         }
 
         // Créer l'objet utilisateur complet
         const user: User = {
-          id: result.user.id,
-          email: result.user.email!,
-          displayName: profile?.display_name || 'Utilisateur',
+          id: result.data.user.id,
+          email: result.data.user.email!,
+          displayName: profile?.displayName || 'Utilisateur',
           avatar: profile?.avatar_url || 'assets/anonymous-avatar.svg',
-          joinDate: new Date(profile?.created_at || result.user.created_at),
+          joinDate: new Date(profile?.created_at || result.data.user.created_at),
           totalFails: profile?.stats?.totalFails || 0,
           couragePoints: profile?.stats?.couragePoints || 0,
           badges: profile?.stats?.badges || [],
-          role: (result.user.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
+          role: (result.data.user.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
           emailConfirmed: profile?.email_confirmed || false,
           registrationCompleted: profile?.registration_completed || false,
           legalConsent: profile?.legal_consent ? {
@@ -901,7 +902,7 @@ export class AuthService {
         // Mettre à jour l'utilisateur local avec les nouvelles données
         updatedUser = {
           ...currentUser,
-          displayName: updatedProfile.display_name || currentUser.displayName,
+          displayName: updatedProfile.displayName || currentUser.displayName,
           avatar: updatedProfile.avatar_url || currentUser.avatar,
           preferences: {
             ...currentUser.preferences,

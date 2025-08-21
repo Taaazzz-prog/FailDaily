@@ -14,7 +14,7 @@ import {
     documentOutline, shieldCheckmark, chevronForward, settingsOutline,
     lockClosed, chevronDownCircleOutline, personOutline
 } from 'ionicons/icons';
-import { HttpAuthService } from '../../services/http-auth.service';
+import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
 import { MysqlService } from '../../services/mysql.service';
@@ -145,7 +145,7 @@ export class ProfilePage implements OnInit, OnDestroy {
     currentEncouragementMessage: string = '';
 
     constructor(
-        private authService: HttpAuthService,
+        private authService: AuthService,
         private failService: FailService,
         private badgeService: BadgeService,
         private mysqlService: MysqlService,
@@ -181,7 +181,12 @@ export class ProfilePage implements OnInit, OnDestroy {
             this.userFails$,
             this.userBadges$
         ]).pipe(
-            map(([user, fails, badges]) => this.calculateStats(user ?? null, fails, badges))
+            map(([user, fails, badges]) => {
+                const safeUser = user ?? null;
+                const safeFails = fails ?? [];
+                const safeBadges = badges ?? [];
+                return this.calculateStats(safeUser, safeFails, safeBadges);
+            })
         );
         console.log('👤 ProfilePage - ProfileStats observable initialized');
     }
@@ -221,7 +226,7 @@ export class ProfilePage implements OnInit, OnDestroy {
 
         // Écouter directement les changements de l'utilisateur courant
         this.subscriptions.add(
-            this.currentUser$.subscribe((user) => {
+            this.currentUser$.subscribe((user: User | null | undefined) => {
                 console.log('👤 ProfilePage - Current user changed:', user?.avatar);
             })
         );
