@@ -6,6 +6,7 @@
  */
 
 const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const assert = require('assert');
 
 async function testFailRetrieval() {
   TEST_UTILS.log('🔍', 'Début test récupération fails...');
@@ -121,15 +122,33 @@ async function testFailRetrieval() {
         TEST_UTILS.log('✅', `Récupération réussie: ${allFailsData.fails.length} fails trouvés`);
         
         // Vérifier que tous les fails retournés sont publics (pour un utilisateur standard)
-        const publicFails = allFailsData.fails.filter(fail => fail.isPublic === true);
-        const privateFails = allFailsData.fails.filter(fail => fail.isPublic === false && fail.user_id === userId);
-        
+        const publicFails = allFailsData.fails.filter(fail => fail.is_public === true);
+        const privateFails = allFailsData.fails.filter(
+          fail => fail.is_public === false && fail.user_id === userId
+        );
+
         // Un utilisateur connecté voit : tous les fails publics + ses propres fails privés
         if (publicFails.length > 0) {
           TEST_UTILS.log('✅', `Fails publics visibles: ${publicFails.length}`);
         }
         if (privateFails.length > 0) {
           TEST_UTILS.log('✅', `Ses propres fails privés visibles: ${privateFails.length}`);
+        }
+
+        const expectedPrivateFails = testFails.filter(f => !f.isPublic).length;
+        try {
+          assert.ok(publicFails.length >= 1, 'Au moins un fail public attendu');
+          assert.strictEqual(
+            privateFails.length,
+            expectedPrivateFails,
+            'Nombre de fails privés incorrect'
+          );
+          TEST_UTILS.log(
+            '✅',
+            `Visibilité publique/privée correcte (${publicFails.length} publics, ${privateFails.length} privés)`
+          );
+        } catch (err) {
+          results.errors.push(err.message);
         }
         
         // Vérifier l'anonymat : les données d'auteur ne doivent pas être exposées
