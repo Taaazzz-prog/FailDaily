@@ -12,9 +12,7 @@ class DebugController {
     try {
       const startTime = Date.now();
       
-      const result = await executeQuery(
-        req.dbConnection,
-        'SELECT 1 as test, NOW() as server_time, VERSION() as mysql_version',
+      const result = await executeQuery('SELECT 1 as test, NOW() as server_time, VERSION() as mysql_version',
         []
       );
 
@@ -47,9 +45,7 @@ class DebugController {
    */
   static async getDatabaseInfo(req, res) {
     try {
-      const tables = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const tables = await executeQuery(`SELECT 
           TABLE_NAME,
           TABLE_ROWS,
           ROUND(((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024), 2) AS 'SIZE_MB',
@@ -60,9 +56,7 @@ class DebugController {
         []
       );
 
-      const dbInfo = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const dbInfo = await executeQuery(`SELECT 
           SCHEMA_NAME as database_name,
           DEFAULT_CHARACTER_SET_NAME as charset,
           DEFAULT_COLLATION_NAME as collation
@@ -96,9 +90,7 @@ class DebugController {
       const stats = {};
 
       // Statistiques utilisateurs
-      const userStats = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const userStats = await executeQuery(`SELECT 
           COUNT(*) as total_users,
           COUNT(CASE WHEN email_confirmed = 1 THEN 1 END) as verified_users,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as users_24h,
@@ -110,9 +102,7 @@ class DebugController {
       stats.users = userStats[0];
 
       // Statistiques fails
-      const failStats = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const failStats = await executeQuery(`SELECT 
           COUNT(*) as total_fails,
           COUNT(CASE WHEN is_public = 1 THEN 1 END) as public_fails,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as fails_24h,
@@ -124,9 +114,7 @@ class DebugController {
       stats.fails = failStats[0];
 
       // Statistiques réactions
-      const reactionStats = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const reactionStats = await executeQuery(`SELECT 
           COUNT(*) as total_reactions,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as reactions_24h,
           COUNT(DISTINCT user_id) as users_who_reacted,
@@ -137,9 +125,7 @@ class DebugController {
       stats.reactions = reactionStats[0];
 
       // Statistiques badges
-      const badgeStats = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const badgeStats = await executeQuery(`SELECT 
           COUNT(DISTINCT b.id) as total_badges,
           COUNT(ub.id) as total_earned,
           COUNT(CASE WHEN ub.earned_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as earned_24h
@@ -150,9 +136,7 @@ class DebugController {
       stats.badges = badgeStats[0];
 
       // Performance de la base
-      const performanceStats = await executeQuery(
-        req.dbConnection,
-        `SHOW STATUS WHERE Variable_name IN (
+      const performanceStats = await executeQuery(`SHOW STATUS WHERE Variable_name IN (
           'Connections', 'Threads_connected', 'Uptime', 
           'Questions', 'Slow_queries', 'Table_locks_waited'
         )`,
@@ -188,9 +172,7 @@ class DebugController {
     try {
       const { limit = 50 } = req.query;
 
-      const errors = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const errors = await executeQuery(`SELECT 
           level, message, error_details, user_id, ip_address, 
           user_agent, created_at
         FROM system_logs 
@@ -200,9 +182,7 @@ class DebugController {
         [parseInt(limit)]
       );
 
-      const errorSummary = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const errorSummary = await executeQuery(`SELECT 
           level,
           COUNT(*) as count,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as count_24h
@@ -246,7 +226,7 @@ class DebugController {
 
       // Test connexion DB
       try {
-        await executeQuery(req.dbConnection, 'SELECT 1', []);
+        await executeQuery('SELECT 1', []);
         healthChecks.database_connection = true;
       } catch (error) {
         issues.push('Connexion base de données échouée');
@@ -254,7 +234,7 @@ class DebugController {
 
       // Test table users
       try {
-        await executeQuery(req.dbConnection, 'SELECT COUNT(*) FROM users LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM users LIMIT 1', []);
         healthChecks.user_table_access = true;
       } catch (error) {
         issues.push('Accès table users échoué');
@@ -262,7 +242,7 @@ class DebugController {
 
       // Test table fails
       try {
-        await executeQuery(req.dbConnection, 'SELECT COUNT(*) FROM fails LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM fails LIMIT 1', []);
         healthChecks.fail_table_access = true;
       } catch (error) {
         issues.push('Accès table fails échoué');
@@ -280,7 +260,7 @@ class DebugController {
 
       // Test système de badges
       try {
-        await executeQuery(req.dbConnection, 'SELECT COUNT(*) FROM badges LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM badges LIMIT 1', []);
         healthChecks.badges_system = true;
       } catch (error) {
         issues.push('Système de badges non accessible');
@@ -357,7 +337,7 @@ class DebugController {
 
       for (let i = 0; i < parseInt(queries); i++) {
         const queryStart = Date.now();
-        await executeQuery(req.dbConnection, 'SELECT SLEEP(0.001), ? as query_num', [i + 1]);
+        await executeQuery('SELECT SLEEP(0.001), ? as query_num', [i + 1]);
         const queryTime = Date.now() - queryStart;
         results.push(queryTime);
       }
@@ -394,9 +374,7 @@ class DebugController {
    */
   static async clearDebugLogs(req, res) {
     try {
-      const result = await executeQuery(
-        req.dbConnection,
-        'DELETE FROM system_logs WHERE level = "DEBUG" AND created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)',
+      const result = await executeQuery('DELETE FROM system_logs WHERE level = "DEBUG" AND created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)',
         []
       );
 

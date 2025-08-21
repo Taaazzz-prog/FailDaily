@@ -10,9 +10,7 @@ class LegalController {
    */
   static async getTermsOfService(req, res) {
     try {
-      const terms = await executeQuery(
-        req.dbConnection,
-        'SELECT * FROM legal_documents WHERE document_type = "terms" AND is_active = 1 ORDER BY version DESC LIMIT 1',
+      const terms = await executeQuery('SELECT * FROM legal_documents WHERE document_type = "terms" AND is_active = 1 ORDER BY version DESC LIMIT 1',
         []
       );
 
@@ -56,9 +54,7 @@ class LegalController {
    */
   static async getPrivacyPolicy(req, res) {
     try {
-      const privacy = await executeQuery(
-        req.dbConnection,
-        'SELECT * FROM legal_documents WHERE document_type = "privacy" AND is_active = 1 ORDER BY version DESC LIMIT 1',
+      const privacy = await executeQuery('SELECT * FROM legal_documents WHERE document_type = "privacy" AND is_active = 1 ORDER BY version DESC LIMIT 1',
         []
       );
 
@@ -106,9 +102,7 @@ class LegalController {
       const { version, ip_address } = req.body;
 
       // Vérifier si l'utilisateur a déjà accepté cette version
-      const existing = await executeQuery(
-        req.dbConnection,
-        'SELECT id FROM user_legal_acceptances WHERE user_id = ? AND document_type = "terms" AND document_version = ?',
+      const existing = await executeQuery('SELECT id FROM user_legal_acceptances WHERE user_id = ? AND document_type = "terms" AND document_version = ?',
         [userId, version]
       );
 
@@ -120,9 +114,7 @@ class LegalController {
       }
 
       // Enregistrer l'acceptation
-      await executeQuery(
-        req.dbConnection,
-        `INSERT INTO user_legal_acceptances (
+      await executeQuery(`INSERT INTO user_legal_acceptances (
           user_id, document_type, document_version, 
           ip_address, user_agent, accepted_at
         ) VALUES (?, ?, ?, ?, ?, NOW())`,
@@ -130,9 +122,7 @@ class LegalController {
       );
 
       // Mettre à jour le statut utilisateur
-      await executeQuery(
-        req.dbConnection,
-        'UPDATE users SET agree_to_terms = 1, updated_at = NOW() WHERE id = ?',
+      await executeQuery('UPDATE users SET agree_to_terms = 1, updated_at = NOW() WHERE id = ?',
         [userId]
       );
 
@@ -171,9 +161,7 @@ class LegalController {
       }
 
       // Enregistrer la demande
-      const result = await executeQuery(
-        req.dbConnection,
-        `INSERT INTO gdpr_requests (
+      const result = await executeQuery(`INSERT INTO gdpr_requests (
           user_id, request_type, details, status, 
           created_at, updated_at
         ) VALUES (?, ?, ?, 'pending', NOW(), NOW())`,
@@ -184,7 +172,7 @@ class LegalController {
 
       // Traitement automatique pour certains types
       if (request_type === 'data_export') {
-        await this.processDataExport(userId, requestId, req.dbConnection);
+        await this.processDataExport(userId, requestId);
       }
 
       console.log(`📋 Demande RGPD créée: ${request_type} pour utilisateur ${userId}`);
@@ -214,9 +202,7 @@ class LegalController {
       const userId = req.user.id;
 
       // Données utilisateur
-      const userData = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const userData = await executeQuery(`SELECT 
           id, email, display_name, xp, level, created_at, updated_at,
           email_confirmed, birth_date
         FROM users WHERE id = ?`,
@@ -224,16 +210,12 @@ class LegalController {
       );
 
       // Profil utilisateur
-      const profileData = await executeQuery(
-        req.dbConnection,
-        'SELECT bio, location, website, is_public FROM user_profiles WHERE user_id = ?',
+      const profileData = await executeQuery('SELECT bio, location, website, is_public FROM user_profiles WHERE user_id = ?',
         [userId]
       );
 
       // Fails de l'utilisateur
-      const failsData = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const failsData = await executeQuery(`SELECT 
           id, title, description, category, tags, is_public, 
           view_count, created_at, updated_at
         FROM fails WHERE user_id = ?`,
@@ -241,9 +223,7 @@ class LegalController {
       );
 
       // Réactions données
-      const reactionsData = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const reactionsData = await executeQuery(`SELECT 
           fr.reaction_type, fr.created_at,
           f.title as fail_title
         FROM fail_reactions fr
@@ -253,9 +233,7 @@ class LegalController {
       );
 
       // Badges obtenus
-      const badgesData = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const badgesData = await executeQuery(`SELECT 
           b.name, b.description, ub.earned_at, ub.xp_earned
         FROM user_badges ub
         JOIN badges b ON ub.badge_id = b.id
@@ -300,9 +278,7 @@ class LegalController {
     try {
       const userId = req.user.id;
 
-      const requests = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const requests = await executeQuery(`SELECT 
           id, request_type, status, created_at, updated_at, 
           processed_at, details
         FROM gdpr_requests 
@@ -345,9 +321,7 @@ class LegalController {
       }
 
       // Vérifier si l'utilisateur a déjà signalé ce contenu
-      const existing = await executeQuery(
-        req.dbConnection,
-        'SELECT id FROM content_reports WHERE user_id = ? AND content_type = ? AND content_id = ?',
+      const existing = await executeQuery('SELECT id FROM content_reports WHERE user_id = ? AND content_type = ? AND content_id = ?',
         [userId, content_type, content_id]
       );
 
@@ -359,9 +333,7 @@ class LegalController {
       }
 
       // Enregistrer le signalement
-      await executeQuery(
-        req.dbConnection,
-        `INSERT INTO content_reports (
+      await executeQuery(`INSERT INTO content_reports (
           user_id, content_type, content_id, reason, 
           description, status, created_at
         ) VALUES (?, ?, ?, ?, ?, 'pending', NOW())`,
@@ -471,11 +443,10 @@ Pour exercer vos droits : privacy@faildaily.com`;
   /**
    * Traiter l'export de données (automatique)
    */
-  static async processDataExport(userId, requestId, connection) {
+  static async processDataExport(userId, requestId) {
     try {
       // Marquer comme en traitement
       await executeQuery(
-        connection,
         'UPDATE gdpr_requests SET status = "processing", updated_at = NOW() WHERE id = ?',
         [requestId]
       );
@@ -483,7 +454,6 @@ Pour exercer vos droits : privacy@faildaily.com`;
       // Ici on pourrait générer un fichier d'export
       // Pour l'instant, on marque comme terminé
       await executeQuery(
-        connection,
         'UPDATE gdpr_requests SET status = "completed", processed_at = NOW(), updated_at = NOW() WHERE id = ?',
         [requestId]
       );
@@ -492,7 +462,6 @@ Pour exercer vos droits : privacy@faildaily.com`;
     } catch (error) {
       console.error('❌ Erreur traitement export:', error);
       await executeQuery(
-        connection,
         'UPDATE gdpr_requests SET status = "failed", updated_at = NOW() WHERE id = ?',
         [requestId]
       );

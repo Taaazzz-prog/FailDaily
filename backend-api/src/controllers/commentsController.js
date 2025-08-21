@@ -9,9 +9,7 @@ class CommentsController {
   /**
    * Ajouter un commentaire à un fail
    */
-  static async addComment(req, res) {
-    const connection = req.dbConnection;
-    
+  static async addComment(req, res) {    
     try {
       const { id: failId } = req.params;
       const { content, parentId = null } = req.body;
@@ -35,7 +33,7 @@ class CommentsController {
       }
 
       // Vérifier que le fail existe et est accessible
-      const fails = await executeQuery(connection, `
+      const fails = await executeQuery(`
         SELECT id, user_id, is_public 
         FROM fails 
         WHERE id = ?
@@ -62,7 +60,7 @@ class CommentsController {
 
       // Vérifier le commentaire parent s'il existe
       if (parentId) {
-        const parentComments = await executeQuery(connection, `
+        const parentComments = await executeQuery(`
           SELECT id, fail_id 
           FROM fail_comments 
           WHERE id = ?
@@ -88,14 +86,14 @@ class CommentsController {
       // Créer le commentaire
       const commentId = uuidv4();
       
-      await executeQuery(connection, `
+      await executeQuery(`
         INSERT INTO fail_comments (
           id, fail_id, user_id, content, parent_id, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
       `, [commentId, failId, userId, content.trim(), parentId]);
 
       // Récupérer le commentaire créé avec les infos de l'utilisateur
-      const newComment = await executeQuery(connection, `
+      const newComment = await executeQuery(`
         SELECT 
           fc.id,
           fc.content,
@@ -142,9 +140,7 @@ class CommentsController {
   /**
    * Récupérer tous les commentaires d'un fail
    */
-  static async getComments(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getComments(req, res) {    
     try {
       const { id: failId } = req.params;
       const { page = 1, limit = 20 } = req.query;
@@ -155,7 +151,7 @@ class CommentsController {
       const offset = (pageNum - 1) * limitNum;
 
       // Vérifier que le fail existe et est accessible
-      const fails = await executeQuery(connection, `
+      const fails = await executeQuery(`
         SELECT id, user_id, is_public 
         FROM fails 
         WHERE id = ?
@@ -181,7 +177,7 @@ class CommentsController {
       }
 
       // Récupérer les commentaires avec pagination
-      const comments = await executeQuery(connection, `
+      const comments = await executeQuery(`
         SELECT 
           fc.id,
           fc.content,
@@ -201,7 +197,7 @@ class CommentsController {
       `, [failId, limitNum, offset]);
 
       // Compter le total de commentaires
-      const totalResult = await executeQuery(connection, `
+      const totalResult = await executeQuery(`
         SELECT COUNT(*) as total
         FROM fail_comments 
         WHERE fail_id = ?
@@ -272,9 +268,7 @@ class CommentsController {
   /**
    * Modifier un commentaire
    */
-  static async updateComment(req, res) {
-    const connection = req.dbConnection;
-    
+  static async updateComment(req, res) {    
     try {
       const { id: failId, commentId } = req.params;
       const { content } = req.body;
@@ -298,7 +292,7 @@ class CommentsController {
       }
 
       // Vérifier que le commentaire existe et appartient à l'utilisateur
-      const comments = await executeQuery(connection, `
+      const comments = await executeQuery(`
         SELECT id, user_id, fail_id
         FROM fail_comments 
         WHERE id = ? AND fail_id = ?
@@ -323,14 +317,14 @@ class CommentsController {
       }
 
       // Mettre à jour le commentaire
-      await executeQuery(connection, `
+      await executeQuery(`
         UPDATE fail_comments 
         SET content = ?, updated_at = NOW() 
         WHERE id = ?
       `, [content.trim(), commentId]);
 
       // Récupérer le commentaire mis à jour
-      const updatedComment = await executeQuery(connection, `
+      const updatedComment = await executeQuery(`
         SELECT 
           fc.id,
           fc.content,
@@ -377,15 +371,13 @@ class CommentsController {
   /**
    * Supprimer un commentaire
    */
-  static async deleteComment(req, res) {
-    const connection = req.dbConnection;
-    
+  static async deleteComment(req, res) {    
     try {
       const { id: failId, commentId } = req.params;
       const userId = req.user.id;
 
       // Vérifier que le commentaire existe et appartient à l'utilisateur
-      const comments = await executeQuery(connection, `
+      const comments = await executeQuery(`
         SELECT id, user_id, fail_id
         FROM fail_comments 
         WHERE id = ? AND fail_id = ?
@@ -410,7 +402,7 @@ class CommentsController {
       }
 
       // Supprimer le commentaire et ses réponses en cascade
-      const result = await executeQuery(connection, `
+      const result = await executeQuery(`
         DELETE FROM fail_comments 
         WHERE id = ? OR parent_id = ?
       `, [commentId, commentId]);
@@ -437,21 +429,19 @@ class CommentsController {
   /**
    * Récupérer les statistiques des commentaires d'un utilisateur
    */
-  static async getUserCommentStats(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getUserCommentStats(req, res) {    
     try {
       const userId = req.user.id;
 
       // Compter les commentaires écrits par l'utilisateur
-      const writtenComments = await executeQuery(connection, `
+      const writtenComments = await executeQuery(`
         SELECT COUNT(*) as count
         FROM fail_comments 
         WHERE user_id = ?
       `, [userId]);
 
       // Compter les commentaires reçus sur les fails de l'utilisateur
-      const receivedComments = await executeQuery(connection, `
+      const receivedComments = await executeQuery(`
         SELECT COUNT(*) as count
         FROM fail_comments fc
         JOIN fails f ON fc.fail_id = f.id

@@ -10,9 +10,7 @@ class CleanupController {
    */
   static async cleanupExpiredSessions(req, res) {
     try {
-      const result = await executeQuery(
-        req.dbConnection,
-        'DELETE FROM user_sessions WHERE expires_at < NOW()',
+      const result = await executeQuery('DELETE FROM user_sessions WHERE expires_at < NOW()',
         []
       );
 
@@ -41,9 +39,7 @@ class CleanupController {
     try {
       const { days = 30 } = req.query;
       
-      const result = await executeQuery(
-        req.dbConnection,
-        'DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY) AND is_read = 1',
+      const result = await executeQuery('DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY) AND is_read = 1',
         [parseInt(days)]
       );
 
@@ -72,9 +68,7 @@ class CleanupController {
     try {
       const { days = 90 } = req.query;
       
-      const result = await executeQuery(
-        req.dbConnection,
-        'DELETE FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)',
+      const result = await executeQuery('DELETE FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)',
         [parseInt(days)]
       );
 
@@ -101,9 +95,7 @@ class CleanupController {
    */
   static async cleanupExpiredReferralCodes(req, res) {
     try {
-      const result = await executeQuery(
-        req.dbConnection,
-        'DELETE FROM referral_codes WHERE expires_at < NOW() AND used_count = 0',
+      const result = await executeQuery('DELETE FROM referral_codes WHERE expires_at < NOW() AND used_count = 0',
         []
       );
 
@@ -139,7 +131,7 @@ class CleanupController {
 
       for (const table of tables) {
         try {
-          await executeQuery(req.dbConnection, `OPTIMIZE TABLE ${table}`, []);
+          await executeQuery(`OPTIMIZE TABLE ${table}`, []);
           optimizationResults.push({ table, status: 'optimized' });
           console.log(`🔧 Table optimisée: ${table}`);
         } catch (error) {
@@ -169,9 +161,7 @@ class CleanupController {
    */
   static async analyzeDiskUsage(req, res) {
     try {
-      const tableStats = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const tableStats = await executeQuery(`SELECT 
           TABLE_NAME as table_name,
           ROUND(((DATA_LENGTH + INDEX_LENGTH) / 1024 / 1024), 2) as size_mb,
           TABLE_ROWS as row_count,
@@ -210,9 +200,7 @@ class CleanupController {
    */
   static async cleanupOrphanedFails(req, res) {
     try {
-      const result = await executeQuery(
-        req.dbConnection,
-        `DELETE f FROM fails f 
+      const result = await executeQuery(`DELETE f FROM fails f 
          LEFT JOIN users u ON f.user_id = u.id 
          WHERE u.id IS NULL`,
         []
@@ -241,9 +229,7 @@ class CleanupController {
    */
   static async cleanupOrphanedReactions(req, res) {
     try {
-      const result = await executeQuery(
-        req.dbConnection,
-        `DELETE fr FROM fail_reactions fr
+      const result = await executeQuery(`DELETE fr FROM fail_reactions fr
          LEFT JOIN fails f ON fr.fail_id = f.id
          LEFT JOIN users u ON fr.user_id = u.id
          WHERE f.id IS NULL OR u.id IS NULL`,
@@ -282,60 +268,26 @@ class CleanupController {
         orphaned_reactions: 0
       };
 
-      await executeTransaction(req.dbConnection, async (connection) => {
-        // Sessions expirées
-        const sessions = await executeQuery(
-          connection,
-          'DELETE FROM user_sessions WHERE expires_at < NOW()',
-          []
-        );
-        cleanupResults.expired_sessions = sessions.affectedRows;
-
-        // Notifications anciennes (30 jours)
-        const notifications = await executeQuery(
-          connection,
-          'DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY) AND is_read = 1',
-          []
-        );
-        cleanupResults.old_notifications = notifications.affectedRows;
-
-        // Logs système (90 jours)
-        const logs = await executeQuery(
-          connection,
-          'DELETE FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)',
-          []
-        );
-        cleanupResults.system_logs = logs.affectedRows;
-
-        // Codes de parrainage expirés
-        const referrals = await executeQuery(
-          connection,
-          'DELETE FROM referral_codes WHERE expires_at < NOW() AND used_count = 0',
-          []
-        );
-        cleanupResults.expired_referral_codes = referrals.affectedRows;
-
-        // Fails orphelins
-        const orphanedFails = await executeQuery(
-          connection,
-          `DELETE f FROM fails f 
-           LEFT JOIN users u ON f.user_id = u.id 
-           WHERE u.id IS NULL`,
-          []
-        );
-        cleanupResults.orphaned_fails = orphanedFails.affectedRows;
-
-        // Réactions orphelines
-        const orphanedReactions = await executeQuery(
-          connection,
-          `DELETE fr FROM fail_reactions fr
+      const transactionResults = await executeTransaction([
+        { query: 'DELETE FROM user_sessions WHERE expires_at < NOW()', params: [] },
+        { query: 'DELETE FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY) AND is_read = 1', params: [] },
+        { query: 'DELETE FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)', params: [] },
+        { query: 'DELETE FROM referral_codes WHERE expires_at < NOW() AND used_count = 0', params: [] },
+        { query: `DELETE f FROM fails f
+           LEFT JOIN users u ON f.user_id = u.id
+           WHERE u.id IS NULL`, params: [] },
+        { query: `DELETE fr FROM fail_reactions fr
            LEFT JOIN fails f ON fr.fail_id = f.id
            LEFT JOIN users u ON fr.user_id = u.id
-           WHERE f.id IS NULL OR u.id IS NULL`,
-          []
-        );
-        cleanupResults.orphaned_reactions = orphanedReactions.affectedRows;
-      });
+           WHERE f.id IS NULL OR u.id IS NULL`, params: [] }
+      ]);
+
+      cleanupResults.expired_sessions = transactionResults[0].affectedRows;
+      cleanupResults.old_notifications = transactionResults[1].affectedRows;
+      cleanupResults.system_logs = transactionResults[2].affectedRows;
+      cleanupResults.expired_referral_codes = transactionResults[3].affectedRows;
+      cleanupResults.orphaned_fails = transactionResults[4].affectedRows;
+      cleanupResults.orphaned_reactions = transactionResults[5].affectedRows;
 
       const totalCleaned = Object.values(cleanupResults).reduce((sum, count) => sum + count, 0);
 
@@ -366,50 +318,38 @@ class CleanupController {
       const stats = {};
 
       // Sessions expirées
-      const expiredSessions = await executeQuery(
-        req.dbConnection,
-        'SELECT COUNT(*) as count FROM user_sessions WHERE expires_at < NOW()',
+      const expiredSessions = await executeQuery('SELECT COUNT(*) as count FROM user_sessions WHERE expires_at < NOW()',
         []
       );
       stats.expired_sessions = expiredSessions[0].count;
 
       // Notifications anciennes
-      const oldNotifications = await executeQuery(
-        req.dbConnection,
-        'SELECT COUNT(*) as count FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY) AND is_read = 1',
+      const oldNotifications = await executeQuery('SELECT COUNT(*) as count FROM notifications WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY) AND is_read = 1',
         []
       );
       stats.old_notifications = oldNotifications[0].count;
 
       // Logs anciens
-      const oldLogs = await executeQuery(
-        req.dbConnection,
-        'SELECT COUNT(*) as count FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)',
+      const oldLogs = await executeQuery('SELECT COUNT(*) as count FROM system_logs WHERE created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)',
         []
       );
       stats.old_system_logs = oldLogs[0].count;
 
       // Codes expirés
-      const expiredCodes = await executeQuery(
-        req.dbConnection,
-        'SELECT COUNT(*) as count FROM referral_codes WHERE expires_at < NOW() AND used_count = 0',
+      const expiredCodes = await executeQuery('SELECT COUNT(*) as count FROM referral_codes WHERE expires_at < NOW() AND used_count = 0',
         []
       );
       stats.expired_referral_codes = expiredCodes[0].count;
 
       // Données orphelines
-      const orphanedFails = await executeQuery(
-        req.dbConnection,
-        `SELECT COUNT(*) as count FROM fails f 
+      const orphanedFails = await executeQuery(`SELECT COUNT(*) as count FROM fails f 
          LEFT JOIN users u ON f.user_id = u.id 
          WHERE u.id IS NULL`,
         []
       );
       stats.orphaned_fails = orphanedFails[0].count;
 
-      const orphanedReactions = await executeQuery(
-        req.dbConnection,
-        `SELECT COUNT(*) as count FROM fail_reactions fr
+      const orphanedReactions = await executeQuery(`SELECT COUNT(*) as count FROM fail_reactions fr
          LEFT JOIN fails f ON fr.fail_id = f.id
          LEFT JOIN users u ON fr.user_id = u.id
          WHERE f.id IS NULL OR u.id IS NULL`,

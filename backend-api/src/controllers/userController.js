@@ -8,14 +8,12 @@ class UserController {
   /**
    * Récupérer les statistiques complètes d'un utilisateur
    */
-  static async getUserStats(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getUserStats(req, res) {    
     try {
       const userId = req.user.id;
 
       // Statistiques des fails
-      const failsStats = await executeQuery(connection, `
+      const failsStats = await executeQuery(`
         SELECT 
           COUNT(*) as total_fails,
           SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as public_fails,
@@ -26,7 +24,7 @@ class UserController {
       `, [userId]);
 
       // Statistiques des réactions données
-      const givenReactions = await executeQuery(connection, `
+      const givenReactions = await executeQuery(`
         SELECT 
           reaction_type,
           COUNT(*) as count
@@ -36,7 +34,7 @@ class UserController {
       `, [userId]);
 
       // Statistiques des réactions reçues
-      const receivedReactions = await executeQuery(connection, `
+      const receivedReactions = await executeQuery(`
         SELECT 
           fr.reaction_type,
           COUNT(*) as count
@@ -47,7 +45,7 @@ class UserController {
       `, [userId, userId]);
 
       // Statistiques des commentaires
-      const commentsStats = await executeQuery(connection, `
+      const commentsStats = await executeQuery(`
         SELECT 
           (SELECT COUNT(*) FROM fail_comments WHERE user_id = ?) as comments_written,
           (SELECT COUNT(*) 
@@ -57,7 +55,7 @@ class UserController {
       `, [userId, userId, userId]);
 
       // Répartition par catégorie
-      const categoryStats = await executeQuery(connection, `
+      const categoryStats = await executeQuery(`
         SELECT 
           category,
           COUNT(*) as count
@@ -68,7 +66,7 @@ class UserController {
       `, [userId]);
 
       // Activité mensuelle (derniers 12 mois)
-      const monthlyActivity = await executeQuery(connection, `
+      const monthlyActivity = await executeQuery(`
         SELECT 
           DATE_FORMAT(created_at, '%Y-%m') as month,
           COUNT(*) as fails_count
@@ -131,15 +129,13 @@ class UserController {
   /**
    * Récupérer le profil public d'un utilisateur
    */
-  static async getUserProfile(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getUserProfile(req, res) {    
     try {
       const { id: targetUserId } = req.params;
       const currentUserId = req.user ? req.user.id : null;
 
       // Récupérer les informations du profil
-      const userProfile = await executeQuery(connection, `
+      const userProfile = await executeQuery(`
         SELECT 
           u.id, u.created_at,
           p.display_name, p.avatar_url, p.bio
@@ -159,7 +155,7 @@ class UserController {
       const profile = userProfile[0];
 
       // Statistiques publiques de l'utilisateur
-      const publicStats = await executeQuery(connection, `
+      const publicStats = await executeQuery(`
         SELECT 
           COUNT(*) as public_fails,
           SUM(views_count) as total_views
@@ -168,7 +164,7 @@ class UserController {
       `, [targetUserId]);
 
       // Compter les réactions reçues sur les fails publics
-      const totalReactions = await executeQuery(connection, `
+      const totalReactions = await executeQuery(`
         SELECT COUNT(*) as total_reactions
         FROM fail_reactions fr
         JOIN fails f ON fr.fail_id = f.id
@@ -206,9 +202,7 @@ class UserController {
   /**
    * Récupérer les fails d'un utilisateur spécifique
    */
-  static async getUserFails(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getUserFails(req, res) {    
     try {
       const { id: targetUserId } = req.params;
       const { page = 1, limit = 20 } = req.query;
@@ -219,7 +213,7 @@ class UserController {
       const offset = (pageNum - 1) * limitNum;
 
       // Vérifier que l'utilisateur cible existe
-      const targetUser = await executeQuery(connection, `
+      const targetUser = await executeQuery(`
         SELECT id FROM users WHERE id = ?
       `, [targetUserId]);
 
@@ -259,7 +253,7 @@ class UserController {
       query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
       params.push(limitNum, offset);
 
-      const fails = await executeQuery(connection, query, params);
+      const fails = await executeQuery(query, params);
 
       // Compter le total pour la pagination
       let countQuery = `
@@ -273,7 +267,7 @@ class UserController {
         countQuery += ' AND is_public = 1';
       }
 
-      const totalResult = await executeQuery(connection, countQuery, countParams);
+      const totalResult = await executeQuery(countQuery, countParams);
       const total = totalResult[0].total;
       const totalPages = Math.ceil(total / limitNum);
 

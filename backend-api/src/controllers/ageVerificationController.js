@@ -125,9 +125,7 @@ class AgeVerificationController {
       }
 
       // Vérifier si le profil existe
-      const profiles = await executeQuery(
-        req.dbConnection,
-        'SELECT id, age_verification FROM profiles WHERE user_id = ?',
+      const profiles = await executeQuery('SELECT id, age_verification FROM profiles WHERE user_id = ?',
         [userId]
       );
 
@@ -139,9 +137,7 @@ class AgeVerificationController {
       }
 
       // Mettre à jour le JSON age_verification dans profiles
-      await executeQuery(
-        req.dbConnection,
-        `UPDATE profiles 
+      await executeQuery(`UPDATE profiles 
          SET age_verification = JSON_SET(COALESCE(age_verification, JSON_OBJECT()),
            '$.birthDate', ?,
            '$.age', ?,
@@ -177,9 +173,7 @@ class AgeVerificationController {
    */
   static async getAgeStatistics(req, res) {
     try {
-      const stats = await executeQuery(
-        req.dbConnection,
-        `SELECT 
+      const stats = await executeQuery(`SELECT 
           COUNT(*) as total_users,
           AVG(
             TIMESTAMPDIFF(YEAR,
@@ -323,9 +317,7 @@ class AgeVerificationController {
     try {
       const userId = req.user.id;
 
-      const profiles = await executeQuery(
-        req.dbConnection,
-        'SELECT age_verification FROM profiles WHERE user_id = ?',
+      const profiles = await executeQuery('SELECT age_verification FROM profiles WHERE user_id = ?',
         [userId]
       );
 

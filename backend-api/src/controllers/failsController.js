@@ -8,9 +8,7 @@ class FailsController {
   /**
    * Créer un nouveau fail
    */
-  static async createFail(req, res) {
-    const connection = req.dbConnection;
-    
+  static async createFail(req, res) {    
     try {
       const {
         title,
@@ -65,17 +63,17 @@ class FailsController {
         location ? JSON.stringify(location) : null
       ];
 
-      const result = await executeQuery(connection, failQuery, failValues);
+      const result = await executeQuery(failQuery, failValues);
       const failId = result.insertId;
 
       // Récupérer le fail créé avec les informations utilisateur
-      const createdFail = await this.getFailById(failId, userId, connection);
+      const createdFail = await this.getFailById(failId, userId);
 
       // Mettre à jour les statistiques utilisateur
-      await this.updateUserStats(userId, 'fail_created', connection);
+      await this.updateUserStats(userId, 'fail_created');
 
       // Vérifier les badges potentiels
-      await this.checkBadgeProgress(userId, 'fail_created', connection);
+      await this.checkBadgeProgress(userId, 'fail_created');
 
       console.log(`✅ Fail créé: ${failId} par utilisateur ${userId}`);
 
@@ -98,9 +96,7 @@ class FailsController {
   /**
    * Récupérer les fails avec pagination et filtres
    */
-  static async getFails(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getFails(req, res) {    
     try {
       const {
         page = 1,
@@ -165,7 +161,7 @@ class FailsController {
         ? [currentUserId, ...queryParams, parseInt(limit), offset]
         : [...queryParams, parseInt(limit), offset];
 
-      const fails = await executeQuery(connection, query, finalParams);
+      const fails = await executeQuery(query, finalParams);
 
       // Requête pour le total
       const countQuery = `
@@ -179,7 +175,7 @@ class FailsController {
         ? queryParams
         : queryParams;
 
-      const countResult = await executeQuery(connection, countQuery, countParams);
+      const countResult = await executeQuery(countQuery, countParams);
       const total = countResult[0].total;
 
       // Traitement des données
@@ -215,12 +211,7 @@ class FailsController {
   /**
    * Récupérer un fail par ID
    */
-  static async getFailById(failId, userId = null, connection = null) {
-    const shouldCloseConnection = !connection;
-    if (!connection) {
-      connection = require('../config/database').getConnection();
-    }
-
+  static async getFailById(failId, userId = null) {
     try {
       const query = `
         SELECT 
@@ -236,7 +227,7 @@ class FailsController {
       `;
 
       const params = userId ? [userId, failId] : [failId];
-      const results = await executeQuery(connection, query, params);
+      const results = await executeQuery(query, params);
 
       if (results.length === 0) {
         return null;
@@ -250,25 +241,18 @@ class FailsController {
         created_at: new Date(fail.created_at).toISOString(),
         updated_at: new Date(fail.updated_at).toISOString()
       };
-
-    } finally {
-      if (shouldCloseConnection && connection) {
-        connection.end();
-      }
     }
   }
 
   /**
    * Récupérer un fail par ID (endpoint)
    */
-  static async getFailByIdEndpoint(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getFailByIdEndpoint(req, res) {    
     try {
       const { id } = req.params;
       const userId = req.user ? req.user.id : null;
 
-      const fail = await this.getFailById(parseInt(id), userId, connection);
+      const fail = await this.getFailById(parseInt(id), userId);
 
       if (!fail) {
         return res.status(404).json({
@@ -287,7 +271,7 @@ class FailsController {
 
       // Incrémenter le compteur de vues si ce n'est pas l'auteur
       if (userId && fail.user_id !== userId) {
-        await this.incrementViewCount(parseInt(id), userId, connection);
+        await this.incrementViewCount(parseInt(id), userId);
       }
 
       res.json({
@@ -308,16 +292,14 @@ class FailsController {
   /**
    * Mettre à jour un fail
    */
-  static async updateFail(req, res) {
-    const connection = req.dbConnection;
-    
+  static async updateFail(req, res) {    
     try {
       const { id } = req.params;
       const userId = req.user.id;
       const updateData = req.body;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFail = await this.getFailById(parseInt(id), userId, connection);
+      const existingFail = await this.getFailById(parseInt(id), userId);
       
       if (!existingFail) {
         return res.status(404).json({
@@ -369,10 +351,10 @@ class FailsController {
         WHERE id = ?
       `;
 
-      await executeQuery(connection, updateQuery, updateValues);
+      await executeQuery(updateQuery, updateValues);
 
       // Récupérer le fail mis à jour
-      const updatedFail = await this.getFailById(parseInt(id), userId, connection);
+      const updatedFail = await this.getFailById(parseInt(id), userId);
 
       console.log(`✅ Fail mis à jour: ${id}`);
 
@@ -395,15 +377,13 @@ class FailsController {
   /**
    * Supprimer un fail
    */
-  static async deleteFail(req, res) {
-    const connection = req.dbConnection;
-    
+  static async deleteFail(req, res) {    
     try {
       const { id } = req.params;
       const userId = req.user.id;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFail = await this.getFailById(parseInt(id), userId, connection);
+      const existingFail = await this.getFailById(parseInt(id), userId);
       
       if (!existingFail) {
         return res.status(404).json({
@@ -420,16 +400,11 @@ class FailsController {
       }
 
       // Supprimer en cascade (réactions, commentaires, etc.)
-      await executeTransaction(connection, async (conn) => {
-        // Supprimer les réactions
-        await executeQuery(conn, 'DELETE FROM fail_reactions WHERE fail_id = ?', [parseInt(id)]);
-        
-        // Supprimer les commentaires
-        await executeQuery(conn, 'DELETE FROM fail_comments WHERE fail_id = ?', [parseInt(id)]);
-        
-        // Supprimer le fail
-        await executeQuery(conn, 'DELETE FROM fails WHERE id = ?', [parseInt(id)]);
-      });
+      await executeTransaction([
+        { query: 'DELETE FROM fail_reactions WHERE fail_id = ?', params: [parseInt(id)] },
+        { query: 'DELETE FROM fail_comments WHERE fail_id = ?', params: [parseInt(id)] },
+        { query: 'DELETE FROM fails WHERE id = ?', params: [parseInt(id)] }
+      ]);
 
       console.log(`✅ Fail supprimé: ${id}`);
 
@@ -451,9 +426,7 @@ class FailsController {
   /**
    * Ajouter/modifier une réaction à un fail
    */
-  static async reactToFail(req, res) {
-    const connection = req.dbConnection;
-    
+  static async reactToFail(req, res) {    
     try {
       const { id } = req.params;
       const { reactionType } = req.body; // 'like', 'love', 'laugh', 'support'
@@ -468,7 +441,7 @@ class FailsController {
       }
 
       // Vérifier que le fail existe
-      const fail = await this.getFailById(parseInt(id), userId, connection);
+      const fail = await this.getFailById(parseInt(id), userId);
       if (!fail) {
         return res.status(404).json({
           success: false,
@@ -477,32 +450,26 @@ class FailsController {
       }
 
       // Vérifier/insérer la réaction
-      const existingReaction = await executeQuery(
-        connection,
-        'SELECT * FROM fail_reactions WHERE fail_id = ? AND user_id = ?',
+      const existingReaction = await executeQuery('SELECT * FROM fail_reactions WHERE fail_id = ? AND user_id = ?',
         [parseInt(id), userId]
       );
 
       if (existingReaction.length > 0) {
         // Mettre à jour la réaction existante
-        await executeQuery(
-          connection,
-          'UPDATE fail_reactions SET reaction_type = ?, created_at = NOW() WHERE fail_id = ? AND user_id = ?',
+        await executeQuery('UPDATE fail_reactions SET reaction_type = ?, created_at = NOW() WHERE fail_id = ? AND user_id = ?',
           [reactionType, parseInt(id), userId]
         );
       } else {
         // Créer une nouvelle réaction
-        await executeQuery(
-          connection,
-          'INSERT INTO fail_reactions (fail_id, user_id, reaction_type, created_at) VALUES (?, ?, ?, NOW())',
+        await executeQuery('INSERT INTO fail_reactions (fail_id, user_id, reaction_type, created_at) VALUES (?, ?, ?, NOW())',
           [parseInt(id), userId, reactionType]
         );
       }
 
       // Mettre à jour les stats utilisateur
-      await this.updateUserStats(userId, 'reaction_given', connection);
+      await this.updateUserStats(userId, 'reaction_given');
       if (fail.user_id !== userId) {
-        await this.updateUserStats(fail.user_id, 'reaction_received', connection);
+        await this.updateUserStats(fail.user_id, 'reaction_received');
       }
 
       console.log(`👍 Réaction ${reactionType} ajoutée au fail ${id} par ${userId}`);
@@ -525,16 +492,12 @@ class FailsController {
   /**
    * Supprimer une réaction
    */
-  static async removeReaction(req, res) {
-    const connection = req.dbConnection;
-    
+  static async removeReaction(req, res) {    
     try {
       const { id } = req.params;
       const userId = req.user.id;
 
-      await executeQuery(
-        connection,
-        'DELETE FROM fail_reactions WHERE fail_id = ? AND user_id = ?',
+      await executeQuery('DELETE FROM fail_reactions WHERE fail_id = ? AND user_id = ?',
         [parseInt(id), userId]
       );
 
@@ -556,29 +519,23 @@ class FailsController {
   /**
    * Incrémenter le compteur de vues
    */
-  static async incrementViewCount(failId, userId, connection) {
+  static async incrementViewCount(failId, userId) {
     try {
       // Vérifier si l'utilisateur a déjà vu ce fail récemment (dans les dernières 24h)
-      const recentView = await executeQuery(
-        connection,
-        'SELECT * FROM fail_views WHERE fail_id = ? AND user_id = ? AND viewed_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)',
+      const recentView = await executeQuery('SELECT * FROM fail_views WHERE fail_id = ? AND user_id = ? AND viewed_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)',
         [failId, userId]
       );
 
       if (recentView.length === 0) {
         // Ajouter ou mettre à jour la vue
-        await executeQuery(
-          connection,
-          `INSERT INTO fail_views (fail_id, user_id, viewed_at) 
+        await executeQuery(`INSERT INTO fail_views (fail_id, user_id, viewed_at) 
            VALUES (?, ?, NOW()) 
            ON DUPLICATE KEY UPDATE viewed_at = NOW()`,
           [failId, userId]
         );
 
         // Mettre à jour le compteur global
-        await executeQuery(
-          connection,
-          'UPDATE fails SET view_count = view_count + 1 WHERE id = ?',
+        await executeQuery('UPDATE fails SET view_count = view_count + 1 WHERE id = ?',
           [failId]
         );
       }
@@ -590,7 +547,7 @@ class FailsController {
   /**
    * Mettre à jour les statistiques utilisateur
    */
-  static async updateUserStats(userId, statType, connection) {
+  static async updateUserStats(userId, statType) {
     try {
       const statMapping = {
         'fail_created': 'fails_count',
@@ -600,9 +557,7 @@ class FailsController {
 
       const statField = statMapping[statType];
       if (statField) {
-        await executeQuery(
-          connection,
-          `UPDATE users SET ${statField} = ${statField} + 1 WHERE id = ?`,
+        await executeQuery(`UPDATE users SET ${statField} = ${statField} + 1 WHERE id = ?`,
           [userId]
         );
       }
@@ -614,7 +569,7 @@ class FailsController {
   /**
    * Vérifier les progrès des badges
    */
-  static async checkBadgeProgress(userId, actionType, connection) {
+  static async checkBadgeProgress(userId, actionType) {
     try {
       // Implementation simplifiée - à développer selon les badges
       console.log(`🏆 Vérification badges pour utilisateur ${userId}, action: ${actionType}`);
@@ -626,16 +581,14 @@ class FailsController {
   /**
    * Récupérer les statistiques des fails
    */
-  static async getFailsStats(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getFailsStats(req, res) {    
     try {
       const userId = req.user ? req.user.id : null;
 
       const stats = {};
 
       // Stats globales
-      const globalStats = await executeQuery(connection, `
+      const globalStats = await executeQuery(`
         SELECT 
           COUNT(*) as total_fails,
           COUNT(DISTINCT user_id) as total_users,
@@ -647,7 +600,7 @@ class FailsController {
       stats.global = globalStats[0];
 
       // Stats par catégorie
-      const categoryStats = await executeQuery(connection, `
+      const categoryStats = await executeQuery(`
         SELECT category, COUNT(*) as count
         FROM fails
         WHERE is_public = 1
@@ -659,7 +612,7 @@ class FailsController {
 
       // Stats utilisateur si connecté
       if (userId) {
-        const userStats = await executeQuery(connection, `
+        const userStats = await executeQuery(`
           SELECT 
             COUNT(*) as my_fails,
             SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as my_public_fails,
@@ -690,9 +643,7 @@ class FailsController {
   /**
    * Mettre à jour un fail
    */
-  static async updateFail(req, res) {
-    const connection = req.dbConnection;
-    
+  static async updateFail(req, res) {    
     try {
       const { id } = req.params;
       const {
@@ -707,7 +658,7 @@ class FailsController {
       const userId = req.user.id;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFails = await executeQuery(connection, `
+      const existingFails = await executeQuery(`
         SELECT id, user_id, title, description 
         FROM fails 
         WHERE id = ?
@@ -799,10 +750,10 @@ class FailsController {
         WHERE id = ?
       `;
 
-      await executeQuery(connection, updateQuery, updateValues);
+      await executeQuery(updateQuery, updateValues);
 
       // Récupérer le fail mis à jour
-      const updatedFail = await this.getFailById(parseInt(id), userId, connection);
+      const updatedFail = await this.getFailById(parseInt(id), userId);
 
       res.json({
         success: true,
@@ -824,9 +775,7 @@ class FailsController {
   /**
    * Rechercher des fails
    */
-  static async searchFails(req, res) {
-    const connection = req.dbConnection;
-    
+  static async searchFails(req, res) {    
     try {
       const { 
         q: searchQuery, 
@@ -896,7 +845,7 @@ class FailsController {
       query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
       params.push(limitNum, offset);
 
-      const fails = await executeQuery(connection, query, params);
+      const fails = await executeQuery(query, params);
 
       // Compter le total pour la pagination
       let countQuery = `
@@ -926,7 +875,7 @@ class FailsController {
         });
       }
 
-      const totalResult = await executeQuery(connection, countQuery, countParams);
+      const totalResult = await executeQuery(countQuery, countParams);
       const total = totalResult[0].total;
       const totalPages = Math.ceil(total / limitNum);
 
@@ -966,11 +915,9 @@ class FailsController {
   /**
    * Récupérer les catégories disponibles
    */
-  static async getCategories(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getCategories(req, res) {    
     try {
-      const categories = await executeQuery(connection, `
+      const categories = await executeQuery(`
         SELECT 
           category,
           COUNT(*) as count
@@ -1002,15 +949,13 @@ class FailsController {
   /**
    * Récupérer les tags populaires
    */
-  static async getPopularTags(req, res) {
-    const connection = req.dbConnection;
-    
+  static async getPopularTags(req, res) {    
     try {
       const { limit = 50 } = req.query;
       const limitNum = parseInt(limit) || 50;
 
       // Récupérer tous les tags depuis les fails publics
-      const tagsResults = await executeQuery(connection, `
+      const tagsResults = await executeQuery(`
         SELECT tags 
         FROM fails 
         WHERE is_public = 1 AND tags IS NOT NULL AND tags != '[]'
@@ -1060,11 +1005,11 @@ class FailsController {
   /**
    * Incrémenter le compteur de vues
    */
-  static async incrementViewCount(failId, userId, connection) {
+  static async incrementViewCount(failId, userId) {
     try {
       // Vérifier si l'utilisateur a déjà vu ce fail récemment (dans les dernières 24h)
       if (userId) {
-        const recentViews = await executeQuery(connection, `
+        const recentViews = await executeQuery(`
           SELECT id FROM fail_views 
           WHERE fail_id = ? AND user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
         `, [failId, userId]);
@@ -1075,14 +1020,14 @@ class FailsController {
 
         // Enregistrer la vue
         const { v4: uuidv4 } = require('uuid');
-        await executeQuery(connection, `
+        await executeQuery(`
           INSERT INTO fail_views (id, fail_id, user_id, created_at) 
           VALUES (?, ?, ?, NOW())
         `, [uuidv4(), failId, userId]);
       }
 
       // Incrémenter le compteur global de vues
-      await executeQuery(connection, `
+      await executeQuery(`
         UPDATE fails 
         SET views_count = views_count + 1 
         WHERE id = ?
