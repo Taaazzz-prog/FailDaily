@@ -200,7 +200,7 @@ interface TestResult {
 })
 export class ApiTestComponent implements OnInit {
   apiUrl: string = environment.api.baseUrl;
-  authToken: string = '';
+  authToken: string = 'faildaily_token';
   testResults: TestResult[] = [];
   isRunning: boolean = false;
 
@@ -212,7 +212,7 @@ export class ApiTestComponent implements OnInit {
 
   ngOnInit() {
     console.log('🧪 ApiTestComponent: Composant de test API initialisé');
-    this.authToken = localStorage.getItem('auth_token') || '';
+    this.authToken = localStorage.getItem('auth_token') || 'faildaily_token';
     this.testResults = [];
   }
 
@@ -320,7 +320,7 @@ export class ApiTestComponent implements OnInit {
       description: 'Ceci est un fail de test',
       category: 'Général',
       tags: ['test', 'api'],
-      isPublic: true
+      is_public: true
     };
 
     try {

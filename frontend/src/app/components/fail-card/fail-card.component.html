@@ -1,10 +1,10 @@
 <div class="fail-card imperfect-element">
   <!-- En-tête de la carte -->
   <div class="card-header">
-    <div class="author-info" [class.clickable-author]="fail.isPublic" [class.anonymous-author]="!fail.isPublic">
-      <img [src]="fail.authorAvatar" [alt]="fail.authorName" [class.clickable]="fail.isPublic" class="author-avatar">
+    <div class="author-info" [class.clickable-author]="fail.is_public" [class.anonymous-author]="!fail.is_public">
+      <img [src]="fail.authorAvatar" [alt]="fail.authorName" [class.clickable]="fail.is_public" class="author-avatar">
       <div class="author-details">
-        <h3 class="author-name comfort-text" [class.clickable]="fail.isPublic">{{ fail.authorName }}</h3>
+        <h3 class="author-name comfort-text" [class.clickable]="fail.is_public">{{ fail.authorName }}</h3>
         <p class="post-time">{{ fail.createdAt | timeAgo }}</p>
       </div>
     </div>
@@ -17,9 +17,9 @@
   <div class="card-content">
     <h2 class="fail-title">{{ fail.title }}</h2>
     <p class="fail-text">{{ fail.description }}</p>
-    @if (fail.imageUrl) {
+  @if (fail.imageUrl) {
     <img [src]="fail.imageUrl" alt="Image du fail" class="fail-image">
-    }
+  }
   </div>
 
   <!-- Actions de réaction -->
