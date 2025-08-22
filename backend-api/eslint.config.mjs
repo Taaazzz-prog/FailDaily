@@ -26,6 +26,7 @@ export default [
       'uploads/**',
       'coverage/**', // utile aussi
       'tests/**',    // si tu veux VRAIMENT ignorer les tests
+      'eslint.config.mjs',
     ],
   },
 ];
