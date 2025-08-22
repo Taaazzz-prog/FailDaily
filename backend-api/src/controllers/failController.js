@@ -24,7 +24,7 @@ const getUserActivityData = (req, userId, userEmail, userName = null) => {
 // Créer un fail
 const createFail = async (req, res) => {
   try {
-    const { title, description, category, isPublic } = req.body;
+    const { title, description, category, is_public } = req.body;
     const userId = req.user.id;
 
     // Validation
@@ -56,7 +56,7 @@ const createFail = async (req, res) => {
     await executeQuery(`
       INSERT INTO fails (id, user_id, title, description, category, image_url, is_public, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-    `, [failId, userId, title, description, category, req.file?.filename || null, isPublic || false]);
+    `, [failId, userId, title, description, category, req.file?.filename || null, is_public || false]);
 
   // (Optionnel) Mise à jour des stats utilisateur ou attribution de badges
   // Désactivé car les colonnes/tables attendues ne sont pas standardisées dans le schéma actuel.
@@ -76,7 +76,7 @@ const createFail = async (req, res) => {
         title,
         description,
         category,
-        isPublic: !!isPublic,
+        is_public: !!is_public,
         createdAt: new Date().toISOString()
       }
     });
@@ -168,7 +168,7 @@ const getFails = async (req, res) => {
         description: fail.description,
         category: fail.category,
         imageUrl: fail.image_url,
-        isPublic: !!fail.is_public,
+        is_public: !!fail.is_public,
         createdAt: fail.created_at,
         reactionsCount: fail.reactions_count
       })),
@@ -227,7 +227,7 @@ const getFailById = async (req, res) => {
         description: fail.description,
         category: fail.category,
         imageUrl: fail.image_url,
-        isPublic: !!fail.is_public,
+        is_public: !!fail.is_public,
         createdAt: fail.created_at,
         reactionsCount: fail.reactions_count
       }
@@ -298,7 +298,7 @@ const deleteFail = async (req, res) => {
 const updateFail = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category, isPublic } = req.body;
+    const { title, description, category, is_public } = req.body;
     const userId = req.user.id;
 
     // Validation des données
@@ -364,9 +364,9 @@ const updateFail = async (req, res) => {
       updateValues.push(category);
     }
 
-    if (isPublic !== undefined) {
+    if (is_public !== undefined) {
       updateFields.push('is_public = ?');
-      updateValues.push(isPublic ? 1 : 0);
+      updateValues.push(is_public ? 1 : 0);
     }
 
     updateFields.push('updated_at = NOW()');

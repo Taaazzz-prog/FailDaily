@@ -90,7 +90,7 @@ const TEST_FAILS = {
     title: 'Mon premier échec de test',
     description: 'Ceci est une description de test pour un échec',
     category: 'personnel',
-    isPublic: true
+    is_public: true
   },
   withoutTitle: {
     description: 'Échec sans titre',
@@ -99,7 +99,7 @@ const TEST_FAILS = {
   private: {
     title: 'Échec privé',
     description: 'Ceci est un échec privé',
-    isPublic: false
+    is_public: false
   }
 };
 

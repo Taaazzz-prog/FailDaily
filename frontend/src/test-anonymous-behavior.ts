@@ -8,7 +8,7 @@ export const testFailCards = {
         authorName: 'John Doe',
         authorAvatar: '/assets/avatar.jpg',
         authorId: 'user-123',
-        isPublic: true, // ✅ Clickable
+        is_public: true, // ✅ Clickable
         createdAt: new Date(),
         reactions: [],
         comments: []
@@ -20,7 +20,7 @@ export const testFailCards = {
         authorName: 'Utilisateur anonyme',
         authorAvatar: '/assets/anonymous-avatar.jpg',
         authorId: 'user-456',
-        isPublic: false, // ❌ Non clickable
+        is_public: false, // ❌ Non clickable
         createdAt: new Date(),
         reactions: [],
         comments: []

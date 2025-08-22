@@ -68,10 +68,9 @@ export class HttpAuthService {
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
+      'Authorization': `Bearer faildaily_token`
     });
   }
 

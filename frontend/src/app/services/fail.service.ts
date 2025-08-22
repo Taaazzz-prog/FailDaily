@@ -13,7 +13,7 @@ export interface CreateFailData {
   description: string;
   category: FailCategory;
   image?: File;
-  isPublic: boolean;
+  is_public: boolean;
 }
 
 @Injectable({
@@ -70,7 +70,7 @@ export class FailService {
       description: failData.description?.trim() || '',
       category: failData.category, // Suppression du fallback
       image_url: imageUrl,
-      is_public: Boolean(failData.isPublic),
+      is_public: Boolean(failData.is_public),
       user_id: user.id
     };
 
@@ -89,7 +89,7 @@ export class FailService {
       // Logger la création du fail
       await this.logger.logFail('create', failToCreate.title, undefined, {
         category: failToCreate.category,
-        isPublic: failToCreate.is_public,
+        is_public: failToCreate.is_public,
         hasImage: !!imageUrl
       });
 
@@ -169,8 +169,7 @@ export class FailService {
     let authorName = 'Utilisateur anonyme';
     let authorAvatar = 'assets/profil/anonymous.png'; // Avatar par défaut pour anonyme
 
-    // ✅ FIX: Utiliser isPublic (camelCase) au lieu de is_public (snake_case)
-    if (failData.isPublic) {
+    if (failData.is_public) {
       try {
         // Récupérer le profil de l'utilisateur pour avoir son vrai nom et avatar
         const profile = await this.mysqlService.getProfile(failData.user_id);
@@ -243,10 +242,10 @@ export class FailService {
       category: failData.category as FailCategory,
       authorName: authorName,
       authorAvatar: authorAvatar,
-      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par isPublic)
+      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par is_public)
       imageUrl: failData.imageUrl,
       createdAt: createdDate, // ✅ FIX: Date formatée correctement
-      isPublic: failData.isPublic, // ✅ FIX: Utiliser isPublic (camelCase)
+      is_public: failData.is_public,
       commentsCount: 0, // À implémenter plus tard
       reactions: reactions // ✅ FIX: Réactions récupérées depuis l'API
     };

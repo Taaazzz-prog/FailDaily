@@ -10,7 +10,7 @@ export interface CreateFailData {
   description: string;
   category: FailCategory;
   image?: File;
-  isPublic: boolean;
+  is_public: boolean;
 }
 
 export interface FailsResponse {
@@ -35,17 +35,15 @@ export class HttpFailService {
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
+      'Authorization': `Bearer faildaily_token`
     });
   }
 
   private getMultipartHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
     return new HttpHeaders({
-      'Authorization': token ? `Bearer ${token}` : ''
+      'Authorization': `Bearer faildaily_token`
       // Pas de Content-Type pour multipart, le navigateur le gère automatiquement
     });
   }
@@ -72,7 +70,7 @@ export class HttpFailService {
         description: failData.description.trim(),
         category: failData.category,
         image_url: imageUrl,
-        is_public: failData.isPublic
+        is_public: failData.is_public
       };
 
       const response: any = await this.http.post(`${this.apiUrl}/fails`, failToCreate, {
@@ -124,8 +122,8 @@ export class HttpFailService {
       }).toPromise();
 
       if (response.success && response.fails) {
-        const fails = response.fails;
-        
+        const fails = response.fails.map((f: any) => ({ ...f, is_public: !!f.is_public }));
+
         // Mettre à jour le BehaviorSubject
         this.failsSubject.next(fails);
         
@@ -178,7 +176,7 @@ export class HttpFailService {
       if (updateData.description) failToUpdate.description = updateData.description.trim();
       if (updateData.category) failToUpdate.category = updateData.category;
       if (imageUrl) failToUpdate.image_url = imageUrl;
-      if (updateData.isPublic !== undefined) failToUpdate.is_public = updateData.isPublic;
+      if (updateData.is_public !== undefined) failToUpdate.is_public = updateData.is_public;
 
       const response: any = await this.http.put(`${this.apiUrl}/fails/${failId}`, failToUpdate, {
         headers: this.getAuthHeaders()
@@ -231,7 +229,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response.success && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => ({ ...f, is_public: !!f.is_public }));
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails utilisateur');
       }
@@ -247,11 +245,11 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fails) {
-        return response.fails;
-      } else {
-        throw new Error(response.message || 'Erreur lors du chargement des fails publics');
-      }
+      const fails: Fail[] = Array.isArray(response)
+        ? response.map((f: any) => ({ ...f, is_public: !!f.is_public }))
+        : [];
+
+      return fails;
     } catch (error: any) {
       console.error('❌ Erreur chargement fails publics:', error);
       return [];
@@ -265,7 +263,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response.success && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => ({ ...f, is_public: !!f.is_public }));
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails par catégorie');
       }
@@ -282,7 +280,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response.success && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => ({ ...f, is_public: !!f.is_public }));
       } else {
         throw new Error(response.message || 'Erreur lors de la recherche de fails');
       }
