@@ -18,6 +18,9 @@ router.get('/tags', FailsController.getPopularTags);
 // GET /api/fails/stats - Récupérer les statistiques des fails
 router.get('/stats', optionalAuth, FailsController.getFailsStats);
 
+// GET /api/fails/public - Récupérer uniquement les fails publics
+router.get('/public', optionalAuth, FailsController.getPublicFails);
+
 // POST /api/fails - Créer un fail
 router.post('/', authenticateToken, FailsController.createFail);
 

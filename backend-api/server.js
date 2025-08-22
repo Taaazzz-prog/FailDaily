@@ -17,7 +17,13 @@ const uploadRoutes = require('./src/routes/upload');
 const reactionsRoutes = require('./src/routes/reactions');
 const commentsRoutes = require('./src/routes/comments');
 const logsRoutes = require('./src/routes/logs');
-
+// Route “fails public” ajoutée par Codex (adapter le chemin si différent)
+let failsPublicRoutes;
+try {
+  failsPublicRoutes = require('./src/routes/failsNew');
+} catch (_) {
+  // route optionnelle : on ignore si absente
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -103,6 +109,10 @@ app.use('/api/registration', registrationRoutes);
 app.use('/api/age-verification', ageVerificationRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/admin/logs', logsRoutes); // Route supplémentaire pour compatibilité frontend
+// Monte l’endpoint /api/fails/public si présent
+if (failsPublicRoutes) {
+  app.use('/api/fails', failsPublicRoutes);
+}
 
 // Route temporaire pour les stats utilisateur
 app.get('/api/user/stats', require('./src/middleware/auth').authenticateToken, (req, res) => {
@@ -163,7 +173,7 @@ app.use((error, req, res, next) => {
   });
 });
 
-// Démarrage du serveur
+// Démarrage du serveur (séparé pour permettre les tests Supertest)
 async function startServer() {
   try {
     // Test de la connexion à la base de données
@@ -200,4 +210,10 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-startServer();
+// Lancer seulement si ce fichier est exécuté directement
+if (require.main === module) {
+  startServer();
+}
+
+// Export pour les tests (Supertest)
+module.exports = app;
