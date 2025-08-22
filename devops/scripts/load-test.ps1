@@ -1,4 +1,4 @@
-# FailDaily - Script de tests de charge simplifie
+# FailDaily - Script de tests de charge simplifié
 param(
     [Parameter(Position=0)]
     [string]$Target = "help",

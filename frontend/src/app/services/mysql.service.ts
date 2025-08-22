@@ -5,6 +5,8 @@ import { environment } from '../../environments/environment';
 import { User } from '../models/user.model';
 import { Fail } from '../models/fail.model';
 import { FailCategory } from '../models/enums';
+import { UserRole } from '../models/user-role.model';
+import { DEFAULT_AVATAR } from '../utils/avatar-constants';
 
 // Interfaces pour la compatibilité
 export interface AuthResponse {
@@ -155,19 +157,76 @@ export class MysqlService {
         return null;
       }
 
-      const response: any = await this.http.get(`${this.apiUrl}/auth/me`, {
+      // ✅ FIX: Utiliser l'endpoint existant /auth/profile au lieu de /auth/me
+      const response: any = await this.http.get(`${this.apiUrl}/auth/profile`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.user) {
-        this.currentUser.next(response.user);
-        return response.user;
+      if (response.success && response.data) {
+        // ✅ FIX: Adapter la structure de response.data pour correspondre à User
+        const user: User = {
+          id: response.data.id,
+          email: response.data.email,
+          displayName: response.data.displayName || 'Utilisateur',
+          avatar: response.data.avatarUrl || DEFAULT_AVATAR,
+          joinDate: new Date(response.data.createdAt),
+          totalFails: 0, // À récupérer si nécessaire
+          couragePoints: 0, // À récupérer si nécessaire
+          badges: [], // À récupérer si nécessaire
+          role: response.data.role || UserRole.USER,
+          emailConfirmed: true, // Supposer confirmé si on a pu récupérer le profil
+          registrationCompleted: response.data.registrationCompleted || false,
+          legalConsent: response.data.legalConsent ? {
+            documentsAccepted: response.data.legalConsent.documentsAccepted || [],
+            consentDate: new Date(response.data.legalConsent.consentDate),
+            consentVersion: response.data.legalConsent.consentVersion || '1.0',
+            marketingOptIn: response.data.legalConsent.marketingOptIn || false
+          } : undefined,
+          ageVerification: response.data.ageVerification ? {
+            birthDate: new Date(response.data.ageVerification.birthDate),
+            isMinor: response.data.ageVerification.isMinor,
+            needsParentalConsent: response.data.ageVerification.needsParentalConsent,
+            parentEmail: response.data.ageVerification.parentEmail,
+            parentConsentDate: response.data.ageVerification.parentConsentDate ? 
+              new Date(response.data.ageVerification.parentConsentDate) : undefined
+          } : undefined,
+          preferences: {
+            bio: response.data.bio || '',
+            theme: 'light',
+            darkMode: false,
+            notificationsEnabled: true,
+            reminderTime: '09:00',
+            anonymousMode: false,
+            shareLocation: false,
+            soundEnabled: true,
+            hapticsEnabled: true
+          }
+        };
+        this.currentUser.next(user);
+        return user;
       }
 
       return null;
-    } catch (error) {
-      console.log('🔐 MysqlService: Session expirée ou manquante:', error);
-      this.clearAuthData();
+    } catch (error: any) {
+      console.log('🔐 MysqlService: Erreur lors de la vérification de session:', error);
+      
+      // ✅ FIX: Ne pas déconnecter automatiquement - vérifier le type d'erreur
+      if (error.status === 401 || error.status === 403) {
+        // Token expiré ou invalide - déconnecter
+        console.log('🔐 MysqlService: Token invalide ou expiré - déconnexion');
+        this.clearAuthData();
+      } else {
+        // Erreur réseau ou temporaire - garder la session
+        console.log('🔐 MysqlService: Erreur temporaire - conservation de la session');
+        
+        // Essayer de retourner les données en cache si disponibles
+        const cachedUser = this.currentUser.value;
+        if (cachedUser) {
+          console.log('🔐 MysqlService: Utilisation des données en cache');
+          return cachedUser;
+        }
+      }
+      
       return null;
     }
   }
@@ -663,6 +722,42 @@ export class MysqlService {
     } catch (error: any) {
       console.warn('⚠️ Erreur récupération réactions utilisateur:', error);
       return [];
+    }
+  }
+
+  /**
+   * ✅ NOUVELLE MÉTHODE : Récupérer les comptes de réactions pour un fail
+   */
+  async getReactionsForFail(failId: string): Promise<{courage: number, empathy: number, laugh: number, support: number}> {
+    try {
+      const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/reactions`, {
+        headers: this.getAuthHeaders()
+      }).toPromise();
+
+      if (response.success && response.data) {
+        // Compter les réactions par type
+        const reactionCounts = {
+          courage: 0,
+          empathy: 0,
+          laugh: 0,
+          support: 0
+        };
+
+        if (response.data.reactions && Array.isArray(response.data.reactions)) {
+          response.data.reactions.forEach((reaction: any) => {
+            if (reactionCounts.hasOwnProperty(reaction.type)) {
+              reactionCounts[reaction.type as keyof typeof reactionCounts]++;
+            }
+          });
+        }
+
+        return reactionCounts;
+      }
+      
+      return { courage: 0, empathy: 0, laugh: 0, support: 0 };
+    } catch (error: any) {
+      console.warn('⚠️ Erreur récupération comptes réactions:', error);
+      return { courage: 0, empathy: 0, laugh: 0, support: 0 };
     }
   }
 

@@ -169,7 +169,8 @@ export class FailService {
     let authorName = 'Utilisateur anonyme';
     let authorAvatar = 'assets/profil/anonymous.png'; // Avatar par défaut pour anonyme
 
-    if (failData.is_public) {
+    // ✅ FIX: Utiliser isPublic (camelCase) au lieu de is_public (snake_case)
+    if (failData.isPublic) {
       try {
         // Récupérer le profil de l'utilisateur pour avoir son vrai nom et avatar
         const profile = await this.mysqlService.getProfile(failData.user_id);
@@ -186,11 +187,54 @@ export class FailService {
         authorName = 'Utilisateur courageux'; // Fallback
         authorAvatar = 'assets/profil/base.png'; // Avatar par défaut
       }
+    } else {
+      // ✅ FIX: Si pas public mais c'est notre propre fail, afficher notre nom
+      const currentUser = await this.mysqlService.getCurrentUser();
+      if (currentUser && failData.user_id === currentUser.id) {
+        authorName = currentUser.displayName;
+        authorAvatar = currentUser.avatar || 'assets/profil/base.png';
+      }
     }
 
     // Log des données de réactions pour débugger
     console.log('📊 formatFailWithAuthor - Raw failData.reactions:', failData.reactions);
     console.log('📊 formatFailWithAuthor - Type of reactions:', typeof failData.reactions);
+
+    // ✅ FIX: Gérer le formatage de date plus robuste
+    let createdDate: Date;
+    try {
+      createdDate = new Date(failData.createdAt);
+      // Vérifier si la date est valide
+      if (isNaN(createdDate.getTime())) {
+        createdDate = new Date(); // Fallback à maintenant
+      }
+    } catch (error) {
+      createdDate = new Date(); // Fallback à maintenant
+    }
+
+    // ✅ FIX: Récupérer les réactions depuis l'endpoint dédié
+    let reactions = {
+      courage: 0,
+      empathy: 0,
+      laugh: 0,
+      support: 0
+    };
+
+    try {
+      // Récupérer les réactions depuis l'API
+      const reactionsData = await this.mysqlService.getReactionsForFail(failData.id);
+      if (reactionsData) {
+        reactions = {
+          courage: reactionsData.courage || 0,
+          empathy: reactionsData.empathy || 0,
+          laugh: reactionsData.laugh || 0,
+          support: reactionsData.support || 0
+        };
+      }
+    } catch (error) {
+      console.log('FailService: Erreur lors de la récupération des réactions pour', failData.id, error);
+      // Garder les valeurs par défaut
+    }
 
     return {
       id: failData.id,
@@ -199,17 +243,12 @@ export class FailService {
       category: failData.category as FailCategory,
       authorName: authorName,
       authorAvatar: authorAvatar,
-      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par is_public)
-      imageUrl: failData.image_url,
-      createdAt: new Date(failData.created_at),
-      isPublic: failData.is_public,
+      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par isPublic)
+      imageUrl: failData.imageUrl,
+      createdAt: createdDate, // ✅ FIX: Date formatée correctement
+      isPublic: failData.isPublic, // ✅ FIX: Utiliser isPublic (camelCase)
       commentsCount: 0, // À implémenter plus tard
-      reactions: {
-        courage: failData.reactions?.courage || 0,
-        empathy: failData.reactions?.empathy || 0,
-        laugh: failData.reactions?.laugh || 0,
-        support: failData.reactions?.support || 0
-      }
+      reactions: reactions // ✅ FIX: Réactions récupérées depuis l'API
     };
   }
 

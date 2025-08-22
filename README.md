@@ -281,3 +281,6 @@ cd backend && npm install && npm start
 ---
 
 *FailDaily - Transformons nos échecs en succès collectifs* 🌟
+
+> For AI coding agent usage and guardrails, see [AGENTS.md](./AGENTS.md).
+

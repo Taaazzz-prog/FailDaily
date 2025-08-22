@@ -45,6 +45,11 @@ export class AuthService {
   private processingProfileLoad = false;
   private lastProcessedUserId: string | null = null;
 
+  // ✅ AJOUT : Système d'auto-déconnexion après inactivité
+  private inactivityTimer: any = null;
+  private readonly INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes en millisecondes
+  private lastActivityTime = Date.now();
+
   constructor(
     private mysqlService: MysqlService,
     private eventBus: EventBusService,
@@ -53,6 +58,10 @@ export class AuthService {
   ) {
     console.log('🔐 AuthService: Constructor called - initializing authentication service');
     this.initializeAuth();
+    
+    // ✅ Système d'auto-déconnexion après inactivité
+    this.setupInactivityTimer();
+    this.setupActivityListeners();
     
     // ✅ Nettoyer lors de la fermeture de l'onglet/application
     window.addEventListener('beforeunload', () => {
@@ -175,15 +184,9 @@ export class AuthService {
    */
   private cleanupInconsistentData(): void {
     const token = localStorage.getItem('faildaily_token');
-    const user = localStorage.getItem('faildaily_user');
+    const userCache = localStorage.getItem('faildaily_user_cache'); // ✅ FIX: Utiliser faildaily_user_cache
     
-    // Si on a un token mais pas d'utilisateur, ou vice versa, nettoyer
-    if ((token && !user) || (!token && user)) {
-      console.log('🧹 Détection de données incohérentes - nettoyage automatique');
-      this.clearAllAuthData();
-    }
-    
-    // Si on a un token expiré, le nettoyer
+    // ✅ FIX: Seulement nettoyer si on a des tokens expirés - ne pas supprimer pour incohérence
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
@@ -197,6 +200,9 @@ export class AuthService {
         this.clearAllAuthData();
       }
     }
+    
+    // ✅ FIX: Ne plus supprimer pour "incohérence" - laisser la session se rétablir
+    // L'absence temporaire de cache ne justifie pas une déconnexion
   }
 
   private async initializeAuth() {
@@ -241,10 +247,23 @@ export class AuthService {
 
       if (!currentUser) {
         console.error('🔐 AuthService: Pas de session active');
-        // Si erreur de session ET pas de cache, déconnecter
-        if (!cachedUser) {
+        
+        // ✅ FIX: Vérifier si on a encore un token valide avant de déconnecter
+        const token = localStorage.getItem('faildaily_token');
+        if (token && cachedUser) {
+          // On a un token et un cache - garder la session
+          console.log('🔐 AuthService: Token et cache présents - conservation de la session');
+          this.currentUserSubject.next(cachedUser);
+        } else if (!token) {
+          // Pas de token - déconnexion légitime
+          console.log('🔐 AuthService: Pas de token - déconnexion');
           this.setCurrentUser(null);
+        } else {
+          // Token présent mais pas de cache - peut-être une erreur temporaire
+          console.log('🔐 AuthService: Token présent mais erreur de session - attente');
+          // Ne pas déconnecter immédiatement, laisser une chance au token
         }
+        
         this.sessionInitialized = true;
         return;
       }
@@ -807,6 +826,9 @@ export class AuthService {
       const currentUser = this.getCurrentUser();
       console.log('🔐 AuthService: Début logout - Utilisateur actuel:', currentUser?.email || 'aucun');
       
+      // ✅ AJOUT : Annuler le timer d'inactivité lors de la déconnexion
+      this.clearInactivityTimer();
+      
       // Debug complet de l'état avant logout
       console.log('🔍 DEBUG AVANT LOGOUT:');
       console.log('  - currentUserSubject.value:', this.currentUserSubject.value);
@@ -989,6 +1011,51 @@ export class AuthService {
     }
 
     return this.mysqlService.banUser(userId);
+  }
+
+  /**
+   * ✅ NOUVELLE MÉTHODE : Gestion de l'inactivité
+   */
+  private setupInactivityTimer(): void {
+    this.resetInactivityTimer();
+  }
+
+  private setupActivityListeners(): void {
+    // Écouter les événements d'activité utilisateur
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, () => {
+        this.resetInactivityTimer();
+      }, true);
+    });
+  }
+
+  private resetInactivityTimer(): void {
+    // Seulement si l'utilisateur est connecté
+    if (!this.isAuthenticated()) {
+      return;
+    }
+
+    this.lastActivityTime = Date.now();
+
+    // Effacer le timer existant
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+    }
+
+    // Programmer la déconnexion automatique
+    this.inactivityTimer = setTimeout(() => {
+      console.log('🕒 AuthService: Déconnexion automatique après 10 minutes d\'inactivité');
+      this.logout();
+    }, this.INACTIVITY_TIMEOUT);
+  }
+
+  private clearInactivityTimer(): void {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+      this.inactivityTimer = null;
+    }
   }
 }
 
