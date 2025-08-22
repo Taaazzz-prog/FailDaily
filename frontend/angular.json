@@ -63,7 +63,17 @@
                 }
               ],
               "outputHashing": "all",
-              "statsJson": false
+              "statsJson": false,
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": false
+                },
+                "fonts": {
+                  "inline": false
+                }
+              }
             },
             "development": {
               "optimization": false,
