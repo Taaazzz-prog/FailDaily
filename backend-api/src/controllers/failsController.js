@@ -9,8 +9,6 @@ class FailsController {
    * Créer un nouveau fail
    */
   static async createFail(req, res) {
-    const connection = req.dbConnection;
-    
     try {
       const {
         title,
@@ -65,17 +63,17 @@ class FailsController {
         location ? JSON.stringify(location) : null
       ];
 
-      const result = await executeQuery(connection, failQuery, failValues);
+      const result = await executeQuery(failQuery, failValues);
       const failId = result.insertId;
 
       // Récupérer le fail créé avec les informations utilisateur
-      const createdFail = await this.getFailById(failId, userId, connection);
+      const createdFail = await this.getFailById(failId, userId);
 
       // Mettre à jour les statistiques utilisateur
-      await this.updateUserStats(userId, 'fail_created', connection);
+      await this.updateUserStats(userId, 'fail_created');
 
       // Vérifier les badges potentiels
-      await this.checkBadgeProgress(userId, 'fail_created', connection);
+      await this.checkBadgeProgress(userId, 'fail_created');
 
       console.log(`✅ Fail créé: ${failId} par utilisateur ${userId}`);
 
@@ -99,8 +97,6 @@ class FailsController {
    * Récupérer les fails avec pagination et filtres
    */
   static async getFails(req, res) {
-    const connection = req.dbConnection;
-    
     try {
       const {
         page = 1,
@@ -108,7 +104,7 @@ class FailsController {
         category = null,
         search = null,
         userId = null,
-        isPublic = true,
+        is_public = 'true',
         sortBy = 'created_at',
         sortOrder = 'DESC'
       } = req.query;
@@ -121,7 +117,7 @@ class FailsController {
       let queryParams = [];
 
       // Filtres de base
-      if (isPublic === 'true') {
+      if (is_public === 'true') {
         whereConditions.push('f.is_public = ?');
         queryParams.push(true);
       }
@@ -165,7 +161,7 @@ class FailsController {
         ? [currentUserId, ...queryParams, parseInt(limit), offset]
         : [...queryParams, parseInt(limit), offset];
 
-      const fails = await executeQuery(connection, query, finalParams);
+      const fails = await executeQuery(query, finalParams);
 
       // Requête pour le total
       const countQuery = `
@@ -179,12 +175,13 @@ class FailsController {
         ? queryParams
         : queryParams;
 
-      const countResult = await executeQuery(connection, countQuery, countParams);
+      const countResult = await executeQuery(countQuery, countParams);
       const total = countResult[0].total;
 
       // Traitement des données
       const processedFails = fails.map(fail => ({
         ...fail,
+        is_public: !!fail.is_public,
         tags: JSON.parse(fail.tags || '[]'),
         location: fail.location ? JSON.parse(fail.location) : null,
         created_at: new Date(fail.created_at).toISOString(),

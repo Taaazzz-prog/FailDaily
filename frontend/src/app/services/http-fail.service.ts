@@ -117,7 +117,7 @@ export class HttpFailService {
     try {
       console.log(`📋 Chargement des fails (page ${page})`);
 
-      const response: any = await this.http.get(`${this.apiUrl}/fails?page=${page}&limit=${limit}`, {
+      const response: any = await this.http.get(`${this.apiUrl}/fails/public?page=${page}&limit=${limit}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 

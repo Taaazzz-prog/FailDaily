@@ -3,6 +3,12 @@ const router = express.Router();
 const FailsController = require('../controllers/failsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 
+// Route dédiée aux fails publics
+router.get('/public', optionalAuth, (req, res) => {
+  req.query.is_public = 'true';
+  return FailsController.getFails(req, res);
+});
+
 // GET /api/fails - Récupérer les fails (avec pagination et filtres)
 router.get('/', optionalAuth, FailsController.getFails);
 
