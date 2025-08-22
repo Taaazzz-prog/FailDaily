@@ -232,10 +232,10 @@ class FailsController {
    */
   static async getPublicFails(req, res) {
     try {
-      const { page = 1, limit = 20 } = req.query;
-      const pageNum = parseInt(page);
+      const { page = 1, limit = 20, offset = null } = req.query;
       const limitNum = parseInt(limit);
-      const offset = (pageNum - 1) * limitNum;
+      const pageNum = offset !== null ? Math.floor(parseInt(offset) / limitNum) + 1 : parseInt(page);
+      const offsetNum = offset !== null ? parseInt(offset) : (pageNum - 1) * limitNum;
 
       const query = `
         SELECT f.*, u.display_name, u.avatar_url
@@ -246,15 +246,28 @@ class FailsController {
         LIMIT ? OFFSET ?
       `;
 
-      const fails = await executeQuery(query, [limitNum, offset]);
+      const fails = await executeQuery(query, [limitNum, offsetNum]);
       const processed = fails.map(mapFailRow);
 
-      res.json(processed);
+      const countResult = await executeQuery('SELECT COUNT(*) as total FROM fails WHERE is_public = 1');
+      const total = countResult[0].total;
+
+      res.json({
+        success: true,
+        fails: processed,
+        pagination: {
+          page: pageNum,
+          limit: limitNum,
+          total,
+          totalPages: Math.ceil(total / limitNum)
+        }
+      });
     } catch (error) {
       console.error('❌ Erreur récupération fails publics:', error);
       res.status(500).json({
         success: false,
-        message: "Erreur lors de la récupération des fails publics"
+        message: "Erreur lors de la récupération des fails publics",
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
