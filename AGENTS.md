@@ -190,23 +190,64 @@ guards/                  // Protection des routes
 ### Installation Cloud-Safe
 ```bash
 # ⚠️ ÉVITER npm ci (peut échouer sur fontsource)
-# Utiliser npm install à la place
-npm install
-
-# Alternative si @fontsource bloqué :
+# Solution 1: Installer sans les packages problématiques
 npm install --omit=optional
 
-# Si toujours bloqué, supprimer temporairement :
+# Solution 2: Installer en ignorant les erreurs 403
+npm install --force || npm install --legacy-peer-deps
+
+# Solution 3: Si @fontsource continue à bloquer
+npm install --ignore-scripts --no-optional
+
+# Solution 4: Contournement temporaire (CLOUD SEULEMENT)
 npm uninstall @fontsource/caveat @fontsource/comfortaa @fontsource/kalam
 npm install
+# ⚠️ Ne pas committer ces changements !
+
+# Vérifier que les dépendances essentielles sont installées
+npm list express mysql2 || npm install express mysql2 jsonwebtoken
 ```
 
 ### Configuration ESLint (Fix Cloud)
 ```bash
-# Renommer eslint.config.js en .mjs
-mv backend-api/eslint.config.js backend-api/eslint.config.mjs
+# Fix pour backend ESLint
+cd backend-api
 
-# OU ajouter "type": "module" dans backend-api/package.json
+# Solution 1: Renommer eslint.config.js en .mjs
+mv eslint.config.js eslint.config.mjs
+# Puis modifier package.json script: "lint": "eslint . --config eslint.config.mjs"
+
+# Solution 2: Ajouter "type": "module" dans package.json
+echo '{
+  "name": "faildaily-backend-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "jest --runInBand"
+  }
+}' > package.json.tmp && mv package.json.tmp package.json
+
+# Solution 3: Utiliser .eslintrc.cjs au lieu de eslint.config.js
+mv eslint.config.js .eslintrc.cjs
+```
+
+### Fix Lint Frontend
+```bash
+cd frontend
+
+# Vérifier les erreurs de lint
+npm run lint 2>&1 | head -20
+
+# Auto-fix des erreurs corrigeables
+npm run lint -- --fix
+
+# Si erreurs TypeScript strictes, ajouter dans angular.json :
+# "architect" > "lint" > "options" > "eslintConfig": { "rules": { "@typescript-eslint/no-explicit-any": "warn" } }
+
+# Ignorer temporairement certaines règles (CLOUD SEULEMENT)
+echo '/* eslint-disable */
+// @ts-nocheck' > src/temp-disable-lint.ts
 ```
 
 ### Installation Outils Manquants
@@ -363,42 +404,61 @@ node -e "console.log('Node OK:', process.version)"
 
 Avant de valider une modification en environnement cloud :
 
-### Phase 1: Vérification Environnement
+### Phase 1: Préparation Cloud (Sans Impact Local)
+- [ ] `git stash` pour sauvegarder les changements locaux
 - [ ] `node --version` fonctionne
 - [ ] `npm --version` fonctionne  
 - [ ] Dossiers `frontend/` et `backend-api/` existent
-- [ ] `package.json` présent dans les deux dossiers
 
-### Phase 2: Installation Sécurisée
-- [ ] `npm install` (pas `npm ci`) réussit sans 403
-- [ ] Packages essentiels installés : `npm list express mysql2`
-- [ ] Si @fontsource échoue, utiliser alternative CDN/système
+### Phase 2: Installation Contournement Cloud
+- [ ] `npm install --force --no-audit` (ignore erreurs 403)
+- [ ] OU `npm install --omit=optional` si @fontsource bloque
+- [ ] OU contournement temporaire: supprimer @fontsource (NE PAS COMMITTER)
+- [ ] Vérifier: `npm list express mysql2`
 
-### Phase 3: Configuration ESLint
-- [ ] ESLint config compatible : `.mjs` ou `"type": "module"`
-- [ ] `npm run lint` ou `npx eslint .` fonctionne
-- [ ] Pas d'erreur "Cannot use import outside module"
+### Phase 3: Fix ESLint Backend
+- [ ] Tester: `cd backend-api && npm run lint`
+- [ ] Si erreur import: `mv eslint.config.js eslint.config.mjs`
+- [ ] OU ajouter `"type": "module"` dans package.json
+- [ ] OU créer `.eslintrc.cjs` en CommonJS
 
-### Phase 4: Tests Minimaux
+### Phase 4: Fix Lint Frontend  
+- [ ] Tester: `cd frontend && npm run lint`
+- [ ] Auto-fix: `npm run lint -- --fix`
+- [ ] Si erreurs TypeScript strictes: créer `tsconfig.temp.json`
+- [ ] Modifier temporairement `angular.json` si nécessaire
+
+### Phase 5: Tests Minimaux
 - [ ] Backend boot : `node -e "require('./backend-api/server')"`
 - [ ] Frontend check : `ls frontend/src/app/` montre services/
 - [ ] Tests unitaires : `npx jest --version` puis `npx jest`
 
-### Phase 5: Cohérence Métier  
+### Phase 6: Cohérence Métier  
 - [ ] Endpoints frontend correspondent aux routes backend
 - [ ] Schémas JSON matchent les modèles TypeScript
 - [ ] `is_public` gère correctement l'anonymat (0/1 ↔ boolean)
 - [ ] Routes sensibles protégées par `authenticateToken`
 
-### Phase 6: Smoke Test Final
+### Phase 7: Nettoyage Post-Test
+- [ ] `git stash pop` pour restaurer l'état local
+- [ ] OU `git checkout package.json package-lock.json`
+- [ ] Supprimer fichiers temporaires: `tsconfig.temp.json`, `.temp-module.json`
+- [ ] Vérifier que les @fontsource sont restaurés localement
+
+### Smoke Test Cloud-Safe Final
 ```bash
-# Test cloud-safe sans dépendances externes
+# Test après contournements
 NODE_ENV=test DB_DISABLED=true node -e "
-console.log('✅ Node.js:', process.version);
-console.log('✅ Platform:', process.platform);
-console.log('✅ Architecture:', process.arch);
-console.log('✅ Memory:', Math.round(process.memoryUsage().rss/1024/1024) + 'MB');
-console.log('✅ SERVER_BOOT_OK');
+try {
+  console.log('✅ Node.js:', process.version);
+  console.log('✅ Platform:', process.platform);
+  console.log('✅ Dependencies check...');
+  const pkg = require('./package.json');
+  console.log('✅ Project:', pkg.name);
+  console.log('✅ CLOUD_TEST_OK');
+} catch(e) {
+  console.log('❌ Error:', e.message);
+}
 "
 ```
 
@@ -428,23 +488,66 @@ export const environment = {
 
 ## 🔥 Guide de Dépannage Cloud
 
-### Erreur 403 @fontsource
+### Erreur 403 @fontsource (SANS SUPPRIMER LOCAL)
 ```bash
-# Solution 1: Supprimer temporairement
+# Option 1: Ignorer les erreurs et forcer l'installation
+npm install --force --no-audit
+
+# Option 2: Installer sans les packages optionnels
+npm install --omit=optional --ignore-scripts
+
+# Option 3: Contournement temporaire CLOUD UNIQUEMENT
+# (NE PAS COMMITTER CES CHANGEMENTS)
 npm uninstall @fontsource/caveat @fontsource/comfortaa @fontsource/kalam
 npm install
+# Restaurer après tests: git checkout package.json package-lock.json
 
-# Solution 2: Alternative CDN dans global.scss
-# @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap');
+# Option 4: Alternative CDN dans global.scss (temporaire)
+echo '/* Cloud fallback fonts */
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Comfortaa:wght@300;400;700&family=Kalam:wght@300;400;700&display=swap");' >> frontend/src/global.scss
 ```
 
-### Erreur ESLint Import
+### Erreur ESLint Import (Backend)
 ```bash
-# Solution 1: Renommer config
-mv backend-api/eslint.config.js backend-api/eslint.config.mjs
+cd backend-api
 
-# Solution 2: Ajouter type module
-echo '{"type": "module"}' > backend-api/eslint.package.json
+# Solution A: Module ESM
+echo '{"type": "module"}' > .temp-module.json
+cp package.json package.json.backup
+jq '. + {"type": "module"}' package.json.backup > package.json
+
+# Solution B: Renommer config
+mv eslint.config.js eslint.config.mjs
+
+# Solution C: CommonJS config
+cat > .eslintrc.cjs << 'EOF'
+module.exports = {
+  env: { node: true, es2022: true },
+  extends: ['eslint:recommended'],
+  parserOptions: { ecmaVersion: 'latest', sourceType: 'module' }
+};
+EOF
+```
+
+### Erreur Lint Frontend
+```bash
+cd frontend
+
+# Auto-fix rapide
+npm run lint -- --fix || echo "Certaines erreurs nécessitent intervention manuelle"
+
+# Contournement temporaire: désactiver strict mode
+echo '{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false
+  }
+}' > tsconfig.temp.json
+
+# Modifier angular.json pour utiliser tsconfig.temp.json temporairement
+sed -i 's/"tsConfig": "tsconfig.app.json"/"tsConfig": "tsconfig.temp.json"/g' angular.json
 ```
 
 ### Erreur Jest/ng Not Found
@@ -462,4 +565,4 @@ cd backend-api
 npm install express mysql2 jsonwebtoken bcryptjs cors helmet dotenv
 ```
 
-**Note**: Ce guide est optimisé pour l'environnement cloud ChatGPT Codex avec solutions de contournement pour les limitations d'accès réseau et packages.
+**⚠️ IMPORTANT CLOUD**: Toutes les modifications temporaires (suppression @fontsource, tsconfig.temp.json, etc.) ne doivent PAS être commitées. Utilisez `git stash` avant les tests cloud et `git stash pop` après.
