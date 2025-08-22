@@ -42,9 +42,15 @@
  * Styles globaux pour maintenir la cohérence visuelle
  */
 
-// Import des polices Inter via Fontsource
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/600.css";
+// Import des polices via Fontsource (locales, plus rapides)
+@import "@fontsource/caveat/400.css";
+@import "@fontsource/caveat/600.css";
+@import "@fontsource/caveat/700.css";
+@import "@fontsource/comfortaa/300.css";
+@import "@fontsource/comfortaa/400.css";
+@import "@fontsource/comfortaa/600.css";
+@import "@fontsource/kalam/400.css";
+@import "@fontsource/kalam/700.css";
 
 // Background global cohérent pour toutes les pages
 ion-content {

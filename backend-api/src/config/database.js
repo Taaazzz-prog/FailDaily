@@ -12,20 +12,23 @@ require('dotenv').config();
 // Configuration de la base de données
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
+  port: Number(process.env.DB_PORT) || 3306,
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '@51008473@Alexia@',
+  password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'faildaily',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  // éviter les hangs en CI
+  connectTimeout: 10000,
   // Configuration MySQL2 spécifique
   charset: 'utf8mb4',
   timezone: '+00:00'
 };
 
-// Pool de connexions MySQL
-const pool = mysql.createPool(dbConfig);
+// Pool MySQL (désactivable pour la CI)
+const POOL_DISABLED = String(process.env.DB_DISABLED || '').toLowerCase() === 'true';
+const pool = POOL_DISABLED ? null : mysql.createPool(dbConfig);
 
 /**
  * Teste la connexion à la base de données
@@ -33,13 +36,14 @@ const pool = mysql.createPool(dbConfig);
  */
 async function testConnection() {
   try {
+    if (!pool) return false;
     const connection = await pool.getConnection();
     console.log('✅ Connexion MySQL réussie à la base FailDaily');
     
-    // Test avec une requête simple
-    const [rows] = await connection.execute('SELECT COUNT(*) as count FROM users');
-    console.log(`📊 Base de données FailDaily active - ${rows[0].count} utilisateurs`);
-    
+// Test simple qui ne dépend d'aucune table
+    await connection.query('SELECT 1');
+    console.log('📊 Base de données joignable (SELECT 1)');
+
     connection.release();
     return true;
   } catch (error) {
@@ -56,6 +60,7 @@ async function testConnection() {
  */
 async function executeQuery(query, params = []) {
   try {
+    if (!pool) throw new Error('DB_DISABLED: pool indisponible dans cet environnement');
     const [results] = await pool.execute(query, params);
     return results;
   } catch (error) {
@@ -72,6 +77,7 @@ async function executeQuery(query, params = []) {
  * @returns {Promise<Array>} Résultats des requêtes
  */
 async function executeTransaction(queries) {
+  if (!pool) throw new Error('DB_DISABLED: pool indisponible dans cet environnement');
   const connection = await pool.getConnection();
   
   try {
@@ -105,25 +111,14 @@ async function executeTransaction(queries) {
  */
 async function closePool() {
   try {
-    await pool.end();
+    if (pool) await pool.end();
     console.log('✅ Pool de connexions MySQL fermé');
   } catch (error) {
     console.error('❌ Erreur lors de la fermeture du pool:', error.message);
   }
 }
 
-// Gestion propre de l'arrêt de l'application
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Arrêt de l\'application...');
-  await closePool();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 Arrêt de l\'application...');
-  await closePool();
-  process.exit(0);
-});
+// (Optionnel) Déplace les handlers SIG* dans server.js pour éviter d'ajouter des listeners en tests
 
 module.exports = {
   pool,

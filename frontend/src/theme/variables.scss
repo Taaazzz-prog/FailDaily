@@ -1,5 +1,12 @@
-// Import des polices Google Fonts pour le style "manuscrit"
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Comfortaa:wght@300;400;600&display=swap');
+// Import des polices via Fontsource (locales, plus rapides)
+@import "@fontsource/caveat/400.css";
+@import "@fontsource/caveat/600.css";
+@import "@fontsource/caveat/700.css";
+@import "@fontsource/comfortaa/300.css";
+@import "@fontsource/comfortaa/400.css";
+@import "@fontsource/comfortaa/600.css";
+@import "@fontsource/kalam/400.css";
+@import "@fontsource/kalam/700.css";
 
 :root {
   // ========================================
@@ -70,10 +77,10 @@
   --fail-shadow-medium: 0 4px 15px rgba(0, 0, 0, 0.12);
   --fail-shadow-strong: 0 8px 25px rgba(0, 0, 0, 0.15);
 
-  // Polices
+  // Polices (locales via Fontsource)
   --fail-font-handwriting: 'Caveat', 'Comic Sans MS', cursive;
   --fail-font-comfort: 'Comfortaa', 'Arial', sans-serif;
-  --fail-font-system: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --fail-font-system: 'Comfortaa', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   // Espacements "organiques"
   --fail-spacing-xs: 4px;

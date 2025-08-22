@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install (workspaces via root lockfile)
+        run: npm ci --include=dev
+
+      - name: Lint & test backend
+        run: |
+          npm run -w backend-api lint
+          npm run -w backend-api test -- --runInBand
+
+      - name: Build frontend
+        run: npm run -w frontend build
+
+      - name: Smoke backend
+        env:
+          NODE_ENV: test
+          DB_DISABLED: "true"
+        run: node -e "require('./backend-api/server'); console.log('SERVER_BOOT_OK')"

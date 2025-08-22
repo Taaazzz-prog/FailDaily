@@ -67,12 +67,6 @@ if (process.env.NODE_ENV === 'development') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// Attacher une connexion DB au req pour les contrôleurs qui l'utilisent
-app.use(async (req, res, next) => {
-  req.dbConnection = database.pool; // pool compatible avec executeQuery
-  next();
-});
-
 // Servir les fichiers statiques (uploads)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
