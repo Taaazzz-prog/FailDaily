@@ -31,9 +31,14 @@
     ```
 - Si un secret est nécessaire : mettre/mettre à jour l’`.env.example` correspondant et documenter la variable dans la PR.
 
-## 3) Politique de branches
-- **Ne pas pousser sur `main`**. Toujours créer une branche `test/<tache-courte>` puis ouvrir une **PR** vers `main`.
-- Messages de commit : **Conventional Commits** (ex. `fix(api): align executeQuery signature`).
+## 3) Politique de branches (mode “branche unique”)
+- **Ne jamais pousser sur `main`**.
+- **Toujours pousser sur la même branche unique** : `codex`.
+- Si la branche `codex` n’existe pas, la créer.
+- Ouvrir (ou mettre à jour) **UNE seule PR** : `codex` → `main` (ne pas en ouvrir plusieurs).
+- En cas de nouveaux commits, **mettre à jour la même PR** (pas de nouvelle PR).
+- Messages de commit en **français** et format **Conventional Commits** (ex. `fix(api): corrige l’appel à executeQuery`).
+
 
 ## 4) Exécution & Validation
 ### Backend
