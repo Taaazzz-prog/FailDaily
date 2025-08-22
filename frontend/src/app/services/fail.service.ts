@@ -122,9 +122,9 @@ export class FailService {
         return;
       }
 
-      console.log('FailService: Loading fails from backend...');
-      const fails = await this.mysqlService.getFails();
-      console.log('FailService: Received fails from backend:', fails);
+      console.log('FailService: Loading public fails from backend...');
+      const fails = await this.mysqlService.getPublicFails();
+      console.log('FailService: Received public fails from backend:', fails);
       
       const formattedFails = await Promise.all(
         fails.map(fail => this.formatFailWithAuthor(fail))
@@ -144,7 +144,7 @@ export class FailService {
   }
 
   getFailsByCategory(category: FailCategory): Observable<Fail[]> {
-    return from(this.mysqlService.getFails()).pipe(
+    return from(this.mysqlService.getPublicFails()).pipe(
       switchMap((fails: any[]) => {
         if (!fails || fails.length === 0) {
           return of([]);
