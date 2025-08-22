@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonIcon, IonButton,
     IonAvatar, IonBadge, IonProgressBar,
@@ -22,7 +22,6 @@ import { EventBusService, AppEvents } from '../../services/event-bus.service';
 import { User } from '../../models/user.model';
 import { Fail } from '../../models/fail.model';
 import { Badge } from '../../models/badge.model';
-import { Router } from '@angular/router';
 import { Observable, combineLatest, map, Subscription } from 'rxjs';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 
@@ -40,7 +39,7 @@ interface ProfileStats {
     templateUrl: './profile.page.html',
     styleUrls: ['./profile.page.scss'],
     imports: [
-        CommonModule, RouterModule,
+        CommonModule, RouterLink,
         IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
         IonAvatar, IonBadge, IonProgressBar,
         IonRefresher, IonRefresherContent, IonActionSheet, IonAlert,

@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
   IonRefresher, IonRefresherContent, IonSpinner,
@@ -20,7 +20,7 @@ import { AuthActionDirective } from '../directives/auth-action.directive';
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   imports: [
-    CommonModule,
+    CommonModule, AsyncPipe,
     IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
     IonRefresher, IonRefresherContent, IonSpinner,
     FailCardComponent,

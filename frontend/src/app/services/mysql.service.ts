@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -54,6 +54,7 @@ export interface UserStats {
   providedIn: 'root'
 })
 export class MysqlService {
+  private http = inject(HttpClient);
   private apiUrl = environment.api.baseUrl || 'http://localhost:3000/api';
   
   // States management - équivalent service de base de données
@@ -73,7 +74,7 @@ export class MysqlService {
   
   private logger: any = null;
 
-  constructor(private http: HttpClient) {
+  constructor() {
     console.log('🔧 MysqlService: Initialisation du service MySQL complet');
     this.loadStoredUser();
   }
