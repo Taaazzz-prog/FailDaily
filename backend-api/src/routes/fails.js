@@ -40,6 +40,40 @@ router.post('/', authenticateToken, upload.single('image'), createFail);
 // GET /api/fails - Récupérer les fails (avec pagination et filtres)
 router.get('/', authenticateToken, getFails);
 
+// GET /api/fails/public - Récupérer uniquement les fails publics (sans authentification)
+router.get('/public', optionalAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = parseInt(limit);
+    const offset = (pageNum - 1) * limitNum;
+
+    const { executeQuery } = require('../config/database');
+    const query = `
+      SELECT id, user_id, title, description, category, image_url, is_public,
+             created_at, updated_at
+      FROM fails
+      WHERE is_public = 1
+      ORDER BY created_at DESC
+      LIMIT ? OFFSET ?
+    `;
+
+    const fails = await executeQuery(query, [limitNum, offset]);
+    const processed = fails.map(fail => ({
+      ...fail,
+      is_public: !!fail.is_public
+    }));
+
+    res.json(processed);
+  } catch (error) {
+    console.error('❌ Erreur récupération fails publics:', error);
+    res.status(500).json({
+      success: false,
+      message: "Erreur lors de la récupération des fails publics"
+    });
+  }
+});
+
 // GET /api/fails/:id - Récupérer un fail spécifique
 router.get('/:id', authenticateToken, getFailById);
 
