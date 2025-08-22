@@ -361,7 +361,7 @@ class FailsController {
       const updateValues = [];
 
       allowedFields.forEach(field => {
-        if (updateData.hasOwnProperty(field)) {
+        if (Object.prototype.hasOwnProperty.call(updateData, field)) {
           const dbField = field === 'is_public' ? 'is_public' :
                          field === 'imageUrl' ? 'image_url' : field;
           
@@ -651,139 +651,6 @@ class FailsController {
       res.status(500).json({
         success: false,
         message: 'Erreur lors de la récupération des statistiques',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
-  }
-
-  /**
-   * Mettre à jour un fail
-   */
-  static async updateFail(req, res) {
-    
-    try {
-      const { id } = req.params;
-      const {
-        title,
-        description,
-        category,
-        tags,
-        is_public,
-        imageUrl
-      } = req.body;
-
-      const userId = req.user.id;
-
-      // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFails = await executeQuery(`
-        SELECT id, user_id, title, description 
-        FROM fails 
-        WHERE id = ?
-      `, [id]);
-
-      if (existingFails.length === 0) {
-        return res.status(404).json({
-          success: false,
-          message: 'Fail non trouvé',
-          code: 'FAIL_NOT_FOUND'
-        });
-      }
-
-      const existingFail = existingFails[0];
-
-      if (existingFail.user_id !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Vous ne pouvez modifier que vos propres fails',
-          code: 'ACCESS_DENIED'
-        });
-      }
-
-      // Validation
-      if (title && title.length > 200) {
-        return res.status(400).json({
-          success: false,
-          message: 'Le titre ne peut pas dépasser 200 caractères',
-          code: 'TITLE_TOO_LONG'
-        });
-      }
-
-      if (description && description.length > 2000) {
-        return res.status(400).json({
-          success: false,
-          message: 'La description ne peut pas dépasser 2000 caractères',
-          code: 'DESCRIPTION_TOO_LONG'
-        });
-      }
-
-      // Construire la requête de mise à jour dynamiquement
-      const updateFields = [];
-      const updateValues = [];
-
-      if (title !== undefined) {
-        updateFields.push('title = ?');
-        updateValues.push(title.trim());
-      }
-
-      if (description !== undefined) {
-        updateFields.push('description = ?');
-        updateValues.push(description);
-      }
-
-      if (category !== undefined) {
-        updateFields.push('category = ?');
-        updateValues.push(category);
-      }
-
-      if (tags !== undefined) {
-        updateFields.push('tags = ?');
-        updateValues.push(JSON.stringify(tags));
-      }
-
-      if (is_public !== undefined) {
-        updateFields.push('is_public = ?');
-        updateValues.push(is_public ? 1 : 0);
-      }
-
-      if (imageUrl !== undefined) {
-        updateFields.push('image_url = ?');
-        updateValues.push(imageUrl);
-      }
-
-      if (updateFields.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Aucune donnée à mettre à jour',
-          code: 'NO_UPDATE_DATA'
-        });
-      }
-
-      updateFields.push('updated_at = NOW()');
-      updateValues.push(parseInt(id));
-
-      const updateQuery = `
-        UPDATE fails 
-        SET ${updateFields.join(', ')} 
-        WHERE id = ?
-      `;
-
-      await executeQuery(updateQuery, updateValues);
-
-      // Récupérer le fail mis à jour
-      const updatedFail = await this.getFailById(parseInt(id), userId);
-
-      res.json({
-        success: true,
-        message: 'Fail mis à jour avec succès',
-        data: updatedFail
-      });
-
-    } catch (error) {
-      console.error('❌ Erreur mise à jour fail:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Erreur lors de la mise à jour du fail',
-        code: 'FAIL_UPDATE_ERROR',
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
