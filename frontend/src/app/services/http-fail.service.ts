@@ -33,6 +33,28 @@ export class HttpFailService {
     this.loadFails();
   }
 
+  private mapFail(apiFail: any): Fail {
+    const reactions = typeof apiFail.reactions === 'string'
+      ? JSON.parse(apiFail.reactions)
+      : (apiFail.reactions || { courage: 0, empathy: 0, laugh: 0, support: 0 });
+
+    return {
+      id: apiFail.id,
+      title: apiFail.title,
+      description: apiFail.description,
+      category: apiFail.category,
+      imageUrl: apiFail.image_url || undefined,
+      authorId: apiFail.user_id,
+      authorName: apiFail.display_name,
+      authorAvatar: apiFail.avatar_url,
+      reactions,
+      commentsCount: apiFail.comments_count || 0,
+      isPublic: apiFail.is_public,
+      createdAt: new Date(apiFail.created_at),
+      encouragementMessage: apiFail.encouragement_message
+    };
+  }
+
   private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('faildaily_token');
     return new HttpHeaders({
@@ -82,8 +104,8 @@ export class HttpFailService {
         
         // Recharger les fails
         await this.loadFails();
-        
-        return response.fail;
+
+        return this.mapFail(response.fail);
       } else {
         throw new Error(response.message || 'Erreur lors de la création du fail');
       }
@@ -122,11 +144,11 @@ export class HttpFailService {
       }).toPromise();
 
       if (response && response.fails) {
-        const fails = response.fails;
-        
+        const fails = response.fails.map((f: any) => this.mapFail(f));
+
         // Mettre à jour le BehaviorSubject
         this.failsSubject.next(fails);
-        
+
         console.log(`✅ ${fails.length} fails chargés`);
         return fails;
       } else {
@@ -146,7 +168,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response && response.fail) {
-        return response.fail;
+        return this.mapFail(response.fail);
       } else {
         throw new Error(response.message || 'Fail non trouvé');
       }
@@ -184,11 +206,11 @@ export class HttpFailService {
 
       if (response && response.fail) {
         console.log('✅ Fail mis à jour avec succès');
-        
+
         // Recharger les fails
         await this.loadFails();
-        
-        return response.fail;
+
+        return this.mapFail(response.fail);
       } else {
         throw new Error(response.message || 'Erreur lors de la mise à jour du fail');
       }
@@ -229,7 +251,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => this.mapFail(f));
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails utilisateur');
       }
@@ -246,7 +268,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => this.mapFail(f));
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails publics');
       }
@@ -263,7 +285,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => this.mapFail(f));
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails par catégorie');
       }
@@ -280,7 +302,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response && response.fails) {
-        return response.fails;
+        return response.fails.map((f: any) => this.mapFail(f));
       } else {
         throw new Error(response.message || 'Erreur lors de la recherche de fails');
       }
