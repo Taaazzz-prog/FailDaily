@@ -71,7 +71,7 @@ export const environment = {
    * ==================================
    */
   auth: {
-    tokenKey: 'auth_token',
+    tokenKey: 'faildaily_token',
     userKey: 'current_user',
     expiresIn: '7d', // 7 jours en production
     refreshThreshold: 3600 // Refresh 1 heure avant expiration

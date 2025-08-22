@@ -109,7 +109,7 @@ export class AuthService {
       console.log('  - faildaily_user:', localStorage.getItem('faildaily_user'));
       console.log('  - faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
       console.log('  - faildaily_token:', localStorage.getItem('faildaily_token'));
-      console.log('  - auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - current_user:', localStorage.getItem('current_user'));
       console.log('  - Toutes les clés localStorage:', Object.keys(localStorage));
       
@@ -216,7 +216,7 @@ export class AuthService {
       console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
       console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
 
       try {
@@ -228,7 +228,6 @@ export class AuthService {
           localStorage.removeItem('faildaily_user_cache');
           localStorage.removeItem('faildaily_user');
           localStorage.removeItem('faildaily_token');
-          localStorage.removeItem('auth_token');
           localStorage.removeItem('current_user');
           this.currentUserSubject.next(null);
           return;
@@ -783,7 +782,7 @@ export class AuthService {
       'faildaily_token',
       'faildaily_user',
       'faildaily_user_cache',
-      'auth_token',
+      'faildaily_token',
       'current_user',
       'user_token',
       'user_data',
@@ -836,7 +835,7 @@ export class AuthService {
       console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
       console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
 
       // Logger la déconnexion avant de nettoyer les données utilisateur
@@ -864,7 +863,7 @@ export class AuthService {
       console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
       console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
       
       console.log('🔐 AuthService: Utilisateur déconnecté - État final:', this.isAuthenticated());

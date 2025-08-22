@@ -18,7 +18,7 @@ export class AdminMysqlService {
     }
 
     private getAuthHeaders(): HttpHeaders {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('faildaily_token');
         return new HttpHeaders({
             'Content-Type': 'application/json',
             'Authorization': token ? `Bearer ${token}` : ''

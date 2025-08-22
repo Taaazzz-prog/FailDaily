@@ -212,7 +212,7 @@ export class ApiTestComponent implements OnInit {
 
   ngOnInit() {
     console.log('🧪 ApiTestComponent: Composant de test API initialisé');
-    this.authToken = localStorage.getItem('auth_token') || '';
+    this.authToken = localStorage.getItem('faildaily_token') || '';
     this.testResults = [];
   }
 
@@ -285,7 +285,7 @@ export class ApiTestComponent implements OnInit {
       
       if (response.token) {
         this.authToken = response.token;
-        localStorage.setItem('auth_token', this.authToken);
+        localStorage.setItem('faildaily_token', this.authToken);
       }
 
       await this.addTestResult('/auth/login', 'POST', 'success', response, undefined, duration);

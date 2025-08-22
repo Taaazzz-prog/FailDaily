@@ -114,7 +114,6 @@ export class MysqlService {
     localStorage.removeItem('faildaily_user');
     localStorage.removeItem('faildaily_user_cache');
     // Nettoyage des anciennes clés pour compatibilité
-    localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
     this.currentUser.next(null);
     console.log('🔐 MysqlService: Toutes les données d\'authentification nettoyées');

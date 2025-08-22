@@ -40,7 +40,7 @@ export class HttpAuthService {
   }
 
   private loadStoredUser(): void {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     const userData = localStorage.getItem('current_user');
     
     if (token && userData) {
@@ -56,19 +56,19 @@ export class HttpAuthService {
   }
 
   private saveAuthData(token: string, user: User): void {
-    localStorage.setItem('auth_token', token);
+    localStorage.setItem('faildaily_token', token);
     localStorage.setItem('current_user', JSON.stringify(user));
     this.currentUserSubject.next(user);
   }
 
   private clearAuthData(): void {
-    localStorage.removeItem('auth_token');
+    localStorage.removeItem('faildaily_token');
     localStorage.removeItem('current_user');
     this.currentUserSubject.next(null);
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
@@ -173,13 +173,13 @@ export class HttpAuthService {
   }
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     const user = this.currentUserSubject.value;
     return !!(token && user);
   }
 
   getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');
+    return localStorage.getItem('faildaily_token');
   }
 
   async refreshUser(): Promise<User | null> {

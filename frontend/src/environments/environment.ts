@@ -37,7 +37,7 @@ export const environment = {
 
   // Configuration authentification JWT
   auth: {
-    tokenKey: 'auth_token',
+    tokenKey: 'faildaily_token',
     userKey: 'current_user',
     expiresIn: '24h',
     refreshThreshold: 300 // Refresh 5 minutes avant expiration
