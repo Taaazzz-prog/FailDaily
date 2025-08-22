@@ -10,27 +10,65 @@ Tu es ChatGPT-5 Codex, expert en développement fullstack. Tu dois corriger les 
 - **Backend API** : Démarre correctement (localhost:3000), MySQL connecté, 1 utilisateur en base
 - **Infrastructure** : Dependencies npm à jour, lockfiles synchronisés, git repository clean
 - **Configuration** : Jest/ESLint configurés, .npmrc optimisé
+- **API Publique** : Route `/api/fails/public` CORRIGÉE - tests passent ✅
+- **Build Frontend** : angular.json CORRIGÉ - propriété inlineFonts supprimée ✅
 
 ### ❌ PROBLÈMES CRITIQUES À RÉSOUDRE
 
-1. **Frontend Build Broken** 🚨
-   ```
-   Error: Schema validation failed with the following errors:
-   Data path "" must NOT have additional properties(inlineFonts).
-   ```
-   - **Action requise** : Corriger `angular.json` en supprimant la propriété `inlineFonts` invalide
-   - **Validation** : `npm run build` doit réussir
-
-2. **Test d'API Public Échoue** 🚨
-   ```
-   GET /api/fails/public → 401 (attendu: 200)
-   ```
-   - **Action requise** : Corriger l'authentification pour les endpoints publics
-   - **Validation** : `npm test` doit passer
-
-3. **ESLint: 144 Problèmes** ⚠️
+1. **ESLint: 144 Problèmes** ⚠️
    - Erreurs critiques : `no-dupe-class-members`, `no-prototype-builtins`
    - **Action requise** : Corriger au minimum les erreurs (pas forcément warnings)
+
+2. **Intégration Frontend-Backend** 🚨
+   - Frontend doit être configuré pour communiquer avec l'API backend
+   - Routes Angular/Ionic à synchroniser avec endpoints API
+   - **Action requise** : Vérifier/corriger les services Angular et la configuration API
+
+## INFORMATIONS CRITIQUES DÉCOUVERTES
+
+### 🔐 LOGIQUE D'ANONYMAT (`is_public`)
+**IMPORTANT** : Le champ `is_public` ne concerne PAS l'accès public/privé mais l'ANONYMAT des utilisateurs :
+
+- **`is_public = 1`** → Fail affiché **ANONYMEMENT** (identité auteur cachée)
+- **`is_public = 0`** → Fail affiché **AVEC IDENTITÉ** de l'auteur visible
+
+**Conséquences pour l'API :**
+- Route `/api/fails/public` = récupère les fails anonymes (nécessite authentification)
+- Tous les utilisateurs doivent être connectés pour accéder aux contenus
+- Pas d'accès public sans authentification dans cette application
+
+### 📊 STRUCTURE BASE DE DONNÉES
+Localisation : `backend-api/migrations/faildaily.sql`
+
+Table `fails` :
+```sql
+CREATE TABLE `fails` (
+  `id` char(36) NOT NULL,
+  `user_id` char(36) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `category` varchar(100) NOT NULL,
+  `image_url` text,
+  `is_public` tinyint(1) DEFAULT '1',  -- ANONYMAT, pas accès public
+  `reactions` longtext COMMENT 'JSON data',
+  `comments_count` int DEFAULT '0',
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### 🔧 CORRECTIONS DÉJÀ APPLIQUÉES
+
+1. **Route `/api/fails/public` corrigée** ✅
+   - Erreur SQL `ER_WRONG_ARGUMENTS` avec `LIMIT ?` résolue
+   - Solution : interpolation directe `LIMIT ${limitNum} OFFSET ${offset}`
+   - Authentification requise (`authenticateToken`)
+   - Anonymisation : `user_id` omis de la réponse
+
+2. **Test `fails.public.test.js` mis à jour** ✅
+   - Authentification automatique ajoutée
+   - Vérification de l'anonymat (pas de `user_id` exposé)
+   - Test passe maintenant
 
 ## INSTRUCTIONS SPÉCIFIQUES
 
@@ -44,29 +82,30 @@ Tu es ChatGPT-5 Codex, expert en développement fullstack. Tu dois corriger les 
 
 ### PRIORITÉS D'EXÉCUTION
 
-1. **IMMÉDIAT** - Corriger le build frontend
-   - Examiner `frontend/angular.json`
-   - Supprimer/corriger `inlineFonts`
-   - Tester : `cd frontend && npm run build`
-
-2. **CRITIQUE** - Fixer les tests publics
-   - Examiner `backend-api/tests/fails.public.test.js`
-   - Vérifier la route `/api/fails/public` 
-   - S'assurer qu'elle ne nécessite pas d'authentification
-   - Tester : `cd backend-api && npm test`
-
-3. **IMPORTANT** - Nettoyer ESLint
+1. **IMPORTANT** - Nettoyer ESLint
    - Se concentrer sur les erreurs (pas warnings)
    - Corriger `no-dupe-class-members` dans `failsController.js`
    - Tester : `cd backend-api && npm run lint`
+
+2. **CRITIQUE** - Intégration Frontend-Backend
+   - Vérifier les services Angular dans `frontend/src/app/`
+   - Configurer l'URL de base API (probablement `http://localhost:3000`)
+   - Mapper correctement `is_public` (backend) ↔ `isPublic` (frontend)
+   - Gérer l'authentification dans les services Angular
+   - Tester : Communication réelle entre frontend et backend
+
+3. **FONCTIONNEL** - Validation complète
+   - Build frontend + backend ensemble
+   - Test de bout en bout (création compte → login → récupération fails)
 
 ### VALIDATION FINALE OBLIGATOIRE
 
 Avant tout commit, valider que :
 - [ ] `cd frontend && npm run build` → ✅ Success
-- [ ] `cd backend-api && npm test` → ✅ All tests pass
+- [ ] `cd backend-api && npm test` → ✅ All tests pass  
 - [ ] `cd backend-api && npm run lint` → ✅ No errors (warnings OK)
 - [ ] Backend démarre : `node server.js` → ✅ MySQL connected
+- [ ] Frontend peut communiquer avec backend ✅
 - [ ] Respect du contrat API (snake_case ↔ camelCase)
 
 ### COMMANDES DE TRAVAIL
@@ -79,41 +118,77 @@ cd "d:\Web API\FailDaily"
 cd frontend
 npm ci
 npm run build  # DOIT réussir après correction
+npm start      # Tester l'interface
 
 # Backend  
 cd ../backend-api
 npm ci
-npm test       # DOIT passer après correction
+npm test       # DOIT passer (déjà OK)
 npm run lint   # DOIT être clean (erreurs)
-node server.js # DOIT démarrer
+node server.js # DOIT démarrer (déjà OK)
 
-# Docker (si modifié)
-cd ../docker
-docker compose up -d --build
+# Test intégration
+# Frontend (http://localhost:8100) + Backend (http://localhost:3000)
 ```
 
 ### FICHIERS CLÉS À EXAMINER
 
-- `frontend/angular.json` - Configuration build Angular
-- `backend-api/tests/fails.public.test.js` - Test qui échoue
-- `backend-api/src/controllers/failsController.js` - Erreurs ESLint
-- `backend-api/src/routes/` - Routes publiques vs protégées
+- `backend-api/src/controllers/failsController.js` - Erreurs ESLint à corriger
+- `frontend/src/app/services/` - Services API Angular
+- `frontend/src/environments/` - Configuration URL backend
+- `frontend/src/app/` - Composants Angular pour fails
+- `backend-api/migrations/faildaily.sql` - Structure BDD de référence
 
-### STYLE & BONNES PRATIQUES
+### ENDPOINTS API À INTÉGRER CÔTÉ FRONTEND
 
-- **Préserver** : Commentaires français existants
-- **Respecter** : Architecture existante (pas de refactoring majeur)
-- **Documenter** : Changements significatifs dans le commit message
-- **Tester** : Ajouter un smoke test pour chaque bug corrigé
+```typescript
+// Configuration base dans environment.ts
+export const environment = {
+  apiUrl: 'http://localhost:3000/api'
+};
+
+// Services Angular à vérifier/créer
+GET /api/auth/login           // Authentification
+GET /api/auth/register        // Inscription  
+GET /api/fails               // Tous les fails (auth requise)
+GET /api/fails/public        // Fails anonymes (auth requise)
+POST /api/fails              // Créer fail
+PUT /api/fails/:id           // Modifier fail
+DELETE /api/fails/:id        // Supprimer fail
+```
+
+### MAPPING DONNÉES CRITIQUE
+
+```typescript
+// Backend SQL (snake_case)
+{
+  id: "uuid",
+  title: "string", 
+  description: "string",
+  category: "string",
+  is_public: true,  // ANONYMAT
+  created_at: "timestamp"
+}
+
+// Frontend Angular (camelCase)  
+{
+  id: "uuid",
+  title: "string",
+  description: "string", 
+  category: "string",
+  isPublic: true,   // ANONYMAT
+  createdAt: "timestamp"
+}
+```
 
 ## RÉSULTAT ATTENDU
 
 Un projet FailDaily **entièrement fonctionnel** avec :
-- Build frontend qui passe ✅
-- Tests backend qui passent ✅  
 - ESLint clean (erreurs corrigées) ✅
-- API publique accessible sans auth ✅
-- Contrat frontend ↔ backend respecté ✅
+- Frontend-Backend intégration complète ✅
+- Authentification fonctionnelle ✅
+- Gestion anonymat des fails ✅
+- Build & tests qui passent ✅
 
 ## COMMANDES DE VÉRIFICATION FINALE
 
@@ -121,13 +196,18 @@ Un projet FailDaily **entièrement fonctionnel** avec :
 cd "d:\Web API\FailDaily"
 
 # Test complet
-cd frontend && npm run build && echo "✅ Frontend build OK"
+cd backend-api && npm run lint && echo "✅ Backend lint OK"
+cd ../frontend && npm run build && echo "✅ Frontend build OK"
 cd ../backend-api && npm test && echo "✅ Backend tests OK"  
-cd ../backend-api && npm run lint && echo "✅ Lint clean"
 cd ../backend-api && timeout 5 node server.js && echo "✅ Server starts"
 
+# Test intégration (manuel)
+cd ../frontend && npm start &  # Port 8100
+cd ../backend-api && node server.js &  # Port 3000
+# Tester dans navigateur : login + récupération fails
+
 # Si tout passe → commit et push
-git add . && git commit -m "fix: corrige build frontend et tests API publique" && git push origin main
+git add . && git commit -m "fix: intégration frontend-backend et nettoyage ESLint" && git push origin main
 ```
 
-**Commence par le build frontend (priorité critique), puis les tests, puis ESLint. Respecte scrupuleusement AGENTS.md !**
+**Commence par ESLint (critique), puis l'intégration frontend-backend. L'anonymat est maintenant bien compris et implémenté !**
