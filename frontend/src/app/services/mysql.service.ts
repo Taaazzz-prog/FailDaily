@@ -549,28 +549,31 @@ export class MysqlService {
     }
   }
 
-  async getFails(limit: number = 20, offset: number = 0): Promise<any[]> {
+  async getPublicFails(limit: number = 20, offset: number = 0): Promise<any[]> {
     try {
       const params = new URLSearchParams();
       params.set('limit', limit.toString());
       params.set('offset', offset.toString());
 
-      const response: any = await this.http.get(`${this.apiUrl}/fails?${params.toString()}`, {
+      const response: any = await this.http.get(`${this.apiUrl}/fails/public?${params.toString()}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      // ✅ FIX: Le backend retourne directement { fails: [...], pagination: {...} }
-      // Pas de propriété 'success', donc on vérifie directement 'fails'
       if (response && response.fails) {
-        console.log('✅ MysqlService: Fails récupérés avec succès:', response.fails.length, 'fails');
+        console.log('✅ MysqlService: Public fails récupérés avec succès:', response.fails.length, 'fails');
         return response.fails;
       } else {
         throw new Error('Réponse invalide du serveur');
       }
     } catch (error: any) {
-      console.error('❌ Erreur récupération fails:', error);
+      console.error('❌ Erreur récupération fails publics:', error);
       throw error;
     }
+  }
+
+  // Alias pour compatibilité avec l'ancien nom de méthode
+  async getFails(limit: number = 20, offset: number = 0): Promise<any[]> {
+    return this.getPublicFails(limit, offset);
   }
 
   async getFailById(failId: string): Promise<any | null> {
