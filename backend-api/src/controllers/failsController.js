@@ -1,6 +1,30 @@
 const { executeQuery, executeTransaction } = require('../config/database');
 
 /**
+ * Map a raw database fail row to the API contract
+ */
+function mapFailRow(fail) {
+  return {
+    id: fail.id,
+    title: fail.title,
+    description: fail.description,
+    category: fail.category,
+    imageUrl: fail.image_url,
+    authorId: fail.user_id,
+    authorName: fail.display_name,
+    authorAvatar: fail.avatar_url,
+    reactions: fail.reactions ? JSON.parse(fail.reactions) : {},
+    commentsCount: fail.comments_count,
+    is_public: !!fail.is_public,
+    createdAt: new Date(fail.created_at).toISOString(),
+    updatedAt: new Date(fail.updated_at).toISOString(),
+    tags: fail.tags ? JSON.parse(fail.tags) : [],
+    location: fail.location ? JSON.parse(fail.location) : null,
+    userReaction: fail.user_reaction
+  };
+}
+
+/**
  * Contrôleur pour la gestion des fails
  */
 class FailsController {
@@ -68,6 +92,7 @@ class FailsController {
 
       // Récupérer le fail créé avec les informations utilisateur
       const createdFail = await this.getFailById(failId, userId);
+      const createdFailMapped = mapFailRow(createdFail);
 
       // Mettre à jour les statistiques utilisateur
       await this.updateUserStats(userId, 'fail_created');
@@ -80,7 +105,7 @@ class FailsController {
       res.status(201).json({
         success: true,
         message: 'Fail créé avec succès',
-        fail: createdFail
+        fail: createdFailMapped
       });
 
     } catch (error) {
@@ -178,14 +203,8 @@ class FailsController {
       const countResult = await executeQuery(countQuery, countParams);
       const total = countResult[0].total;
 
-      // Traitement des données
-      const processedFails = fails.map(fail => ({
-        ...fail,
-        tags: JSON.parse(fail.tags || '[]'),
-        location: fail.location ? JSON.parse(fail.location) : null,
-        created_at: new Date(fail.created_at).toISOString(),
-        updated_at: new Date(fail.updated_at).toISOString()
-      }));
+      // Traitement des données selon le contrat API
+      const processedFails = fails.map(mapFailRow);
 
       res.json({
         success: true,
@@ -219,19 +238,16 @@ class FailsController {
       const offset = (pageNum - 1) * limitNum;
 
       const query = `
-        SELECT id, user_id, title, description, category, image_url, is_public,
-               created_at, updated_at
-        FROM fails
-        WHERE is_public = 1
-        ORDER BY created_at DESC
+        SELECT f.*, u.display_name, u.avatar_url
+        FROM fails f
+        JOIN users u ON f.user_id = u.id
+        WHERE f.is_public = 1
+        ORDER BY f.created_at DESC
         LIMIT ? OFFSET ?
       `;
 
       const fails = await executeQuery(query, [limitNum, offset]);
-      const processed = fails.map(fail => ({
-        ...fail,
-        is_public: !!fail.is_public
-      }));
+      const processed = fails.map(mapFailRow);
 
       res.json(processed);
     } catch (error) {
@@ -313,9 +329,11 @@ class FailsController {
         await this.incrementViewCount(parseInt(id), userId);
       }
 
+      const mappedFail = mapFailRow(fail);
+
       res.json({
         success: true,
-        fail
+        fail: mappedFail
       });
 
     } catch (error) {
@@ -395,13 +413,14 @@ class FailsController {
 
       // Récupérer le fail mis à jour
       const updatedFail = await this.getFailById(parseInt(id), userId);
+      const mappedFail = mapFailRow(updatedFail);
 
       console.log(`✅ Fail mis à jour: ${id}`);
 
       res.json({
         success: true,
         message: 'Fail mis à jour avec succès',
-        fail: updatedFail
+        fail: mappedFail
       });
 
     } catch (error) {
