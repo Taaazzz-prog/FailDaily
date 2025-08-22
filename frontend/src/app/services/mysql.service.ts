@@ -523,7 +523,7 @@ export class MysqlService {
         description: fail.description.trim(),
         category: fail.category,
         image_url: imageUrl,
-        is_public: fail.is_public !== false
+        is_public: !!fail.is_public
       };
 
       const response: any = await this.http.post(`${this.apiUrl}/fails`, failToCreate, {

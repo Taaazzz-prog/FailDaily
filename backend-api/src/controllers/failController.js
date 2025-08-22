@@ -111,14 +111,9 @@ const getFails = async (req, res) => {
     const params = [];
 
     // Filtres
-    if (!currentUserId) {
-      query += ' AND f.is_public = 1';
-    } else if (filterUserId) {
+    if (filterUserId) {
       query += ' AND f.user_id = ?';
       params.push(filterUserId);
-    } else {
-      query += ' AND (f.is_public = 1 OR f.user_id = ?)';
-      params.push(currentUserId);
     }
 
     if (category) {
@@ -126,7 +121,7 @@ const getFails = async (req, res) => {
       params.push(category);
     }
 
-  query += ' ORDER BY f.created_at DESC';
+    query += ' ORDER BY f.created_at DESC';
 
     // Pagination
     const offset = (pageNum - 1) * limitNum;
@@ -142,14 +137,9 @@ const getFails = async (req, res) => {
     `;
     const countParams = [];
 
-    if (!currentUserId) {
-      countQuery += ' AND f.is_public = 1';
-    } else if (filterUserId) {
+    if (filterUserId) {
       countQuery += ' AND f.user_id = ?';
       countParams.push(filterUserId);
-    } else {
-      countQuery += ' AND (f.is_public = 1 OR f.user_id = ?)';
-      countParams.push(currentUserId);
     }
 
     if (category) {
@@ -210,14 +200,6 @@ const getFailById = async (req, res) => {
     }
 
     const fail = fails[0];
-
-    // Vérifier les permissions de lecture
-    if (!fail.is_public && (!currentUserId || fail.user_id !== currentUserId)) {
-      return res.status(403).json({
-        error: 'Accès non autorisé',
-        code: 'ACCESS_DENIED'
-      });
-    }
 
     res.json({
       fail: {
