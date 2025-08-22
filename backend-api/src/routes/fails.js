@@ -5,6 +5,7 @@ const path = require('path');
 const { createFail, getFails, getFailById, updateFail, deleteFail } = require('../controllers/failController');
 const CommentsController = require('../controllers/commentsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { executeQuery } = require('../config/database');
 
 // Configuration multer pour l'upload d'images
 const storage = multer.diskStorage({
@@ -40,29 +41,46 @@ router.post('/', authenticateToken, upload.single('image'), createFail);
 // GET /api/fails - Récupérer les fails (avec pagination et filtres)
 router.get('/', authenticateToken, getFails);
 
-// GET /api/fails/public - Récupérer uniquement les fails publics (sans authentification)
-router.get('/public', optionalAuth, async (req, res) => {
+// GET /api/fails/public - Récupérer uniquement les fails anonymes (is_public = 1)
+router.get('/public', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
+    
+    // Validation des paramètres
+    if (isNaN(pageNum) || pageNum <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Paramètre page invalide"
+      });
+    }
+    
+    if (isNaN(limitNum) || limitNum <= 0 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: "Paramètre limit invalide (1-100)"
+      });
+    }
+    
+    // Construire la requête avec interpolation directe pour éviter les problèmes de liaison
+    // is_public = 1 signifie "affiché anonymement" (pas d'identité auteur visible)
+    const query = `SELECT id, user_id, title, description, category, image_url, is_public, created_at, updated_at FROM fails WHERE is_public = 1 ORDER BY created_at DESC LIMIT ${limitNum} OFFSET ${offset}`;
 
-    const { executeQuery } = require('../config/database');
-    const query = `
-      SELECT id, user_id, title, description, category, image_url, is_public,
-             created_at, updated_at
-      FROM fails
-      WHERE is_public = 1
-      ORDER BY created_at DESC
-      LIMIT ? OFFSET ?
-    `;
-
-    const fails = await executeQuery(query, [limitNum, offset]);
-    const processed = fails.map(fail => ({
-      ...fail,
-      is_public: !!fail.is_public
-    }));
+    const fails = await executeQuery(query, []);
+    
+    // Traiter le résultat - anonymiser les données sensibles pour les fails publics
+    const processed = Array.isArray(fails) ? fails.map(fail => ({
+      id: fail.id,
+      title: fail.title,
+      description: fail.description,
+      category: fail.category,
+      image_url: fail.image_url,
+      is_public: !!fail.is_public,
+      created_at: fail.created_at,
+      // user_id et updated_at omis pour préserver l'anonymat
+    })) : [];
 
     res.json(processed);
   } catch (error) {
