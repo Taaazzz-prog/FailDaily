@@ -32,8 +32,9 @@
 - Si un secret est nécessaire : mettre/mettre à jour l’`.env.example` correspondant et documenter la variable dans la PR.
 
 ## 3) Politique de branches (mode “branche unique”)
-- Travaille uniquement sur la branche `main`. 
-- Pousse toutes tes modifications sur `main`. 
+- Travaille uniquement sur la branche `main`.
+- Pousse directement sur `main`.
+- N’ouvre pas de Pull Request.
 - Messages de commit en **français** et format **Conventional Commits** (ex. `fix(api): corrige l’appel à executeQuery`).
 
 
