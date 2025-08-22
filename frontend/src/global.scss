@@ -42,8 +42,9 @@
  * Styles globaux pour maintenir la cohérence visuelle
  */
 
-// Import des polices personnalisées
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Comfortaa:wght@300;400;600&display=swap');
+// Import des polices Inter via Fontsource
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/600.css";
 
 // Background global cohérent pour toutes les pages
 ion-content {
