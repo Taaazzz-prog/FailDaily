@@ -37,6 +37,7 @@
     "@capacitor/preferences": "^7.0.2",
     "@capacitor/push-notifications": "^7.0.2",
     "@capacitor/status-bar": "7.0.2",
+    "@fontsource/inter": "^5.2.6",
     "@ionic/angular": "^8.0.0",
     "ionicons": "^7.4.0",
     "lodash": "^4.17.21",
