@@ -32,11 +32,8 @@
 - Si un secret est nécessaire : mettre/mettre à jour l’`.env.example` correspondant et documenter la variable dans la PR.
 
 ## 3) Politique de branches (mode “branche unique”)
-- **Ne jamais pousser sur `main`**.
-- **Toujours pousser sur la même branche unique** : `codex`.
-- Si la branche `codex` n’existe pas, la créer.
-- Ouvrir (ou mettre à jour) **UNE seule PR** : `codex` → `main` (ne pas en ouvrir plusieurs).
-- En cas de nouveaux commits, **mettre à jour la même PR** (pas de nouvelle PR).
+- Travaille uniquement sur la branche `main`. 
+- Pousse toutes tes modifications sur `main`. 
 - Messages de commit en **français** et format **Conventional Commits** (ex. `fix(api): corrige l’appel à executeQuery`).
 
 
@@ -117,5 +114,4 @@
 - Opérations DELETE volumineuses MySQL : préférer batching / indexation ; attention aux locks.
 - Frontend `.env` : si utilisé, s’assurer de l’injection au **build**.
 
-## 15) Politique branche par défaut
-- Ne **pas** pousser sur `main`. Toujours `test/<tâche>` + PR vers `main` (protégé).
+
