@@ -163,10 +163,13 @@ frontend/src/app/
 - DB : `user_id` → Frontend : `userId`
 
 **Note importante sur `is_public` :**
-- `is_public = true` : Le fail peut être affiché de manière **anonyme** (sans nom d'auteur) pour les utilisateurs connectés
-- `is_public = false` : Le fail est **privé** et seul l'auteur peut le voir
+- **Base de données** : `tinyint(1)` avec valeurs `0` (privé) et `1` (public/anonyme)
+- **Backend API** : Utilise `0`/`1` dans les requêtes SQL, convertit vers `boolean` avec `!!fail.is_public`
+- **Frontend** : Reçoit et manipule des `boolean` (`true`/`false`)
+- `is_public = true/1` : Le fail peut être affiché de manière **anonyme** (sans nom d'auteur) pour les utilisateurs connectés
+- `is_public = false/0` : Le fail est **privé** et seul l'auteur peut le voir
 - **Tous les utilisateurs doivent être connectés** pour voir les fails, même ceux marqués `is_public = true`
-- L'endpoint `/api/fails/public` retourne uniquement les fails avec `is_public = true` mais **nécessite toujours une authentification** 
+- L'endpoint `/api/fails/public` retourne uniquement les fails avec `is_public = 1` mais **nécessite toujours une authentification** 
 
 **Structures JSON de référence :**
 
@@ -305,7 +308,7 @@ Pour tester l'application en live :
 
 ## 16) Pièges connus
 - Tests vides : ne pas conclure "OK" si `npm test` ne teste rien ; ajouter un smoke test.
-- **`is_public` : NE PAS confondre avec "public sans authentification"** - même les fails `is_public = true` nécessitent une connexion utilisateur. `is_public` contrôle uniquement l'**anonymisation** de l'auteur.
+- **`is_public` : Attention aux types !** - Base de données utilise `0`/`1` (tinyint), backend convertit vers `boolean`, frontend manipule `true`/`false`. NE PAS confondre avec "public sans authentification" - même les fails `is_public = true/1` nécessitent une connexion utilisateur.
 - `is_public` vs `isPublic` : garder la cohérence (ou mapper clairement).
 - Opérations DELETE volumineuses MySQL : préférer batching / indexation ; attention aux locks.
 - Frontend `.env` : si utilisé, s'assurer de l'injection au **build**.
