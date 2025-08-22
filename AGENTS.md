@@ -160,7 +160,13 @@ frontend/src/app/
 **Exemples critiques :**
 - DB : `is_public` → Frontend : `is_public` (gardé en snake_case pour cohérence API)
 - DB : `display_name` → Frontend : `displayName` (avec mapping si nécessaire)
-- DB : `user_id` → Frontend : `userId` 
+- DB : `user_id` → Frontend : `userId`
+
+**Note importante sur `is_public` :**
+- `is_public = true` : Le fail peut être affiché de manière **anonyme** (sans nom d'auteur) pour les utilisateurs connectés
+- `is_public = false` : Le fail est **privé** et seul l'auteur peut le voir
+- **Tous les utilisateurs doivent être connectés** pour voir les fails, même ceux marqués `is_public = true`
+- L'endpoint `/api/fails/public` retourne uniquement les fails avec `is_public = true` mais **nécessite toujours une authentification** 
 
 **Structures JSON de référence :**
 
@@ -206,7 +212,10 @@ frontend/src/app/
 ### Endpoints principaux
 - **Auth** : `POST /api/auth/login`, `GET /api/auth/verify`, `POST /api/auth/logout`
 - **Registration** : `POST /api/registration/register` (processus complet avec vérification d'âge)
-- **Fails** : `GET /api/fails`, `POST /api/fails`, `GET /api/fails/public`
+- **Fails** : 
+  - `GET /api/fails` (tous les fails de l'utilisateur connecté)
+  - `POST /api/fails` (créer un nouveau fail)
+  - `GET /api/fails/public` (fails anonymes avec `is_public = true`, **authentification requise**)
 - **Reactions** : `POST /api/reactions`, `DELETE /api/reactions/:id`
 - **Comments** : `GET /api/comments/:failId`, `POST /api/comments`
 
@@ -296,6 +305,7 @@ Pour tester l'application en live :
 
 ## 16) Pièges connus
 - Tests vides : ne pas conclure "OK" si `npm test` ne teste rien ; ajouter un smoke test.
+- **`is_public` : NE PAS confondre avec "public sans authentification"** - même les fails `is_public = true` nécessitent une connexion utilisateur. `is_public` contrôle uniquement l'**anonymisation** de l'auteur.
 - `is_public` vs `isPublic` : garder la cohérence (ou mapper clairement).
 - Opérations DELETE volumineuses MySQL : préférer batching / indexation ; attention aux locks.
 - Frontend `.env` : si utilisé, s'assurer de l'injection au **build**.
