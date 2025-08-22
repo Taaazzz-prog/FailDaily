@@ -169,7 +169,7 @@ export class FailService {
     let authorName = 'Utilisateur anonyme';
     let authorAvatar = 'assets/profil/anonymous.png'; // Avatar par défaut pour anonyme
 
-    if (failData.is_public) {
+    if (!failData.is_public) {
       try {
         // Récupérer le profil de l'utilisateur pour avoir son vrai nom et avatar
         const profile = await this.mysqlService.getProfile(failData.user_id);
@@ -187,7 +187,7 @@ export class FailService {
         authorAvatar = 'assets/profil/base.png'; // Avatar par défaut
       }
     } else {
-      // ✅ FIX: Si pas public mais c'est notre propre fail, afficher notre nom
+      // ✅ Si le fail est anonyme mais appartient à l'utilisateur courant, afficher son nom
       const currentUser = await this.mysqlService.getCurrentUser();
       if (currentUser && failData.user_id === currentUser.id) {
         authorName = currentUser.displayName;
