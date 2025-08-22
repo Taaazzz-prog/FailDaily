@@ -14,7 +14,6 @@ export interface CreateFailData {
 }
 
 export interface FailsResponse {
-  success: boolean;
   fails: Fail[];
   total: number;
   page: number;
@@ -35,7 +34,7 @@ export class HttpFailService {
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
@@ -43,7 +42,7 @@ export class HttpFailService {
   }
 
   private getMultipartHeaders(): HttpHeaders {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('faildaily_token');
     return new HttpHeaders({
       'Authorization': token ? `Bearer ${token}` : ''
       // Pas de Content-Type pour multipart, le navigateur le gère automatiquement
@@ -78,8 +77,7 @@ export class HttpFailService {
       const response: any = await this.http.post(`${this.apiUrl}/fails`, failToCreate, {
         headers: this.getAuthHeaders()
       }).toPromise();
-
-      if (response.success && response.fail) {
+      if (response && response.fail) {
         console.log('✅ Fail créé avec succès:', response.fail.id);
         
         // Recharger les fails
@@ -104,8 +102,8 @@ export class HttpFailService {
         headers: this.getMultipartHeaders()
       }).toPromise();
 
-      if (response.success && response.url) {
-        return response.url;
+      if (response.success && response.data?.imageUrl) {
+        return response.data.imageUrl;
       } else {
         throw new Error(response.message || 'Erreur lors de l\'upload de l\'image');
       }
@@ -123,7 +121,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fails) {
+      if (response && response.fails) {
         const fails = response.fails;
         
         // Mettre à jour le BehaviorSubject
@@ -147,7 +145,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fail) {
+      if (response && response.fail) {
         return response.fail;
       } else {
         throw new Error(response.message || 'Fail non trouvé');
@@ -184,7 +182,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fail) {
+      if (response && response.fail) {
         console.log('✅ Fail mis à jour avec succès');
         
         // Recharger les fails
@@ -208,7 +206,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success) {
+      if (response && response.message) {
         console.log('✅ Fail supprimé avec succès');
         
         // Recharger les fails
@@ -230,7 +228,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fails) {
+      if (response && response.fails) {
         return response.fails;
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails utilisateur');
@@ -247,7 +245,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fails) {
+      if (response && response.fails) {
         return response.fails;
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails publics');
@@ -264,7 +262,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fails) {
+      if (response && response.fails) {
         return response.fails;
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails par catégorie');
@@ -281,7 +279,7 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.fails) {
+      if (response && response.fails) {
         return response.fails;
       } else {
         throw new Error(response.message || 'Erreur lors de la recherche de fails');
@@ -297,7 +295,7 @@ export class HttpFailService {
       console.log('❤️ Ajout d\'un cœur de courage:', failId);
 
       const response: any = await this.http.post(`${this.apiUrl}/fails/${failId}/reactions`, {
-        type: 'courage_heart'
+        reactionType: 'courage'
       }, {
         headers: this.getAuthHeaders()
       }).toPromise();
@@ -322,7 +320,7 @@ export class HttpFailService {
     try {
       console.log('💔 Suppression d\'un cœur de courage:', failId);
 
-      const response: any = await this.http.delete(`${this.apiUrl}/fails/${failId}/reactions/courage_heart`, {
+      const response: any = await this.http.delete(`${this.apiUrl}/fails/${failId}/reactions`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -348,8 +346,8 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.reactions) {
-        return response.reactions;
+      if (response.success && response.data?.reactions) {
+        return response.data.reactions;
       } else {
         return [];
       }
