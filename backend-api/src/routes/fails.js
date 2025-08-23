@@ -41,7 +41,7 @@ router.post('/', authenticateToken, upload.single('image'), createFail);
 // GET /api/fails - Récupérer les fails (avec pagination et filtres)
 router.get('/', authenticateToken, getFails);
 
-// GET /api/fails/public - Récupérer uniquement les fails anonymes (is_public = 1)
+// GET /api/fails/public - Récupérer tous les fails avec anonymisation conditionnelle
 router.get('/public', authenticateToken, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -64,30 +64,59 @@ router.get('/public', authenticateToken, async (req, res) => {
       });
     }
     
-    // Construire la requête avec interpolation directe pour éviter les problèmes de liaison
-    // is_public = 1 signifie "affiché anonymement" (pas d'identité auteur visible)
-    const query = `SELECT id, user_id, title, description, category, image_url, is_public, created_at, updated_at FROM fails WHERE is_public = 1 ORDER BY created_at DESC LIMIT ${limitNum} OFFSET ${offset}`;
+    // Récupérer TOUS les fails avec les infos utilisateur pour l'anonymisation
+    const query = `
+      SELECT 
+        f.id, 
+        f.user_id, 
+        f.title, 
+        f.description, 
+        f.category, 
+        f.image_url, 
+        f.is_public, 
+        f.created_at, 
+        f.updated_at,
+        f.comments_count,
+        f.reactions,
+        u.email,
+        p.username,
+        p.display_name,
+        p.avatar_url
+      FROM fails f
+      LEFT JOIN users u ON f.user_id = u.id
+      LEFT JOIN profiles p ON f.user_id = p.user_id
+      ORDER BY f.created_at DESC 
+      LIMIT ${limitNum} OFFSET ${offset}
+    `;
 
     const fails = await executeQuery(query, []);
     
-    // Traiter le résultat - anonymiser les données sensibles pour les fails publics
+    // Traiter le résultat - anonymiser conditionnellement selon is_public
     const processed = Array.isArray(fails) ? fails.map(fail => ({
       id: fail.id,
       title: fail.title,
       description: fail.description,
       category: fail.category,
-      image_url: fail.image_url,
-      is_public: !!fail.is_public,
-      created_at: fail.created_at,
-      // user_id et updated_at omis pour préserver l'anonymat
+      imageUrl: fail.image_url, // camelCase pour le frontend
+      isPublic: !!fail.is_public, // boolean pour le frontend
+      commentsCount: fail.comments_count || 0,
+      reactions: fail.reactions ? JSON.parse(fail.reactions) : { courage: 0, empathy: 0, laugh: 0, support: 0 },
+      createdAt: fail.created_at,
+      // Anonymisation conditionnelle :
+      // Si is_public = 1 (public) : afficher pseudo/avatar
+      // Si is_public = 0 (anonyme) : masquer pseudo/avatar
+      authorId: fail.user_id,
+      authorName: fail.is_public ? (fail.display_name || fail.username || 'Utilisateur') : 'Anonyme',
+      authorAvatar: fail.is_public ? (fail.avatar_url || 'assets/profil/face.png') : 'assets/profil/anonyme.png'
     })) : [];
 
+    console.log(`📊 Récupération fails publics: ${processed.length} fails trouvés`);
     res.json(processed);
   } catch (error) {
     console.error('❌ Erreur récupération fails publics:', error);
     res.status(500).json({
       success: false,
-      message: "Erreur lors de la récupération des fails publics"
+      message: "Erreur lors de la récupération des fails"
     });
   }
 });

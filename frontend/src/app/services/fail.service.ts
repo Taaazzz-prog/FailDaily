@@ -165,35 +165,21 @@ export class FailService {
   }
 
   private async formatFailWithAuthor(failData: any): Promise<Fail> {
-    // Déterminer le nom de l'auteur selon si c'est public ou anonyme
-    let authorName = 'Utilisateur anonyme';
-    let authorAvatar = 'assets/profil/anonymous.png'; // Avatar par défaut pour anonyme
+    console.log('🔍 formatFailWithAuthor - Input data:', {
+      id: failData.id,
+      title: failData.title,
+      authorId: failData.authorId,
+      authorName: failData.authorName,
+      authorAvatar: failData.authorAvatar,
+      isPublic: failData.isPublic
+    });
 
-    if (!failData.is_public) {
-      try {
-        // Récupérer le profil de l'utilisateur pour avoir son vrai nom et avatar
-        const profile = await this.mysqlService.getProfile(failData.user_id);
-        if (profile && profile.display_name) {
-          authorName = profile.display_name;
-          // Récupérer l'avatar du profil s'il existe
-          authorAvatar = profile.avatar_url || 'assets/profil/base.png'; // Avatar par défaut si pas d'avatar
-        } else {
-          authorName = 'Utilisateur courageux'; // Fallback si pas de profil
-          authorAvatar = 'assets/profil/base.png'; // Avatar par défaut
-        }
-      } catch (error) {
-        // Ne pas logger l'erreur pour éviter le spam dans la console
-        authorName = 'Utilisateur courageux'; // Fallback
-        authorAvatar = 'assets/profil/base.png'; // Avatar par défaut
-      }
-    } else {
-      // ✅ Si le fail est anonyme mais appartient à l'utilisateur courant, afficher son nom
-      const currentUser = await this.mysqlService.getCurrentUser();
-      if (currentUser && failData.user_id === currentUser.id) {
-        authorName = currentUser.displayName;
-        authorAvatar = currentUser.avatar || 'assets/profil/base.png';
-      }
-    }
+    // ✅ UTILISER LES DONNÉES DÉJÀ CALCULÉES PAR LE BACKEND
+    // Le backend nous envoie déjà authorName et authorAvatar correctement calculés
+    let authorName = failData.authorName || 'Utilisateur';
+    let authorAvatar = failData.authorAvatar || 'assets/profil/base.png';
+
+    console.log('✅ formatFailWithAuthor - Using backend data:', { authorName, authorAvatar });
 
     // Log des données de réactions pour débugger
     console.log('📊 formatFailWithAuthor - Raw failData.reactions:', failData.reactions);

@@ -446,26 +446,5 @@ export class BadgesPage implements OnInit {
 
         return diffHours <= 24;
     }
-
-    /**
-     * Méthode de test pour forcer la vérification des badges
-     * À supprimer en production
-     */
-    async testForceCheckBadges() {
-        try {
-            console.log('🧪 Test: Vérification forcée des badges...');
-            const newBadges = await this.badgeService.forceCheckBadges();
-
-            if (newBadges.length > 0) {
-                console.log(`✅ Test réussi: ${newBadges.length} nouveaux badges débloqués`);
-                // Recharger les challenges
-                await this.loadNextChallenges();
-            } else {
-                console.log('ℹ️ Test: Aucun nouveau badge à débloquer');
-            }
-        } catch (error) {
-            console.error('❌ Erreur lors du test des badges:', error);
-        }
-    }
 }
 

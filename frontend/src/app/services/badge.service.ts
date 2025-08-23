@@ -462,6 +462,22 @@ export class BadgeService {
   }
 
   private getUserStats(userId: string): Promise<any> {
+    // Vérifier que l'userId n'est pas undefined
+    if (!userId || userId === 'undefined') {
+      console.warn('⚠️ getUserStats appelé avec un userId invalide:', userId);
+      return Promise.resolve({
+        totalFails: 0,
+        totalReactionsGiven: 0,
+        totalReactionsReceived: 0,
+        couragePoints: 0,
+        totalBadges: 0,
+        streak: 0,
+        reactionsByType: {},
+        failsByCategory: {},
+        mostPopularFails: []
+      });
+    }
+    
     // Récupérer les statistiques utilisateur depuis MySQL
     return this.mysqlService.getUserStats(userId);
   }
@@ -509,7 +525,10 @@ export class BadgeService {
   }>> {
     try {
       const user = await this.mysqlService.getCurrentUser();
-      if (!user) return [];
+      if (!user || !user.id) {
+        console.warn('⚠️ Utilisateur non connecté ou ID manquant pour getNextChallengesStats');
+        return [];
+      }
 
       const userStats = await this.getUserStats(user.id);
       const userBadgeIds = await this.mysqlService.getUserBadgesNew(user.id);

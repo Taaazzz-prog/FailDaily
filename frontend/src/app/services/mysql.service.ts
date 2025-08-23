@@ -555,11 +555,34 @@ export class MysqlService {
       params.set('limit', limit.toString());
       params.set('offset', offset.toString());
 
+      console.log('📡 MysqlService: Appel API /fails/public avec params:', { limit, offset });
+
       const response: any = await this.http.get(`${this.apiUrl}/fails/public?${params.toString()}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response && response.fails) {
+      console.log('📡 MysqlService: Réponse brute du backend:', response);
+
+      // Le backend retourne directement un tableau de fails
+      if (Array.isArray(response)) {
+        console.log('✅ MysqlService: Public fails récupérés avec succès:', response.length, 'fails');
+        console.log('🔍 MysqlService: Premier fail détaillé:', response[0]);
+        
+        // Log détaillé de chaque fail pour debug
+        response.forEach((fail, index) => {
+          console.log(`🔍 Fail ${index + 1}:`, {
+            id: fail.id,
+            title: fail.title,
+            authorId: fail.authorId,
+            authorName: fail.authorName,
+            authorAvatar: fail.authorAvatar,
+            isPublic: fail.isPublic
+          });
+        });
+        
+        return response;
+      } else if (response && response.fails) {
+        // Format alternatif avec wrapper
         console.log('✅ MysqlService: Public fails récupérés avec succès:', response.fails.length, 'fails');
         return response.fails;
       } else {
@@ -873,6 +896,22 @@ export class MysqlService {
 
   async getUserStats(userId: string): Promise<UserStats> {
     try {
+      // Vérifier que l'userId n'est pas undefined
+      if (!userId || userId === 'undefined') {
+        console.warn('⚠️ getUserStats appelé avec un userId invalide:', userId);
+        return {
+          totalFails: 0,
+          totalReactionsGiven: 0,
+          totalReactionsReceived: 0,
+          couragePoints: 0,
+          totalBadges: 0,
+          streak: 0,
+          reactionsByType: {},
+          failsByCategory: {},
+          mostPopularFails: []
+        } as UserStats;
+      }
+      
       const response: any = await this.http.get(`${this.apiUrl}/users/${userId}/stats`, {
         headers: this.getAuthHeaders()
       }).toPromise();
@@ -943,6 +982,12 @@ export class MysqlService {
 
   async getUserBadgesNew(userId: string): Promise<string[]> {
     try {
+      // Vérifier que l'userId n'est pas undefined
+      if (!userId || userId === 'undefined') {
+        console.warn('⚠️ getUserBadgesNew appelé avec un userId invalide:', userId);
+        return [];
+      }
+      
       const response: any = await this.http.get(`${this.apiUrl}/users/${userId}/badges/ids`, {
         headers: this.getAuthHeaders()
       }).toPromise();

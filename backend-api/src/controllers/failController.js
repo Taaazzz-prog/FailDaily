@@ -52,11 +52,13 @@ const createFail = async (req, res) => {
 
     const failId = uuidv4();
 
-    // Créer le fail
+    // Créer le fail - Conversion correcte du boolean is_public
+    const isPublicValue = is_public === true || is_public === 'true' || is_public === 1 ? 1 : 0;
+    
     await executeQuery(`
       INSERT INTO fails (id, user_id, title, description, category, image_url, is_public, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-    `, [failId, userId, title, description, category, req.file?.filename || null, is_public || false]);
+    `, [failId, userId, title, description, category, req.file?.filename || null, isPublicValue]);
 
   // (Optionnel) Mise à jour des stats utilisateur ou attribution de badges
   // Désactivé car les colonnes/tables attendues ne sont pas standardisées dans le schéma actuel.
