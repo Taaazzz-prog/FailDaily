@@ -1,3 +1,4 @@
+
 # FailDaily - Page Badges Structure Complète
 
 ## 🏆 Page Badges (badges.page.html + badges.page.scss)
