@@ -229,13 +229,14 @@ class UserController {
       let query = `
         SELECT 
           f.*,
-          u.display_name,
-          u.avatar_url,
-          (SELECT COUNT(*) FROM fail_reactions fr WHERE fr.fail_id = f.id) as reactions_count,
-          (SELECT COUNT(*) FROM fail_comments fc WHERE fc.fail_id = f.id) as comments_count,
-          ${currentUserId ? `(SELECT reaction_type FROM fail_reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
+          p.display_name,
+          p.avatar_url,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
+          ${currentUserId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
         FROM fails f
         JOIN users u ON f.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
         WHERE f.user_id = ?
       `;
 

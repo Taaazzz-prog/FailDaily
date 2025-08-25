@@ -98,24 +98,28 @@ const getFails = async (req, res) => {
     const { page = 1, limit = 20, category, userId: filterUserId } = req.query;
     const currentUserId = req.user?.id;
     
-    // Convertir en nombres
-    const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 20;
+    // Convertir en nombres et validation
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
 
-    // Sélection minimale pour respecter l'anonymat et le format attendu
+    // Requête simplifiée sans sous-requête complexe
     let query = `
       SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
-             (SELECT COUNT(*) FROM reactions r WHERE r.fail_id = f.id) as reactions_count
+             COALESCE(f.comments_count, 0) as comments_count,
+             COALESCE(f.reactions, '{"courage":0,"empathy":0,"laugh":0,"support":0}') as reactions
       FROM fails f
-      WHERE 1=1
+      WHERE f.user_id = ?
     `;
 
-    const params = [];
+    const params = [currentUserId];
 
-    // Filtres
-    if (filterUserId) {
-      query += ' AND f.user_id = ?';
+    // Filtres additionnels
+    if (filterUserId && filterUserId !== currentUserId) {
+      // Si on demande les fails d'un autre utilisateur, ne montrer que les publics
+      query += ' AND f.is_public = 1 AND f.user_id = ?';
       params.push(filterUserId);
+      // Remplacer le premier paramètre
+      params[0] = filterUserId;
     }
 
     if (category) {
@@ -123,25 +127,24 @@ const getFails = async (req, res) => {
       params.push(category);
     }
 
-    query += ' ORDER BY f.created_at DESC';
+    query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
 
-    // Pagination
+    // Pagination sécurisée
     const offset = (pageNum - 1) * limitNum;
-    query += ` LIMIT ${limitNum} OFFSET ${offset}`;
+    params.push(limitNum, offset);
 
-  const fails = await executeQuery(query, params);
+    console.log('🔍 Query getFails:', query);
+    console.log('🔍 Params:', params);
 
-    // Compter le total pour la pagination
-    let countQuery = `
-      SELECT COUNT(*) as total
-      FROM fails f
-      WHERE 1=1
-    `;
-    const countParams = [];
+    const fails = await executeQuery(query, params);
 
-    if (filterUserId) {
-      countQuery += ' AND f.user_id = ?';
-      countParams.push(filterUserId);
+    // Compter le total pour la pagination (requête simplifiée)
+    let countQuery = `SELECT COUNT(*) as total FROM fails f WHERE f.user_id = ?`;
+    let countParams = [currentUserId];
+
+    if (filterUserId && filterUserId !== currentUserId) {
+      countQuery = `SELECT COUNT(*) as total FROM fails f WHERE f.is_public = 1 AND f.user_id = ?`;
+      countParams = [filterUserId];
     }
 
     if (category) {
@@ -150,33 +153,42 @@ const getFails = async (req, res) => {
     }
 
     const totalResult = await executeQuery(countQuery, countParams);
-    const total = totalResult[0].total;
+    const total = totalResult[0]?.total || 0;
+
+    // Traitement des résultats
+    const processedFails = Array.isArray(fails) ? fails.map(fail => ({
+      id: fail.id,
+      title: fail.title,
+      description: fail.description,
+      category: fail.category,
+      imageUrl: fail.image_url,
+      isPublic: !!fail.is_public,
+      commentsCount: fail.comments_count || 0,
+      reactions: typeof fail.reactions === 'string' ? JSON.parse(fail.reactions) : (fail.reactions || { courage: 0, empathy: 0, laugh: 0, support: 0 }),
+      createdAt: fail.created_at,
+      userId: fail.user_id
+    })) : [];
+
+    console.log(`📊 getFails: ${processedFails.length} fails trouvés sur ${total} total`);
 
     res.json({
-      fails: fails.map(fail => ({
-        id: fail.id,
-        user_id: fail.user_id,
-        title: fail.title,
-        description: fail.description,
-        category: fail.category,
-        imageUrl: fail.image_url,
-        is_public: !!fail.is_public,
-        createdAt: fail.created_at,
-        reactionsCount: fail.reactions_count
-      })),
+      success: true,
+      fails: processedFails,
       pagination: {
-        currentPage: pageNum,
+        page: pageNum,
         limit: limitNum,
-        total,
+        total: total,
         totalPages: Math.ceil(total / limitNum)
       }
     });
 
   } catch (error) {
-    console.error('Erreur récupération fails:', error);
+    console.error('❌ Erreur getFails:', error);
+    console.error('❌ Stack:', error.stack);
     res.status(500).json({
-      error: 'Erreur interne du serveur',
-      code: 'INTERNAL_ERROR'
+      success: false,
+      message: "Erreur lors de la récupération des fails",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -187,9 +199,11 @@ const getFailById = async (req, res) => {
     const { id } = req.params;
     const currentUserId = req.user?.id;
 
+    // Requête simplifiée sans sous-requête
     const fails = await executeQuery(`
       SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
-             (SELECT COUNT(*) FROM reactions r WHERE r.fail_id = f.id) as reactions_count
+             COALESCE(f.comments_count, 0) as comments_count,
+             COALESCE(f.reactions, '{"courage":0,"empathy":0,"laugh":0,"support":0}') as reactions
       FROM fails f
       WHERE f.id = ?
     `, [id]);

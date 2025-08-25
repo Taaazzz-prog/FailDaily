@@ -42,29 +42,14 @@ router.post('/', authenticateToken, upload.single('image'), createFail);
 router.get('/', authenticateToken, getFails);
 
 // GET /api/fails/public - Récupérer tous les fails avec anonymisation conditionnelle
-router.get('/public', authenticateToken, async (req, res) => {
+router.get('/public', optionalAuth, async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 20));
     const offset = (pageNum - 1) * limitNum;
     
-    // Validation des paramètres
-    if (isNaN(pageNum) || pageNum <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Paramètre page invalide"
-      });
-    }
-    
-    if (isNaN(limitNum) || limitNum <= 0 || limitNum > 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Paramètre limit invalide (1-100)"
-      });
-    }
-    
-    // Récupérer TOUS les fails avec les infos utilisateur pour l'anonymisation
+    // Requête simplifiée avec paramètres sécurisés
     const query = `
       SELECT 
         f.id, 
@@ -76,8 +61,8 @@ router.get('/public', authenticateToken, async (req, res) => {
         f.is_public, 
         f.created_at, 
         f.updated_at,
-        f.comments_count,
-        f.reactions,
+        COALESCE(f.comments_count, 0) as comments_count,
+        COALESCE(f.reactions, '{"courage":0,"empathy":0,"laugh":0,"support":0}') as reactions,
         u.email,
         p.username,
         p.display_name,
@@ -86,10 +71,13 @@ router.get('/public', authenticateToken, async (req, res) => {
       LEFT JOIN users u ON f.user_id = u.id
       LEFT JOIN profiles p ON f.user_id = p.user_id
       ORDER BY f.created_at DESC 
-      LIMIT ${limitNum} OFFSET ${offset}
+      LIMIT ? OFFSET ?
     `;
 
-    const fails = await executeQuery(query, []);
+    console.log('🔍 Query public fails:', query);
+    console.log('🔍 Params:', [limitNum, offset]);
+
+    const fails = await executeQuery(query, [limitNum, offset]);
     
     // Traiter le résultat - anonymiser conditionnellement selon is_public
     const processed = Array.isArray(fails) ? fails.map(fail => ({
@@ -100,7 +88,7 @@ router.get('/public', authenticateToken, async (req, res) => {
       imageUrl: fail.image_url,
       is_public: !!fail.is_public,
       commentsCount: fail.comments_count || 0,
-      reactions: fail.reactions ? JSON.parse(fail.reactions) : { courage: 0, empathy: 0, laugh: 0, support: 0 },
+      reactions: typeof fail.reactions === 'string' ? JSON.parse(fail.reactions) : (fail.reactions || { courage: 0, empathy: 0, laugh: 0, support: 0 }),
       createdAt: fail.created_at,
       // Anonymisation conditionnelle :
       // Si is_public = 1 (public) : afficher pseudo/avatar
@@ -111,12 +99,23 @@ router.get('/public', authenticateToken, async (req, res) => {
     })) : [];
 
     console.log(`📊 Récupération fails publics: ${processed.length} fails trouvés`);
-    res.json(processed);
+    
+    res.json({
+      success: true,
+      fails: processed,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total: processed.length
+      }
+    });
   } catch (error) {
     console.error('❌ Erreur récupération fails publics:', error);
+    console.error('❌ Stack:', error.stack);
     res.status(500).json({
       success: false,
-      message: "Erreur lors de la récupération des fails"
+      message: "Erreur lors de la récupération des fails publics",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

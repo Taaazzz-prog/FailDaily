@@ -51,17 +51,24 @@ async function testConnection() {
     return false;
   }
 }
-
 /**
  * Exécute une requête SQL avec paramètres
- * @param {string} query - Requête SQL
- * @param {Array} params - Paramètres de la requête
- * @returns {Promise<Array>} Résultats de la requête
+ * @param {string} query
+ * @param {Array} params
+ * @param {{ textProtocol?: boolean }} [opts]
+ * @returns {Promise<Array>}
  */
-async function executeQuery(query, params = []) {
+async function executeQuery(query, params = [], opts = {}) {
   try {
     if (!pool) throw new Error('DB_DISABLED: pool indisponible dans cet environnement');
-    const [results] = await pool.execute(query, params);
+
+    // 👉 Quand textProtocol=true, on force pool.query (protocole texte),
+    //    ce qui évite ER_WRONG_ARGUMENTS sur LIMIT/OFFSET avec prepared statements.
+    const useText = !!opts.textProtocol;
+    const [results] = useText
+      ? await pool.query(query, params)
+      : await pool.execute(query, params);
+
     return results;
   } catch (error) {
     console.error('❌ Erreur SQL:', error.message);
@@ -70,6 +77,7 @@ async function executeQuery(query, params = []) {
     throw error;
   }
 }
+
 
 /**
  * Exécute plusieurs requêtes dans une transaction

@@ -169,13 +169,14 @@ class FailsController {
       const query = `
         SELECT 
           f.*,
-          u.display_name,
-          u.avatar_url,
-          (SELECT COUNT(*) FROM fail_reactions fr WHERE fr.fail_id = f.id) as reactions_count,
-          (SELECT COUNT(*) FROM fail_comments fc WHERE fc.fail_id = f.id) as comments_count,
-          ${currentUserId ? `(SELECT reaction_type FROM fail_reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
+          p.display_name,
+          p.avatar_url,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
+          ${currentUserId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
         FROM fails f
         JOIN users u ON f.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
         ${whereClause}
         ORDER BY f.${sortBy} ${sortOrder}
         LIMIT ? OFFSET ?
@@ -227,50 +228,80 @@ class FailsController {
     }
   }
 
-  /**
-   * Récupérer uniquement les fails publics
-   */
-  static async getPublicFails(req, res) {
-    try {
-      const { page = 1, limit = 20, offset = null } = req.query;
-      const limitNum = parseInt(limit);
-      const pageNum = offset !== null ? Math.floor(parseInt(offset) / limitNum) + 1 : parseInt(page);
-      const offsetNum = offset !== null ? parseInt(offset) : (pageNum - 1) * limitNum;
+/**
+ * Récupérer tous les fails avec anonymisation conditionnelle
+ * - Scroll infini supporté via ?offset=
+ * - Pagination classique via ?page=
+ */
+static async getPublicFails(req, res) {
+  try {
+    // 1) Params robustes
+    const rawLimit  = Number(req.query.limit);
+    const rawPage   = Number(req.query.page);
+    const rawOffset = Number(req.query.offset);
 
-      const query = `
-        SELECT f.*, u.display_name, u.avatar_url
-        FROM fails f
-        JOIN users u ON f.user_id = u.id
-        WHERE f.is_public = 1
-        ORDER BY f.created_at DESC
-        LIMIT ? OFFSET ?
-      `;
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
-      const fails = await executeQuery(query, [limitNum, offsetNum]);
-      const processed = fails.map(mapFailRow);
+    const useOffset = Number.isFinite(rawOffset) && rawOffset >= 0;
+    const offset = useOffset
+      ? rawOffset
+      : ((Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1) - 1) * limit;
+    const page = useOffset ? Math.floor(offset / limit) + 1
+                           : (Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1);
 
-      const countResult = await executeQuery('SELECT COUNT(*) as total FROM fails WHERE is_public = 1');
-      const total = countResult[0].total;
+    // 2) Requête : pas de filtre sur is_public (tout est visible)
+    //    Ordre stable pour éviter doublons/manqués si nouveaux posts arrivent
+    const sql = `
+      SELECT f.*, p.display_name, p.avatar_url
+      FROM fails f
+      JOIN users u    ON f.user_id = u.id
+      JOIN profiles p ON u.id = p.user_id
+      ORDER BY f.created_at DESC, f.id DESC
+      LIMIT ?, ?`; // offset, limit
 
-      res.json({
-        success: true,
-        fails: processed,
-        pagination: {
-          page: pageNum,
-          limit: limitNum,
-          total,
-          totalPages: Math.ceil(total / limitNum)
-        }
-      });
-    } catch (error) {
-      console.error('❌ Erreur récupération fails publics:', error);
-      res.status(500).json({
-        success: false,
-        message: "Erreur lors de la récupération des fails publics",
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
-      });
-    }
+    const rows = await executeQuery(sql, [offset, limit], { textProtocol: true });
+
+    // 3) Mapping + anonymisation (si is_public = 0)
+    const processed = rows.map((row) => {
+      const mapped = mapFailRow(row);
+      const isPublic = !!row.is_public; // tinyint -> bool
+      mapped.is_public = isPublic;
+
+      if (!isPublic) {
+        mapped.authorName   = 'Anonyme';
+        mapped.authorAvatar = 'assets/profil/anonymous.png';
+      } else {
+        // si mapFailRow ne les renseigne pas déjà :
+        mapped.authorName   = mapped.authorName   ?? row.display_name;
+        mapped.authorAvatar = mapped.authorAvatar ?? row.avatar_url;
+      }
+      return mapped;
+    });
+
+    // 4) Infinite scroll : pas besoin de COUNT (perf)
+    const hasMore   = processed.length === limit;
+    const nextOffset = offset + processed.length;
+
+    res.json({
+      success: true,
+      fails: processed,
+      pagination: {
+        page,
+        limit,
+        offset,
+        hasMore,
+        nextOffset: hasMore ? nextOffset : null
+      }
+    });
+  } catch (error) {
+    console.error('❌ Erreur récupération fails publics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des fails publics'
+    });
   }
+}
+
 
   /**
    * Récupérer un fail par ID
@@ -280,13 +311,14 @@ class FailsController {
       const query = `
         SELECT
           f.*,
-          u.display_name,
-          u.avatar_url,
-          (SELECT COUNT(*) FROM fail_reactions fr WHERE fr.fail_id = f.id) as reactions_count,
-          (SELECT COUNT(*) FROM fail_comments fc WHERE fc.fail_id = f.id) as comments_count,
-          ${userId ? `(SELECT reaction_type FROM fail_reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
+          p.display_name,
+          p.avatar_url,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
+          ${userId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
         FROM fails f
         JOIN users u ON f.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
         WHERE f.id = ?
       `;
 
@@ -474,8 +506,8 @@ class FailsController {
 
       // Supprimer en cascade (réactions, commentaires, etc.)
       await executeTransaction([
-        { query: 'DELETE FROM fail_reactions WHERE fail_id = ?', params: [parseInt(id)] },
-        { query: 'DELETE FROM fail_comments WHERE fail_id = ?', params: [parseInt(id)] },
+        { query: 'DELETE FROM reactions WHERE fail_id = ?', params: [parseInt(id)] },
+        { query: 'DELETE FROM comments WHERE fail_id = ?', params: [parseInt(id)] },
         { query: 'DELETE FROM fails WHERE id = ?', params: [parseInt(id)] }
       ]);
 
@@ -524,18 +556,18 @@ class FailsController {
       }
 
       // Vérifier/insérer la réaction
-      const existingReaction = await executeQuery('SELECT * FROM fail_reactions WHERE fail_id = ? AND user_id = ?',
+      const existingReaction = await executeQuery('SELECT * FROM reactions WHERE fail_id = ? AND user_id = ?',
         [parseInt(id), userId]
       );
 
       if (existingReaction.length > 0) {
         // Mettre à jour la réaction existante
-        await executeQuery('UPDATE fail_reactions SET reaction_type = ?, created_at = NOW() WHERE fail_id = ? AND user_id = ?',
+        await executeQuery('UPDATE reactions SET reaction_type = ?, created_at = NOW() WHERE fail_id = ? AND user_id = ?',
           [reactionType, parseInt(id), userId]
         );
       } else {
         // Créer une nouvelle réaction
-        await executeQuery('INSERT INTO fail_reactions (fail_id, user_id, reaction_type, created_at) VALUES (?, ?, ?, NOW())',
+        await executeQuery('INSERT INTO reactions (fail_id, user_id, reaction_type, created_at) VALUES (?, ?, ?, NOW())',
           [parseInt(id), userId, reactionType]
         );
       }
@@ -572,7 +604,7 @@ class FailsController {
       const { id } = req.params;
       const userId = req.user.id;
 
-      await executeQuery('DELETE FROM fail_reactions WHERE fail_id = ? AND user_id = ?',
+      await executeQuery('DELETE FROM reactions WHERE fail_id = ? AND user_id = ?',
         [parseInt(id), userId]
       );
 
@@ -641,7 +673,7 @@ class FailsController {
           COUNT(*) as total_fails,
           COUNT(DISTINCT user_id) as total_users,
           SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as public_fails,
-          (SELECT COUNT(*) FROM fail_reactions) as total_reactions
+          (SELECT COUNT(*) FROM reactions) as total_reactions
         FROM fails
       `);
 
@@ -664,7 +696,7 @@ class FailsController {
           SELECT 
             COUNT(*) as my_fails,
             SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as my_public_fails,
-            (SELECT COUNT(*) FROM fail_reactions WHERE fail_id IN 
+            (SELECT COUNT(*) FROM reactions WHERE fail_id IN 
               (SELECT id FROM fails WHERE user_id = ?)) as reactions_on_my_fails
           FROM fails
           WHERE user_id = ?
@@ -718,13 +750,14 @@ class FailsController {
       let query = `
         SELECT 
           f.*,
-          u.display_name,
-          u.avatar_url,
-          (SELECT COUNT(*) FROM fail_reactions fr WHERE fr.fail_id = f.id) as reactions_count,
-          (SELECT COUNT(*) FROM fail_comments fc WHERE fc.fail_id = f.id) as comments_count,
-          ${userId ? `(SELECT reaction_type FROM fail_reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
+          p.display_name,
+          p.avatar_url,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
+          ${userId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
         FROM fails f
         JOIN users u ON f.user_id = u.id
+        JOIN profiles p ON u.id = p.user_id
         WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
       `;
 
