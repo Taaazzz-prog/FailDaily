@@ -33,4 +33,109 @@ router.delete('/:id/comments/:commentId', authenticateToken, CommentsController.
  */
 router.get('/user/comments/stats', authenticateToken, CommentsController.getUserCommentStats);
 
+/**
+ * POST /api/fails/:id/comments/:commentId/like
+ * Ajouter un like sur un commentaire
+ */
+router.post('/:id/comments/:commentId/like', authenticateToken, async (req, res) => {
+  try {
+    await CommentsController.ensureAuxTables();
+
+    const { commentId } = req.params;
+    const userId = req.user.id;
+
+    // Check comment exists and author id
+    const rows = await require('../config/database').executeQuery('SELECT id, user_id FROM comments WHERE id = ? LIMIT 1', [commentId]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Commentaire non trouvé' });
+
+    const targetUserId = rows[0].user_id;
+
+    // Insert reaction if not exists
+    const id = require('uuid').v4();
+    try {
+      await require('../config/database').executeQuery(
+        'INSERT INTO comment_reactions (id, comment_id, user_id, type, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [id, commentId, userId, 'like']
+      );
+      // Award 1 point to comment author (if not self-like still award based on requirement?)
+      const pointsCfg = await CommentsController.getPointsConfig();
+      if (pointsCfg.commentLikeReward > 0) {
+        await CommentsController.awardCouragePoints(targetUserId, pointsCfg.commentLikeReward);
+      }
+    } catch (_) { /* likely duplicate, ignore */ }
+
+    const [{ likes }] = await require('../config/database').executeQuery(
+      'SELECT COUNT(*) AS likes FROM comment_reactions WHERE comment_id = ?',[commentId]
+    );
+    res.json({ success: true, likes });
+  } catch (error) {
+    console.error('❌ like comment error:', error);
+    res.status(500).json({ success: false, message: 'Erreur like commentaire' });
+  }
+});
+
+/**
+ * DELETE /api/fails/:id/comments/:commentId/like
+ * Retirer un like
+ */
+router.delete('/:id/comments/:commentId/like', authenticateToken, async (req, res) => {
+  try {
+    await CommentsController.ensureAuxTables();
+    const { commentId } = req.params;
+    const userId = req.user.id;
+    await require('../config/database').executeQuery(
+      'DELETE FROM comment_reactions WHERE comment_id = ? AND user_id = ? LIMIT 1',
+      [commentId, userId]
+    );
+    const [{ likes }] = await require('../config/database').executeQuery(
+      'SELECT COUNT(*) AS likes FROM comment_reactions WHERE comment_id = ?',[commentId]
+    );
+    res.json({ success: true, likes });
+  } catch (error) {
+    console.error('❌ unlike comment error:', error);
+    res.status(500).json({ success: false, message: 'Erreur unlike commentaire' });
+  }
+});
+
+/**
+ * POST /api/fails/:id/comments/:commentId/report
+ * Signaler un commentaire
+ */
+router.post('/:id/comments/:commentId/report', authenticateToken, async (req, res) => {
+  try {
+    await CommentsController.ensureAuxTables();
+    const { commentId } = req.params;
+    const userId = req.user.id;
+    const reason = (req.body && req.body.reason) || null;
+
+    const exists = await require('../config/database').executeQuery('SELECT id FROM comments WHERE id = ? LIMIT 1', [commentId]);
+    if (exists.length === 0) return res.status(404).json({ success: false, message: 'Commentaire non trouvé' });
+
+    try {
+      const id = require('uuid').v4();
+      await require('../config/database').executeQuery(
+        'INSERT INTO comment_reports (id, comment_id, user_id, reason, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [id, commentId, userId, reason]
+      );
+    } catch (_) { /* duplicate */ }
+
+    const [{ reports }] = await require('../config/database').executeQuery(
+      'SELECT COUNT(*) AS reports FROM comment_reports WHERE comment_id = ?', [commentId]
+    );
+
+    const pointsCfg = await CommentsController.getPointsConfig();
+    if (reports >= (pointsCfg.commentReportThreshold || 10)) {
+      await require('../config/database').executeQuery(
+        'INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, "under_review", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+        [commentId]
+      );
+    }
+
+    res.json({ success: true, reports });
+  } catch (error) {
+    console.error('❌ report comment error:', error);
+    res.status(500).json({ success: false, message: 'Erreur signalement commentaire' });
+  }
+});
+
 module.exports = router;

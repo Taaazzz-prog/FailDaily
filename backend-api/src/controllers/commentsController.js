@@ -5,6 +5,72 @@ const { v4: uuidv4 } = require('uuid');
  * Contrôleur pour la gestion des commentaires aux fails
  */
 class CommentsController {
+  static async ensureAuxTables() {
+    // Create auxiliary tables if missing for reactions/reports/moderation
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS comment_reactions (
+        id CHAR(36) NOT NULL,
+        comment_id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        type VARCHAR(50) NOT NULL DEFAULT 'like',
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_comment_user (comment_id, user_id),
+        KEY idx_comment (comment_id),
+        KEY idx_user (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS comment_reports (
+        id CHAR(36) NOT NULL,
+        comment_id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        reason TEXT NULL,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_report_comment_user (comment_id, user_id),
+        KEY idx_comment (comment_id),
+        KEY idx_user (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS comment_moderation (
+        comment_id CHAR(36) NOT NULL,
+        status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+        updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (comment_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  }
+
+  static async getPointsConfig() {
+    try {
+      const rows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+      if (rows.length > 0) {
+        const cfg = JSON.parse(rows[0].value || '{}');
+        return {
+          commentCreate: Number(cfg.commentCreate) || 2,
+          commentLikeReward: Number(cfg.commentLikeReward) || 1,
+          commentReportThreshold: Number(cfg.commentReportThreshold) || 10
+        };
+      }
+    } catch (_) {}
+    return { commentCreate: 2, commentLikeReward: 1, commentReportThreshold: 10 };
+  }
+
+  static async awardCouragePoints(userId, delta) {
+    // Increment couragePoints inside profiles.stats JSON
+    await executeQuery(`
+      UPDATE profiles
+      SET stats = JSON_SET(
+        COALESCE(NULLIF(stats, ''), '{}'),
+        '$.couragePoints',
+        CAST(COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(COALESCE(NULLIF(stats, ''), '{}'), '$.couragePoints')), ''), '0') AS UNSIGNED) + ?
+      ), updated_at = NOW()
+      WHERE user_id = ?
+    `, [Math.max(0, Number(delta) || 0), userId]);
+  }
 
   /**
    * Ajouter un commentaire à un fail
@@ -63,7 +129,7 @@ class CommentsController {
       if (parentId) {
         const parentComments = await executeQuery(`
           SELECT id, fail_id 
-          FROM fail_comments 
+          FROM comments 
           WHERE id = ?
         `, [parentId]);
 
@@ -75,7 +141,7 @@ class CommentsController {
           });
         }
 
-        if (parentComments[0].fail_id !== parseInt(failId)) {
+        if (parentComments[0].fail_id !== failId) {
           return res.status(400).json({
             success: false,
             message: 'Le commentaire parent n\'appartient pas à ce fail',
@@ -88,26 +154,32 @@ class CommentsController {
       const commentId = uuidv4();
       
       await executeQuery(`
-        INSERT INTO fail_comments (
+        INSERT INTO comments (
           id, fail_id, user_id, content, parent_id, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
       `, [commentId, failId, userId, content.trim(), parentId]);
 
+      // Award courage points for comment creation
+      const pointsCfg = await CommentsController.getPointsConfig();
+      if (pointsCfg.commentCreate > 0) {
+        await CommentsController.awardCouragePoints(userId, pointsCfg.commentCreate);
+      }
+
       // Récupérer le commentaire créé avec les infos de l'utilisateur
       const newComment = await executeQuery(`
         SELECT 
-          fc.id,
-          fc.content,
-          fc.parent_id,
-          fc.created_at,
-          fc.updated_at,
+          c.id,
+          c.content,
+          c.parent_id,
+          c.created_at,
+          c.updated_at,
           p.display_name,
           p.avatar_url,
           u.id as user_id
-        FROM fail_comments fc
-        JOIN users u ON fc.user_id = u.id
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
-        WHERE fc.id = ?
+        WHERE c.id = ?
       `, [commentId]);
 
       res.status(201).json({
@@ -181,20 +253,22 @@ class CommentsController {
       // Récupérer les commentaires avec pagination
       const comments = await executeQuery(`
         SELECT 
-          fc.id,
-          fc.content,
-          fc.parent_id,
-          fc.created_at,
-          fc.updated_at,
+          c.id,
+          c.content,
+          c.parent_id,
+          c.created_at,
+          c.updated_at,
           p.display_name,
           p.avatar_url,
           u.id as user_id,
-          (SELECT COUNT(*) FROM fail_comments WHERE parent_id = fc.id) as replies_count
-        FROM fail_comments fc
-        JOIN users u ON fc.user_id = u.id
+          (SELECT COUNT(*) FROM comments WHERE parent_id = c.id) as replies_count,
+          (SELECT COUNT(*) FROM comment_reactions cr WHERE cr.comment_id = c.id) as likes_count,
+          (SELECT status FROM comment_moderation m WHERE m.comment_id = c.id LIMIT 1) as moderation_status
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
-        WHERE fc.fail_id = ?
-        ORDER BY fc.created_at ASC
+        WHERE c.fail_id = ?
+        ORDER BY c.created_at ASC
         LIMIT ? OFFSET ?
       `, [failId, limitNum, offset]);
 
@@ -224,10 +298,16 @@ class CommentsController {
           createdAt: comment.created_at,
           updatedAt: comment.updated_at,
           repliesCount: comment.replies_count,
+          likesCount: comment.likes_count || 0,
           replies: []
         };
 
         commentsMap.set(comment.id, commentData);
+
+        if (comment.moderation_status && comment.moderation_status !== 'approved') {
+          // Skip moderated comments
+          return;
+        }
 
         if (comment.parent_id) {
           // C'est une réponse
@@ -383,7 +463,7 @@ class CommentsController {
       // Vérifier que le commentaire existe et appartient à l'utilisateur
       const comments = await executeQuery(`
         SELECT id, user_id, fail_id
-        FROM fail_comments 
+        FROM comments 
         WHERE id = ? AND fail_id = ?
       `, [commentId, failId]);
 
@@ -407,7 +487,7 @@ class CommentsController {
 
       // Supprimer le commentaire et ses réponses en cascade
       const result = await executeQuery(`
-        DELETE FROM fail_comments 
+        DELETE FROM comments 
         WHERE id = ? OR parent_id = ?
       `, [commentId, commentId]);
 
@@ -441,18 +521,18 @@ class CommentsController {
       // Compter les commentaires écrits par l'utilisateur
       const writtenComments = await executeQuery(`
         SELECT COUNT(*) as count
-        FROM fail_comments 
+        FROM comments 
         WHERE user_id = ?
       `, [userId]);
 
       // Compter les commentaires reçus sur les fails de l'utilisateur
       const receivedComments = await executeQuery(`
         SELECT COUNT(*) as count
-        FROM fail_comments fc
-        JOIN fails f ON fc.fail_id = f.id
-        WHERE f.user_id = ? AND fc.user_id != ?
+        FROM comments c
+        JOIN fails f ON c.fail_id = f.id
+        WHERE f.user_id = ? AND c.user_id != ?
       `, [userId, userId]);
-
+      
       res.json({
         success: true,
         data: {

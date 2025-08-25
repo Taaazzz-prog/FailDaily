@@ -1,7 +1,7 @@
 <div class="comments-thread">
   <div class="composer" *ngIf="isAuthenticated; else loginInfo">
-    <ion-textarea autoGrow="true" [(ngModel)]="newComment" placeholder="Ecrire un commentaire d'encouragement..."></ion-textarea>
-    <ion-button size="small" (click)="addComment()" [disabled]="!newComment?.trim()">Publier</ion-button>
+    <ion-textarea [autoGrow]="true" [(ngModel)]="newComment" placeholder="Ecrire un commentaire d'encouragement..."></ion-textarea>
+    <ion-button size="small" (click)="addComment()" [disabled]="!(newComment && newComment.trim())">Publier</ion-button>
   </div>
   <ng-template #loginInfo>
     <div class="login-hint">Connectez-vous pour commenter</div>
@@ -22,4 +22,3 @@
     </ion-list>
   </div>
 </div>
-

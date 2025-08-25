@@ -107,6 +107,62 @@ router.get('/fails/reported', authenticateToken, requireAdmin, async (req, res) 
   }
 });
 
+// GET /api/admin/comments/reported?threshold=10
+router.get('/comments/reported', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 10;
+    // Count reports per comment
+    const reported = await executeQuery(`
+      SELECT cr.comment_id, COUNT(*) AS reports
+      FROM comment_reports cr
+      GROUP BY cr.comment_id
+      HAVING reports >= ?
+      ORDER BY reports DESC
+    `, [threshold]);
+
+    const results = [];
+    for (const row of reported) {
+      const [comment] = await executeQuery(
+        'SELECT c.id, c.fail_id, c.user_id, c.content, c.created_at FROM comments c WHERE c.id = ? LIMIT 1',
+        [row.comment_id]
+      );
+      results.push({ comment, reports: row.reports });
+    }
+
+    res.json({ success: true, items: results, threshold });
+  } catch (error) {
+    console.error('❌ /admin/comments/reported error:', error);
+    res.status(500).json({ success: false, message: 'Erreur récupération commentaires signalés' });
+  }
+});
+
+// POST /api/admin/comments/:id/moderate { action }
+router.post('/comments/:id/moderate', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { action } = req.body || {};
+    if (!action) return res.status(400).json({ success: false, message: 'Action requise' });
+
+    if (action === 'hide') {
+      await executeQuery('INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()', [id]);
+    } else if (action === 'approve') {
+      await executeQuery('INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, "approved", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()', [id]);
+    } else if (action === 'delete') {
+      await executeQuery('DELETE FROM comment_reactions WHERE comment_id = ?', [id]);
+      await executeQuery('DELETE FROM comment_reports WHERE comment_id = ?', [id]);
+      await executeQuery('DELETE FROM comments WHERE id = ?', [id]);
+      await executeQuery('DELETE FROM comment_moderation WHERE comment_id = ?', [id]);
+    } else {
+      return res.status(400).json({ success: false, message: 'Action inconnue' });
+    }
+
+    res.json({ success: true, message: 'Décision de modération appliquée' });
+  } catch (error) {
+    console.error('❌ /admin/comments/:id/moderate error:', error);
+    res.status(500).json({ success: false, message: 'Erreur modération commentaire' });
+  }
+});
+
 // POST /api/admin/fails/:id/moderate { action }
 router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -139,4 +195,3 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
 });
 
 module.exports = router;
-

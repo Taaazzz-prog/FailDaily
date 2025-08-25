@@ -486,6 +486,17 @@ export class MysqlService {
     return new Blob([ab], { type: mime });
   }
 
+  private async blobToBase64(blob: Blob): Promise<string> {
+    const arrayBuffer = await blob.arrayBuffer();
+    let binary = '';
+    const bytes = new Uint8Array(arrayBuffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  }
+
   async uploadAvatarFromDataUrl(dataUrl: string, filename = `avatar_${Date.now()}.jpg`): Promise<string> {
     const blob = this.dataUrlToBlob(dataUrl);
     const file = new File([blob], filename, { type: blob.type });
@@ -496,7 +507,13 @@ export class MysqlService {
     try {
       // Capacitor Filesystem returns base64 data
       const { data } = await Filesystem.readFile({ path: fileUri });
-      const cleanBase64 = (data || '').split(',').pop() || '';
+      let cleanBase64: string = '';
+      if (typeof data === 'string') {
+        cleanBase64 = (data.includes(',') ? data.split(',').pop() || '' : data);
+      } else if (data) {
+        // Blob case (web environment)
+        cleanBase64 = await this.blobToBase64(data as Blob);
+      }
       const blob = this.base64ToBlob(cleanBase64, 'image/jpeg');
       const file = new File([blob], filename, { type: 'image/jpeg' });
       return this.uploadAvatar(file);

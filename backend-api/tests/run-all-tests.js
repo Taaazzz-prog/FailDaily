@@ -25,6 +25,8 @@ const testUploadAvatar = require('./2_auth/2.7_upload-avatar-endpoint-test');
 const testUploadFailImage = require('./3_fails/3.0_upload-image-endpoint-test');
 const testFailCreation = require('./3_fails/3.1_fail-creation-test');
 const testFailRetrieval = require('./3_fails/3.2_fail-retrieval-test');
+const testCommentsBasic = require('./3_fails/3.3_comments-basic-test');
+const testCommentsLikeReport = require('./3_fails/3.4_comments-like-report-test');
 const testCompleteIntegration = require('./4_integration/4.1_complete-integration-test');
 
 async function runAllTests() {
@@ -63,6 +65,8 @@ async function runAllTests() {
     { name: '3.0 - Upload Image (Fail)', fn: testUploadFailImage, category: 'Fails' },
     { name: '3.1 - Création de Fails', fn: testFailCreation, category: 'Fails' },
     { name: '3.2 - Récupération de Fails', fn: testFailRetrieval, category: 'Fails' },
+    { name: '3.3 - Commentaires (base)', fn: testCommentsBasic, category: 'Fails' },
+    { name: '3.4 - Commentaires Like/Report', fn: testCommentsLikeReport, category: 'Fails' },
     { name: '4.1 - Intégration Complète', fn: testCompleteIntegration, category: 'Integration' }
   ];
 
