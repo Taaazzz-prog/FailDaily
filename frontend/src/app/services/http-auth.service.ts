@@ -68,9 +68,10 @@ export class HttpAuthService {
   }
 
   private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('faildaily_token') || '';
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Authorization': `Bearer faildaily_token`
+      'Authorization': token ? `Bearer ${token}` : ''
     });
   }
 
@@ -188,7 +189,7 @@ export class HttpAuthService {
         throw new Error('Pas de token d\'authentification');
       }
 
-      const response: any = await this.http.get(`${this.apiUrl}/auth/me`, {
+      const response: any = await this.http.get(`${this.apiUrl}/auth/profile`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -210,7 +211,7 @@ export class HttpAuthService {
 
   async updateProfile(profileData: any): Promise<User | null> {
     try {
-      const response: any = await this.http.put(`${this.apiUrl}/profile`, profileData, {
+      const response: any = await this.http.put(`${this.apiUrl}/auth/profile`, profileData, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -231,7 +232,7 @@ export class HttpAuthService {
 
   async changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
     try {
-      const response: any = await this.http.post(`${this.apiUrl}/auth/change-password`, {
+      const response: any = await this.http.put(`${this.apiUrl}/auth/password`, {
         currentPassword,
         newPassword
       }, {
@@ -252,9 +253,7 @@ export class HttpAuthService {
 
   async forgotPassword(email: string): Promise<boolean> {
     try {
-      const response: any = await this.http.post(`${this.apiUrl}/auth/forgot-password`, {
-        email
-      }).toPromise();
+      const response: any = await this.http.post(`${this.apiUrl}/auth/password-reset`, { email }).toPromise();
 
       if (response.success) {
         console.log('✅ Email de récupération envoyé');
@@ -270,10 +269,7 @@ export class HttpAuthService {
 
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
-      const response: any = await this.http.post(`${this.apiUrl}/auth/reset-password`, {
-        token,
-        newPassword
-      }).toPromise();
+      const response: any = await this.http.post(`${this.apiUrl}/auth/password-reset`, { token, newPassword }).toPromise();
 
       if (response.success) {
         console.log('✅ Mot de passe réinitialisé avec succès');
@@ -312,10 +308,14 @@ export class HttpAuthService {
       const ipAddress = await this.getClientIP();
       const userAgent = navigator.userAgent;
 
-      await this.http.post(`${this.apiUrl}/logs/user-login`, {
+      await this.http.post(`${this.apiUrl}/logs/system`, {
         userId,
         ipAddress,
-        userAgent
+        userAgent,
+        level: 'info',
+        action: 'user_login',
+        message: 'User login event from frontend',
+        details: { userId, ipAddress, userAgent }
       }, {
         headers: this.getAuthHeaders()
       }).toPromise();
@@ -346,7 +346,7 @@ export class HttpAuthService {
         return false;
       }
 
-      const response: any = await this.http.get(`${this.apiUrl}/auth/validate`, {
+      const response: any = await this.http.get(`${this.apiUrl}/auth/verify`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 

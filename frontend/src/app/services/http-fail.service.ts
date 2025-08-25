@@ -35,15 +35,17 @@ export class HttpFailService {
   }
 
   private getAuthHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('faildaily_token') || '';
     return new HttpHeaders({
       'Content-Type': 'application/json',
-      'Authorization': `Bearer faildaily_token`
+      'Authorization': token ? `Bearer ${token}` : ''
     });
   }
 
   private getMultipartHeaders(): HttpHeaders {
+    const token = localStorage.getItem('auth_token') || localStorage.getItem('faildaily_token') || '';
     return new HttpHeaders({
-      'Authorization': `Bearer faildaily_token`
+      'Authorization': token ? `Bearer ${token}` : ''
       // Pas de Content-Type pour multipart, le navigateur le gère automatiquement
     });
   }
@@ -224,7 +226,7 @@ export class HttpFailService {
 
   async getFailsByUser(userId: string, page: number = 1, limit: number = 20): Promise<Fail[]> {
     try {
-      const response: any = await this.http.get(`${this.apiUrl}/fails/user/${userId}?page=${page}&limit=${limit}`, {
+      const response: any = await this.http.get(`${this.apiUrl}/fails?page=${page}&limit=${limit}&userId=${userId}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -258,7 +260,7 @@ export class HttpFailService {
 
   async getFailsByCategory(category: FailCategory, page: number = 1, limit: number = 20): Promise<Fail[]> {
     try {
-      const response: any = await this.http.get(`${this.apiUrl}/fails/category/${category}?page=${page}&limit=${limit}`, {
+      const response: any = await this.http.get(`${this.apiUrl}/fails?page=${page}&limit=${limit}&category=${encodeURIComponent(String(category))}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -295,7 +297,7 @@ export class HttpFailService {
       console.log('❤️ Ajout d\'un cœur de courage:', failId);
 
       const response: any = await this.http.post(`${this.apiUrl}/fails/${failId}/reactions`, {
-        type: 'courage_heart'
+        reactionType: 'courage'
       }, {
         headers: this.getAuthHeaders()
       }).toPromise();
@@ -320,7 +322,7 @@ export class HttpFailService {
     try {
       console.log('💔 Suppression d\'un cœur de courage:', failId);
 
-      const response: any = await this.http.delete(`${this.apiUrl}/fails/${failId}/reactions/courage_heart`, {
+      const response: any = await this.http.delete(`${this.apiUrl}/fails/${failId}/reactions`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -346,11 +348,13 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success && response.reactions) {
-        return response.reactions;
-      } else {
-        return [];
+      if (response?.success && response?.data?.reactions) {
+        return response.data.reactions;
       }
+      if (Array.isArray(response?.reactions)) {
+        return response.reactions;
+      }
+      return [];
     } catch (error: any) {
       console.error('❌ Erreur récupération réactions:', error);
       return [];

@@ -97,8 +97,8 @@ router.get('/public', authenticateToken, async (req, res) => {
       title: fail.title,
       description: fail.description,
       category: fail.category,
-      imageUrl: fail.image_url, // camelCase pour le frontend
-      isPublic: !!fail.is_public, // boolean pour le frontend
+      imageUrl: fail.image_url,
+      is_public: !!fail.is_public,
       commentsCount: fail.comments_count || 0,
       reactions: fail.reactions ? JSON.parse(fail.reactions) : { courage: 0, empathy: 0, laugh: 0, support: 0 },
       createdAt: fail.created_at,
@@ -107,7 +107,7 @@ router.get('/public', authenticateToken, async (req, res) => {
       // Si is_public = 0 (anonyme) : masquer pseudo/avatar
       authorId: fail.user_id,
       authorName: fail.is_public ? (fail.display_name || fail.username || 'Utilisateur') : 'Anonyme',
-      authorAvatar: fail.is_public ? (fail.avatar_url || 'assets/profil/face.png') : 'assets/profil/anonyme.png'
+      authorAvatar: fail.is_public ? (fail.avatar_url || 'assets/profil/face.png') : 'assets/profil/anonymous.png'
     })) : [];
 
     console.log(`📊 Récupération fails publics: ${processed.length} fails trouvés`);
