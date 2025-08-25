@@ -71,7 +71,7 @@ export class HttpFailService {
         title: failData.title.trim(),
         description: failData.description.trim(),
         category: failData.category,
-        image_url: imageUrl,
+        imageUrl: imageUrl,
         is_public: failData.is_public
       };
 
@@ -177,7 +177,7 @@ export class HttpFailService {
       if (updateData.title) failToUpdate.title = updateData.title.trim();
       if (updateData.description) failToUpdate.description = updateData.description.trim();
       if (updateData.category) failToUpdate.category = updateData.category;
-      if (imageUrl) failToUpdate.image_url = imageUrl;
+      if (imageUrl) (failToUpdate as any).imageUrl = imageUrl;
       if (updateData.is_public !== undefined) failToUpdate.is_public = updateData.is_public;
 
       const response: any = await this.http.put(`${this.apiUrl}/fails/${failId}`, failToUpdate, {

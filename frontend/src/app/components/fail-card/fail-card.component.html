@@ -49,6 +49,17 @@
     </ion-button>
   </div>
 
+  <!-- Commentaires -->
+  <div class="comments-toggle">
+    <ion-button fill="clear" size="small" (click)="showComments = !showComments">
+      <ion-icon name="chatbox-ellipses-outline" slot="start"></ion-icon>
+      Commentaires ({{ fail.commentsCount || 0 }})
+    </ion-button>
+  </div>
+  @if (showComments) {
+    <app-comments-thread [failId]="fail.id"></app-comments-thread>
+  }
+
   <!-- Message d'encouragement aléatoire -->
   @if (fail.encouragementMessage) {
   <div class="encouragement-message">

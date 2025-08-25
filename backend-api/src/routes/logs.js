@@ -201,4 +201,51 @@ router.post('/comprehensive', (req, res) => {
   }
 });
 
+/**
+ * GET /api/logs/comprehensive
+ * Retourne des logs système avec filtres optionnels
+ */
+router.get('/comprehensive', authenticateToken, async (req, res) => {
+  try {
+    const { limit = 100, level = null, action = null, sinceHours = 24 } = req.query;
+    let query = `SELECT id, level, message, details, user_id, action, created_at FROM system_logs WHERE 1=1`;
+    const params = [];
+    if (level) { query += ' AND level = ?'; params.push(level); }
+    if (action) { query += ' AND action = ?'; params.push(action); }
+    if (sinceHours) { query += ' AND created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)'; params.push(parseInt(sinceHours)); }
+    query += ' ORDER BY created_at DESC LIMIT ?';
+    params.push(parseInt(limit));
+    const logs = await executeQuery(query, params);
+    res.json({ success: true, logs });
+  } catch (error) {
+    console.error('❌ Erreur GET comprehensive logs:', error);
+    res.status(500).json({ success: false, message: 'Erreur récupération logs' });
+  }
+});
+
+/**
+ * PUT /api/logs/comprehensive/:id
+ * Met à jour un log (message/details)
+ */
+router.put('/comprehensive/:id', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, details } = req.body || {};
+    if (!message && !details) {
+      return res.status(400).json({ success: false, message: 'Aucune donnée à mettre à jour' });
+    }
+    const fields = [];
+    const params = [];
+    if (message) { fields.push('message = ?'); params.push(message); }
+    if (details) { fields.push('details = ?'); params.push(JSON.stringify(details)); }
+    params.push(id);
+    const sql = `UPDATE system_logs SET ${fields.join(', ')}, updated_at = NOW() WHERE id = ?`;
+    await executeQuery(sql, params);
+    res.json({ success: true, message: 'Log mis à jour' });
+  } catch (error) {
+    console.error('❌ Erreur update comprehensive log:', error);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour log' });
+  }
+});
+
 module.exports = router;

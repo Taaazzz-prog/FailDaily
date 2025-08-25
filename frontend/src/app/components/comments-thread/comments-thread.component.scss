@@ -1,0 +1,21 @@
+.comments-thread {
+  margin-top: 8px;
+}
+
+.composer {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.login-hint {
+  color: var(--ion-color-medium);
+  font-size: 0.9rem;
+  margin: 6px 0;
+}
+
+.list ion-item {
+  --inner-padding-end: 0;
+}
+

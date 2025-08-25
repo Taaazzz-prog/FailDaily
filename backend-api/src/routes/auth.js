@@ -41,11 +41,3 @@ router.put('/password', authenticateToken, changePassword);
 router.post('/password-reset', requestPasswordReset);
 
 module.exports = router;
-router.put('/profile', authenticateToken, (req, res) => {
-  res.json({
-    success: true,
-    message: 'Profile update endpoint - implementation en cours'
-  });
-});
-
-module.exports = router;

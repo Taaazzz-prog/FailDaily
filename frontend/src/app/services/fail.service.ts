@@ -115,13 +115,6 @@ export class FailService {
 
   private async loadFails(): Promise<void> {
     try {
-      // Vérifier l'authentification avant de charger
-      if (!this.authService.isAuthenticated()) {
-        console.log('FailService: User not authenticated, cannot load fails');
-        this.failsSubject.next([]);
-        return;
-      }
-
       console.log('FailService: Loading public fails from backend...');
       const fails = await this.mysqlService.getPublicFails();
       console.log('FailService: Received public fails from backend:', fails);

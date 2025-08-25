@@ -122,7 +122,7 @@ export class MysqlService {
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('faildaily_token');
+    const token = localStorage.getItem('faildaily_token') || localStorage.getItem('auth_token');
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
@@ -130,7 +130,7 @@ export class MysqlService {
   }
 
   private getMultipartHeaders(): HttpHeaders {
-    const token = localStorage.getItem('faildaily_token');
+    const token = localStorage.getItem('faildaily_token') || localStorage.getItem('auth_token');
     return new HttpHeaders({
       'Authorization': token ? `Bearer ${token}` : ''
     });

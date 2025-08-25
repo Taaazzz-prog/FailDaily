@@ -18,6 +18,7 @@ const uploadRoutes = require('./src/routes/upload');
 const reactionsRoutes = require('./src/routes/reactions');
 const commentsRoutes = require('./src/routes/comments');
 const logsRoutes = require('./src/routes/logs');
+const adminRoutes = require('./src/routes/admin');
 
 // Routes (optionnelles)
 let failsPublicRoutes = null;
@@ -86,10 +87,11 @@ app.get('/api/info', (req, res) => {
 /* ------------------------------- Routes API ------------------------------- */
 app.use('/api/auth', authRoutes);
 
+// Montre en priorité les nouvelles routes Fails (JSON body) avant l'ancienne version multer
+if (failsPublicRoutes) app.use('/api/fails', failsPublicRoutes);
 app.use('/api/fails', failRoutes);
 app.use('/api/fails', reactionsRoutes);
 app.use('/api/fails', commentsRoutes);
-if (failsPublicRoutes) app.use('/api/fails', failsPublicRoutes);
 
 if (badgesRoutes) app.use('/api/badges', badgesRoutes);
 if (usersRoutes) app.use('/api/users', usersRoutes);
@@ -100,6 +102,7 @@ app.use('/api/age-verification', ageVerificationRoutes);
 
 app.use('/api/logs', logsRoutes);
 app.use('/api/admin/logs', logsRoutes); // compat front
+app.use('/api/admin', adminRoutes);
 
 // Exemple d’endpoint protégé
 app.get('/api/user/stats', authenticateToken, (req, res) => {

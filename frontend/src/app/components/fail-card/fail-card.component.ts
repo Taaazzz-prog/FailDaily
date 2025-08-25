@@ -7,16 +7,18 @@ import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MysqlService } from '../../services/mysql.service';
+import { CommentsThreadComponent } from '../comments-thread/comments-thread.component';
 
 @Component({
   selector: 'app-fail-card',
   templateUrl: './fail-card.component.html',
   styleUrls: ['./fail-card.component.scss'],
-  imports: [CommonModule, IonButton, IonIcon, TimeAgoPipe]
+  imports: [CommonModule, IonButton, IonIcon, TimeAgoPipe, CommentsThreadComponent]
 })
 export class FailCardComponent implements OnInit, ViewWillEnter {
   @Input() fail!: Fail;
   userReactions: string[] = []; // Array des réactions de l'utilisateur
+  showComments = false;
 
   private encouragementMessages = [
     'Chaque échec est un pas vers la réussite ! 💪',
