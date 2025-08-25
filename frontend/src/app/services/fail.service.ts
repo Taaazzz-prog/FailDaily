@@ -43,21 +43,17 @@ export class FailService {
     });
   }
 
-  async createFail(failData: CreateFailData): Promise<void> {
+  async createFail(failData: CreateFailData): Promise<{ imageUploaded: boolean; failId?: string }> {
     // Utiliser AuthService pour vérifier l'authentification
     const user = this.authService.getCurrentUser();
     if (!user) {
       throw new Error('Utilisateur non connecté');
     }
 
-    let imageUrl = null;
+    let imageUrl: string | null = null;
     if (failData.image) {
       try {
-        imageUrl = await this.mysqlService.uploadFile(
-          'fails',
-          `${user.id}/${Date.now()}`,
-          failData.image
-        );
+        imageUrl = await this.mysqlService.uploadImage(failData.image);
       } catch (error) {
         console.error('Erreur lors de l\'upload de l\'image:', error);
         // Continuer sans image en cas d'erreur
@@ -84,7 +80,7 @@ export class FailService {
     }
 
     try {
-      await this.mysqlService.createFail(failToCreate);
+      const created = await this.mysqlService.createFail(failToCreate);
 
       // Logger la création du fail
       await this.logger.logFail('create', failToCreate.title, undefined, {
@@ -101,6 +97,7 @@ export class FailService {
         userId: user.id,
         failData: failData
       });
+      return { imageUploaded: !!imageUrl, failId: created?.id };
     } catch (error) {
       console.error('Erreur lors de la création du fail:', error);
 

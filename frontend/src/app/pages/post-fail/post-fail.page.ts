@@ -224,14 +224,25 @@ export class PostFailPage implements OnInit {
 
         console.log('Données du fail à créer:', createFailData);
 
-        await this.failService.createFail(createFailData);
+        const result = await this.failService.createFail(createFailData);
 
-        const toast = await this.toastController.create({
-          message: 'Votre fail a été publié avec courage ! 💪',
+        // Succès principal
+        let successMsg = 'Votre fail a été publié avec courage ! 💪';
+        if (this.selectedImageFile && result && !result.imageUploaded) {
+          // Informer que l'image n'a pas été ajoutée
+          const warn = await this.toastController.create({
+            message: 'Fail publié, mais l\'image n\'a pas pu être ajoutée.',
+            duration: 3000,
+            color: 'warning'
+          });
+          await warn.present();
+        }
+        const ok = await this.toastController.create({
+          message: successMsg,
           duration: 3000,
           color: 'success'
         });
-        await toast.present();
+        await ok.present();
 
         // Reset le formulaire après succès
         this.postFailForm.reset({

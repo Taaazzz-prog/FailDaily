@@ -18,6 +18,7 @@ import { AuthService } from '../../services/auth.service';
 import { FailService } from '../../services/fail.service';
 import { BadgeService } from '../../services/badge.service';
 import { MysqlService } from '../../services/mysql.service';
+import { PhotoService } from '../../services/photo.service';
 import { EventBusService, AppEvents } from '../../services/event-bus.service';
 import { User } from '../../models/user.model';
 import { Fail } from '../../models/fail.model';
@@ -79,16 +80,11 @@ export class ProfilePage implements OnInit, OnDestroy {
         {
             text: 'Changer la photo',
             icon: 'camera-outline',
-            handler: () => {
+            handler: async () => {
                 this.closeActionSheet();
                 setTimeout(() => {
-                    console.log('Navigation vers change-photo...');
-                    this.router.navigate(['/tabs/change-photo']).then(success => {
-                        console.log('Navigation réussie:', success);
-                    }).catch(error => {
-                        console.error('Erreur de navigation:', error);
-                    });
-                }, 300);
+                    this.router.navigate(['/tabs/change-photo']).catch(console.error);
+                }, 200);
             }
         },
         {
@@ -148,6 +144,7 @@ export class ProfilePage implements OnInit, OnDestroy {
         private failService: FailService,
         private badgeService: BadgeService,
         private mysqlService: MysqlService,
+        private photoService: PhotoService,
         private eventBus: EventBusService,
         private router: Router
     ) {
@@ -375,6 +372,87 @@ export class ProfilePage implements OnInit, OnDestroy {
 
     closeActionSheet() {
         this.isActionSheetOpen = false;
+    }
+
+    /**
+     * Ouvre un sélecteur de fichier image et charge le nouvel avatar
+     */
+    async changePhotoViaFilePicker() {
+        try {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.style.display = 'none';
+
+            document.body.appendChild(input);
+
+            input.onchange = async () => {
+                const file = input.files && input.files[0];
+                document.body.removeChild(input);
+                if (!file) return;
+
+                try {
+                    console.log('📤 Upload avatar en cours...');
+                    const avatarUrl = await this.mysqlService.uploadAvatar(file);
+                    console.log('✅ Avatar uploadé:', avatarUrl);
+
+                    // Mettre à jour le profil pour synchroniser l'état local
+                    await this.authService.updateUserProfile({ avatarUrl });
+
+                    // Rafraîchir les données
+                    this.failService.refreshFails();
+                } catch (error) {
+                    console.error('❌ Erreur lors du changement de photo:', error);
+                }
+            };
+
+            input.click();
+        } catch (error) {
+            console.error('❌ Erreur ouverture sélecteur de fichier:', error);
+        }
+    }
+
+    /**
+     * Flux unifié Android/iOS/PC: caméra, galerie, avatars par défaut
+     */
+    async changePhotoCrossPlatform() {
+        try {
+            const selected = await this.photoService.selectPhotoSource();
+            if (!selected) {
+                // Fallback web classique
+                return this.changePhotoViaFilePicker();
+            }
+
+            if (selected.startsWith('assets/')) {
+                await this.authService.updateUserProfile({ avatarUrl: selected });
+                this.failService.refreshFails();
+                return;
+            }
+
+            if (selected.startsWith('data:')) {
+                const url = await this.mysqlService.uploadAvatarFromDataUrl(selected);
+                await this.authService.updateUserProfile({ avatarUrl: url });
+                this.failService.refreshFails();
+                return;
+            }
+
+            if (selected.startsWith('file://') || selected.startsWith('capacitor://')) {
+                const url = await this.mysqlService.uploadAvatarFromUri(selected);
+                await this.authService.updateUserProfile({ avatarUrl: url });
+                this.failService.refreshFails();
+                return;
+            }
+
+            if (selected.startsWith('http://') || selected.startsWith('https://')) {
+                await this.authService.updateUserProfile({ avatarUrl: selected });
+                this.failService.refreshFails();
+                return;
+            }
+
+            return this.changePhotoViaFilePicker();
+        } catch (error) {
+            console.error('❌ Erreur flux avatar cross-platform:', error);
+        }
     }
 
     getBadgesByCategory(badges: Badge[]): { [key: string]: Badge[] } {

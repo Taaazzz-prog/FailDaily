@@ -20,6 +20,9 @@ const testUserLogin = require('./2_auth/2.2_login-test');
 const testJWTVerification = require('./2_auth/2.3_jwt-verification-test');
 const testUnauthorizedAccess = require('./2_auth/2.4_unauthorized-access-test');
 const testPublicVsProtected = require('./2_auth/2.5_public-vs-protected-test');
+const testProfileEndpoints = require('./2_auth/2.6_profile-endpoints-test');
+const testUploadAvatar = require('./2_auth/2.7_upload-avatar-endpoint-test');
+const testUploadFailImage = require('./3_fails/3.0_upload-image-endpoint-test');
 const testFailCreation = require('./3_fails/3.1_fail-creation-test');
 const testFailRetrieval = require('./3_fails/3.2_fail-retrieval-test');
 const testCompleteIntegration = require('./4_integration/4.1_complete-integration-test');
@@ -55,6 +58,9 @@ async function runAllTests() {
     { name: '2.2 - Connexion Utilisateur', fn: testUserLogin, category: 'Authentication' },
     { name: '2.3 - Vérification JWT', fn: testJWTVerification, category: 'Authentication' },
     { name: '2.4 - Protection Accès Non Authentifié', fn: testUnauthorizedAccess, category: 'Security' },
+    { name: '2.6 - Profil (GET/PUT)', fn: testProfileEndpoints, category: 'Authentication' },
+    { name: '2.7 - Upload Avatar', fn: testUploadAvatar, category: 'Authentication' },
+    { name: '3.0 - Upload Image (Fail)', fn: testUploadFailImage, category: 'Fails' },
     { name: '3.1 - Création de Fails', fn: testFailCreation, category: 'Fails' },
     { name: '3.2 - Récupération de Fails', fn: testFailRetrieval, category: 'Fails' },
     { name: '4.1 - Intégration Complète', fn: testCompleteIntegration, category: 'Integration' }

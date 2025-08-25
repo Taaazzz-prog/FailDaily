@@ -1,75 +1,76 @@
 <ion-header [translucent]="true">
-    <ion-toolbar>
-        <ion-buttons slot="start">
-            <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
-        </ion-buttons>
-        <ion-title class="handwriting">Changer la photo</ion-title>
-    </ion-toolbar>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/tabs/profile"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Changer la photo</ion-title>
+  </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true" class="ion-padding">
-    <div class="change-photo-container">
+<ion-content class="ion-padding">
+  <div class="editor-container">
+    <canvas id="avatarCanvas" width="300" height="300"></canvas>
+  </div>
 
-        <!-- Photo actuelle -->
-        <div class="current-photo-section">
-            <h3 class="section-title handwriting">Ta photo actuelle</h3>
-            <div class="current-avatar">
-                <ion-img [src]="currentAvatar" alt="Photo actuelle"></ion-img>
-            </div>
-        </div>
-
-        <!-- Photos par défaut disponibles -->
-        <div class="avatars-section">
-            <h3 class="section-title handwriting">Avatars disponibles</h3>
-
-            @if (isLoading) {
-            <div class="loading-section">
-                <ion-spinner name="circular"></ion-spinner>
-                <p>Chargement des avatars...</p>
-            </div>
-            } @else {
-            <ion-grid>
-                <ion-row>
-                    @for (avatar of availableAvatars; track avatar.url) {
-                    <ion-col size="4" size-md="3">
-                        <div class="avatar-option" [class.selected]="isSelected(avatar.url)"
-                            (click)="selectDefaultAvatar(avatar.url)">
-                            <ion-img [src]="avatar.url" alt="Avatar disponible"></ion-img>
-                            @if (isSelected(avatar.url)) {
-                            <ion-icon name="checkmark-circle-outline" class="selected-icon"></ion-icon>
-                            }
-                        </div>
-                    </ion-col>
-                    }
-                </ion-row>
-            </ion-grid>
-            }
-        </div>
-
-        <!-- Bouton pour photo personnalisée (caméra/galerie) -->
-        <div class="custom-photo-action">
-            <ion-button expand="block" fill="outline" class="custom-photo-button" (click)="showCustomPhotoOptions()"
-                [disabled]="isLoading">
-                @if (isLoading) {
-                <ion-spinner name="circular"></ion-spinner>
-                <span>&nbsp;&nbsp;Chargement...</span>
-                } @else {
-                <ion-icon name="camera-outline" slot="start"></ion-icon>
-                Prendre/Choisir une photo
-                }
-            </ion-button>
-        </div>
-
-        <!-- Bouton de sauvegarde -->
-        <div class="save-section">
-            <ion-button expand="block" color="primary" [disabled]="!hasChanged || isLoading" (click)="savePhoto()">
-                @if (isLoading) {
-                <ion-spinner name="circular"></ion-spinner>
-                <span>&nbsp;&nbsp;Sauvegarde...</span>
-                } @else {
-                Sauvegarder la photo
-                }
-            </ion-button>
-        </div>
+  <div class="controls">
+    <ion-item>
+      <ion-label>Zoom</ion-label>
+      <ion-range min="1" max="3" step="0.05" value="1" (ionChange)="zoomChanged($event)"></ion-range>
+    </ion-item>
+    <div class="buttons-row">
+      <ion-button fill="outline" (click)="rotateLeft()">
+        <ion-icon name="repeat-outline" slot="start" style="transform: scaleX(-1);"></ion-icon>
+        Pivoter G.
+      </ion-button>
+      <ion-button fill="outline" (click)="rotateRight()">
+        <ion-icon name="repeat-outline" slot="start"></ion-icon>
+        Pivoter D.
+      </ion-button>
+      <ion-button fill="outline" (click)="resetEditor()">
+        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+        Reset
+      </ion-button>
     </div>
+  </div>
+
+  <div class="sources">
+    <h3>Sources</h3>
+    <div class="buttons-row">
+      <ion-button (click)="chooseFromCamera()">
+        <ion-icon name="camera-outline" slot="start"></ion-icon>
+        Caméra
+      </ion-button>
+      <ion-button (click)="chooseFromGallery()">
+        <ion-icon name="images-outline" slot="start"></ion-icon>
+        Galerie
+      </ion-button>
+      <ion-button (click)="importFromFile()">
+        <ion-icon name="images-outline" slot="start"></ion-icon>
+        Fichier
+      </ion-button>
+    </div>
+
+    <h4>Avatars par défaut</h4>
+    <ion-grid class="defaults-grid">
+      <ion-row>
+        @for (av of defaultAvatars; track av) {
+          <ion-col size="3">
+            <img [src]="av" alt="avatar" class="default-avatar" (click)="onDefaultAvatarClick(av)" />
+          </ion-col>
+        }
+      </ion-row>
+    </ion-grid>
+  </div>
+
+  <div class="footer-actions">
+    <ion-button color="medium" fill="outline" (click)="cancel()">
+      <ion-icon name="close-outline" slot="start"></ion-icon>
+      Annuler
+    </ion-button>
+    <ion-button color="primary" (click)="save()">
+      <ion-icon name="save-outline" slot="start"></ion-icon>
+      Enregistrer
+    </ion-button>
+  </div>
 </ion-content>
+

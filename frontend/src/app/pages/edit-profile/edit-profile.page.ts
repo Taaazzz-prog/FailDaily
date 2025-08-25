@@ -6,7 +6,7 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
     IonIcon, IonButton, IonItem, IonLabel, IonInput, IonTextarea, IonSelect,
     IonSelectOption, IonToggle, IonSpinner, IonAlert, IonText,
-    AlertController, ActionSheetController
+    AlertController, ActionSheetController, ToastController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { createOutline, informationCircleOutline, mailOutline, optionsOutline, personOutline, refreshOutline, saveOutline } from 'ionicons/icons';
@@ -77,7 +77,8 @@ export class EditProfilePage implements OnInit {
         private authService: AuthService,
         private router: Router,
         private alertController: AlertController,
-        private actionSheetController: ActionSheetController
+        private actionSheetController: ActionSheetController,
+        private toastController: ToastController
     ) {
         // Configuration des icônes
         addIcons({
@@ -321,14 +322,14 @@ export class EditProfilePage implements OnInit {
     }
 
     private async saveUserProfile(userData: Partial<User>) {
-        console.log('🔄 Sauvegarde du profil dans Supabase:', userData);
+        console.log('🔄 Sauvegarde du profil (API /auth/profile):', userData);
 
         if (!this.currentUser?.id) {
             throw new Error('Utilisateur non authentifié');
         }
 
         try {
-            // ✅ Vérifier l'unicité du display_name avant de sauvegarder
+            // ✅ Vérifier l'unicité du displayName avant de sauvegarder
             const displayName = (userData.displayName || '').trim();
             if (!displayName) {
                 throw new Error('Le nom d\'affichage ne peut pas être vide.');
@@ -340,34 +341,28 @@ export class EditProfilePage implements OnInit {
                 throw new Error(`Le nom "${displayName}" est déjà utilisé. Essayez "${displayName}_1" ou un autre nom.`);
             }
 
-            // Préparer les données pour la base de données Supabase
+            // Construire le payload attendu par le backend
             const profileData = {
-                id: this.currentUser.id,
-                display_name: displayName,
-                bio: userData.preferences?.bio || null,
-                preferences: userData.preferences || {},
-                updated_at: new Date().toISOString()
-            };
+                displayName,
+                bio: userData.preferences?.bio ?? ''
+            } as any;
 
-            console.log('📤 Envoi vers Supabase profiles:', profileData);
+            console.log('📤 Envoi vers /auth/profile:', profileData);
 
-            // Mettre à jour dans Supabase via le service d'authentification
+            // Mettre à jour via le service d'authentification (relaye vers MysqlService.updateProfile)
             await this.authService.updateUserProfile(profileData);
 
-            console.log('✅ Profil mis à jour avec succès dans Supabase');
+            console.log('✅ Profil mis à jour avec succès');
 
         } catch (error) {
-            console.error('❌ Erreur lors de la sauvegarde Supabase:', error);
+            console.error('❌ Erreur lors de la sauvegarde profil:', error);
             throw error;
         }
     }
 
     resetForm() {
-        if (this.editForm.dirty) {
-            this.showCancelAlert = true;
-        } else {
-            this.confirmReset();
-        }
+        // Utiliser uniquement un toast pour notifier l'annulation
+        this.confirmReset();
     }
 
     confirmReset() {
@@ -375,21 +370,23 @@ export class EditProfilePage implements OnInit {
         this.showSaveMessage('Modifications annulées', 'refresh-outline', 'medium');
     }
 
-    private showSaveMessage(message: string, icon: string, color: string) {
-        this.saveMessage = message;
-        this.saveMessageIcon = icon;
-        this.saveMessageColor = color;
-
-        setTimeout(() => {
-            this.saveMessage = '';
-        }, 4000);
+    private async showSaveMessage(message: string, icon: string, color: string) {
+        // Remplacer les messages inline par des toasts
+        const toast = await this.toastController.create({
+            message,
+            duration: 3000,
+            color: color as any,
+            icon
+        });
+        await toast.present();
     }
 
     async canDeactivate(): Promise<boolean> {
+        // Professionnel: confirmer avant de perdre des changements
         if (this.editForm.dirty && !this.isLoading) {
             const alert = await this.alertController.create({
                 header: 'Modifications non sauvegardées',
-                message: 'Tu as des modifications non sauvegardées. Veux-tu vraiment quitter ?',
+                message: 'Tu as des modifications non sauvegardées. Veux-tu vraiment quitter ? ',
                 buttons: [
                     {
                         text: 'Rester',
@@ -405,7 +402,12 @@ export class EditProfilePage implements OnInit {
 
             await alert.present();
             const { role } = await alert.onDidDismiss();
-            return role !== 'cancel';
+            if (role === 'cancel') {
+                await this.showSaveMessage('Reste sur la page pour continuer à modifier', 'information-circle-outline', 'medium');
+                return false;
+            }
+            await this.showSaveMessage('Modifications non sauvegardées', 'alert-circle-outline', 'warning');
+            return true;
         }
         return true;
     }

@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { Filesystem } from '@capacitor/filesystem';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
@@ -410,39 +411,97 @@ export class MysqlService {
     try {
       console.log('🔄 MysqlService.updateProfile called with:', { userId, profile });
 
-      // Filtrer les champs autorisés
-      const allowedFields = [
-        'display_name', 'avatar_url', 'bio', 'location', 'website',
-        'date_of_birth', 'is_public', 'privacy_settings', 'notification_settings'
-      ];
+      // Mapper vers le format attendu par le backend: PUT /api/auth/profile
+      // Champs supportés: displayName, bio, avatarUrl
+      const payload: any = {};
+      if (profile.displayName !== undefined) payload.displayName = profile.displayName;
+      if (profile.display_name !== undefined && payload.displayName === undefined) payload.displayName = profile.display_name;
+      if (profile.bio !== undefined) payload.bio = profile.bio;
+      if (profile.avatarUrl !== undefined) payload.avatarUrl = profile.avatarUrl;
 
-      const profileToUpdate = Object.keys(profile)
-        .filter(key => allowedFields.includes(key))
-        .reduce((obj: any, key) => {
-          obj[key] = profile[key];
-          return obj;
-        }, {});
+      if (Object.keys(payload).length === 0) {
+        console.log('ℹ️ Aucun champ valide à mettre à jour');
+        return null;
+      }
 
-      profileToUpdate.updated_at = new Date().toISOString();
-
-      console.log('📤 Envoi vers MySQL API (filtré):', profileToUpdate);
-
-      const response: any = await this.http.put(`${this.apiUrl}/users/${userId}/profile`, profileToUpdate, {
+      console.log('📤 Envoi vers API /auth/profile:', payload);
+      const response: any = await this.http.put(`${this.apiUrl}/auth/profile`, payload, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      console.log('📥 MySQL response:', { success: response.success });
-
-      if (response.success) {
-        console.log('✅ MySQL updateProfile success');
+      if (response?.success) {
+        console.log('✅ Profil mis à jour via /auth/profile');
         this.profileUpdated.next();
-        return response.profile;
+        return response.data;
       } else {
-        console.error('❌ MySQL updateProfile error:', response.message);
-        throw new Error(response.message || 'Erreur lors de la mise à jour du profil');
+        const message = response?.message || 'Erreur lors de la mise à jour du profil';
+        console.error('❌ API /auth/profile error:', message);
+        throw new Error(message);
       }
     } catch (error: any) {
       console.error('❌ Erreur updateProfile:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload avatar fichier vers /api/upload/avatar
+   * Retourne l'URL de l'avatar stocké côté backend.
+   */
+  async uploadAvatar(file: File): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response: any = await this.http.post(`${this.apiUrl}/upload/avatar`, formData, {
+        headers: this.getMultipartHeaders()
+      }).toPromise();
+
+      if (response?.success && response?.data?.avatarUrl) {
+        console.log('🖼️ Avatar uploadé:', response.data.avatarUrl);
+        return response.data.avatarUrl;
+      }
+      throw new Error(response?.message || 'Upload avatar échoué');
+    } catch (error) {
+      console.error('❌ Erreur upload avatar:', error);
+      throw error;
+    }
+  }
+
+  private dataUrlToBlob(dataUrl: string): Blob {
+    const parts = dataUrl.split(',');
+    const mime = parts[0].match(/data:(.*?);base64/)?.[1] || 'image/jpeg';
+    const byteString = atob(parts[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    return new Blob([ab], { type: mime });
+  }
+
+  private base64ToBlob(base64: string, mime = 'image/jpeg'): Blob {
+    const byteString = atob(base64);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
+    return new Blob([ab], { type: mime });
+  }
+
+  async uploadAvatarFromDataUrl(dataUrl: string, filename = `avatar_${Date.now()}.jpg`): Promise<string> {
+    const blob = this.dataUrlToBlob(dataUrl);
+    const file = new File([blob], filename, { type: blob.type });
+    return this.uploadAvatar(file);
+  }
+
+  async uploadAvatarFromUri(fileUri: string, filename = `avatar_${Date.now()}.jpg`): Promise<string> {
+    try {
+      // Capacitor Filesystem returns base64 data
+      const { data } = await Filesystem.readFile({ path: fileUri });
+      const cleanBase64 = (data || '').split(',').pop() || '';
+      const blob = this.base64ToBlob(cleanBase64, 'image/jpeg');
+      const file = new File([blob], filename, { type: 'image/jpeg' });
+      return this.uploadAvatar(file);
+    } catch (error) {
+      console.error('❌ Erreur lecture fichier via Capacitor:', error);
       throw error;
     }
   }
@@ -511,7 +570,7 @@ export class MysqlService {
       // Upload de l'image si présente
       if (fail.image) {
         try {
-          imageUrl = await this.uploadImage(fail.image, 'fails', `fail_${Date.now()}.jpg`);
+          imageUrl = await this.uploadImage(fail.image);
           console.log('📷 Image uploadée:', imageUrl);
         } catch (error) {
           console.warn('⚠️ Erreur upload image, création du fail sans image:', error);
@@ -1518,22 +1577,20 @@ export class MysqlService {
     }
   }
 
-  async uploadImage(file: File, bucket: string, fileName: string): Promise<string> {
+  async uploadImage(file: File): Promise<string> {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('bucket', bucket);
-      formData.append('fileName', fileName);
 
-      const response: any = await this.http.post(`${this.apiUrl}/storage/upload-image`, formData, {
+      const response: any = await this.http.post(`${this.apiUrl}/upload/image`, formData, {
         headers: this.getMultipartHeaders()
       }).toPromise();
 
-      if (response.success) {
-        console.log('🖼️ Image uploadée:', response.url);
-        return response.url;
+      if (response?.success && response?.data?.imageUrl) {
+        console.log('🖼️ Image uploadée:', response.data.imageUrl);
+        return response.data.imageUrl;
       } else {
-        throw new Error(response.message || 'Erreur lors de l\'upload de l\'image');
+        throw new Error(response?.message || 'Erreur lors de l\'upload de l\'image');
       }
     } catch (error: any) {
       console.error('❌ Erreur upload image:', error);
