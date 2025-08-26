@@ -78,7 +78,7 @@ router.get('/public', optionalAuth, async (req, res) => {
     console.log('🔍 Query public fails:', query);
     console.log('🔍 Params:', [limitNum, offset]);
 
-    const fails = await executeQuery(query, [limitNum, offset]);
+    const fails = await executeQuery(query, [limitNum, offset], { textProtocol: true });
     
     // Traiter le résultat - anonymiser conditionnellement selon is_anonyme
     const processed = Array.isArray(fails) ? fails.map(fail => ({

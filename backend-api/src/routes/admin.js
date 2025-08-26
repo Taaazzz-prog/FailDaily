@@ -79,28 +79,22 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
 // GET /api/admin/fails/reported?threshold=10
 router.get('/fails/reported', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const threshold = parseInt(req.query.threshold) || 10;
-    const reported = await executeQuery(`
-      SELECT JSON_UNQUOTE(JSON_EXTRACT(details, '$.failId')) AS fail_id,
-             COUNT(*) AS reports
-      FROM system_logs
-      WHERE action = 'fail_report'
-      GROUP BY JSON_UNQUOTE(JSON_EXTRACT(details, '$.failId'))
+    const threshold = parseInt(req.query.threshold) || 1;
+    const items = await executeQuery(`
+      SELECT fr.fail_id, COUNT(*) AS reports,
+             f.title, f.description, f.category, f.user_id, f.created_at,
+             p.display_name, p.avatar_url,
+             fm.status AS moderation_status
+      FROM fail_reports fr
+      JOIN fails f ON f.id = fr.fail_id
+      JOIN profiles p ON p.user_id = f.user_id
+      LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+      GROUP BY fr.fail_id
       HAVING reports >= ?
-      ORDER BY reports DESC
+      ORDER BY reports DESC, f.created_at DESC
     `, [threshold]);
 
-    // Join with fails for context
-    const results = [];
-    for (const row of reported) {
-      const [fail] = await executeQuery(
-        'SELECT id, user_id, title, description, category, is_anonyme, created_at FROM fails WHERE id = ? LIMIT 1',
-        [row.fail_id]
-      );
-      results.push({ fail, reports: row.reports });
-    }
-
-    res.json({ success: true, items: results, threshold });
+    res.json({ success: true, items, threshold });
   } catch (error) {
     console.error('❌ /admin/fails/reported error:', error);
     res.status(500).json({ success: false, message: 'Erreur récupération fails signalés' });

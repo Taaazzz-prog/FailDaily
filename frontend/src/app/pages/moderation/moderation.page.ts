@@ -36,6 +36,45 @@ export class ModerationPage {
     private toastController: ToastController
   ) {}
 
+  // Reported items for moderation
+  reportedFails: any[] = [];
+  reportedComments: any[] = [];
+
+  async ionViewWillEnter() {
+    await this.loadReports();
+  }
+
+  async loadReports() {
+    try {
+      this.reportedFails = await this.mysql.getReportedFails(1);
+      this.reportedComments = await this.mysql.getReportedComments(1);
+    } catch {}
+  }
+
+  async approveFail(failId: string) {
+    await this.mysql.setFailModerationStatus(failId, 'approved');
+    this.reportedFails = this.reportedFails.filter(f => f.fail_id !== failId);
+    await this.showToast('Fail approuvé', 'success');
+  }
+
+  async hideFail(failId: string) {
+    await this.mysql.setFailModerationStatus(failId, 'hidden');
+    this.reportedFails = this.reportedFails.filter(f => f.fail_id !== failId);
+    await this.showToast('Fail masqué', 'warning');
+  }
+
+  async approveComment(commentId: string) {
+    await this.mysql.setCommentModerationStatus(commentId, 'approved');
+    this.reportedComments = this.reportedComments.filter(c => c.comment?.id !== commentId);
+    await this.showToast('Commentaire approuvé', 'success');
+  }
+
+  async hideComment(commentId: string) {
+    await this.mysql.setCommentModerationStatus(commentId, 'hidden');
+    this.reportedComments = this.reportedComments.filter(c => c.comment?.id !== commentId);
+    await this.showToast('Commentaire masqué', 'warning');
+  }
+
   async deleteFail() {
     if (!this.failId || !this.failDeleteReason.trim()) {
       return this.showToast('ID du fail et raison requis', 'warning');

@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonButton, IonItem, IonList, IonLabel, IonTextarea, IonSpinner } from '@ionic/angular/standalone';
+import { IonButton, IonItem, IonList, IonLabel, IonTextarea, IonSpinner, ToastController } from '@ionic/angular/standalone';
 import { CommentService, CommentItem } from '../../services/comment.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -20,7 +20,7 @@ export class CommentsThreadComponent implements OnInit {
   newComment = '';
   isAuthenticated = false;
 
-  constructor(private commentsSvc: CommentService, private auth: AuthService) {}
+  constructor(private commentsSvc: CommentService, private auth: AuthService, private toast: ToastController) {}
 
   async ngOnInit() {
     this.isAuthenticated = this.auth.isAuthenticated();
@@ -41,6 +41,7 @@ export class CommentsThreadComponent implements OnInit {
       // Affichage immédiat (optimiste)
       this.comments = [created, ...this.comments];
       this.newComment = '';
+      (await this.toast.create({ message: 'Commentaire publié', duration: 1500, color: 'success' })).present();
     }
   }
 
@@ -50,6 +51,7 @@ export class CommentsThreadComponent implements OnInit {
       if (ok) {
         // Masquer immédiatement localement
         this.comments = this.comments.filter(x => x.id !== c.id);
+        (await this.toast.create({ message: 'Commentaire signalé', duration: 1500, color: 'warning' })).present();
       }
     } catch {}
   }

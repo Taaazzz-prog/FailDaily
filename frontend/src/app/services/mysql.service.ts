@@ -92,7 +92,11 @@ export class MysqlService {
     
     if (token && userData) {
       try {
-        const user = JSON.parse(userData);
+        const parsed = JSON.parse(userData);
+        const user = (parsed && parsed.user) ? parsed.user : parsed;
+        if (user && user.role) {
+          user.role = this.normalizeRole(user.role);
+        }
         this.currentUser.next(user);
         console.log('✅ Utilisateur restauré depuis le localStorage');
       } catch (error) {
@@ -105,7 +109,7 @@ export class MysqlService {
   private saveAuthData(token: string, user: User): void {
     // ✅ FIX: Utiliser les mêmes clés que l'AuthService
     localStorage.setItem('faildaily_token', token);
-    localStorage.setItem('faildaily_user_cache', JSON.stringify(user));
+    localStorage.setItem('faildaily_user_cache', JSON.stringify({ user, timestamp: Date.now() }));
     this.currentUser.next(user);
     console.log('🔐 MysqlService: Données d\'authentification sauvegardées');
   }
@@ -1628,6 +1632,33 @@ export class MysqlService {
       console.error('❌ Erreur upload image:', error);
       throw error;
     }
+  }
+
+  // Moderation API helpers
+  async getReportedFails(threshold: number = 1): Promise<any[]> {
+    const res: any = await this.http.get(`${this.apiUrl}/admin/fails/reported?threshold=${threshold}`, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+    return res?.items || [];
+  }
+
+  async getReportedComments(threshold: number = 1): Promise<any[]> {
+    const res: any = await this.http.get(`${this.apiUrl}/admin/comments/reported?threshold=${threshold}`, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+    return res?.items || [];
+  }
+
+  async setFailModerationStatus(failId: string, status: 'approved'|'hidden'|'under_review'): Promise<void> {
+    await this.http.put(`${this.apiUrl}/admin/fails/${failId}/moderation`, { status }, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+  }
+
+  async setCommentModerationStatus(commentId: string, status: 'approved'|'hidden'|'under_review'): Promise<void> {
+    await this.http.put(`${this.apiUrl}/admin/comments/${commentId}/moderation`, { status }, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
   }
 
   async reportFail(failId: string, reason?: string): Promise<any> {

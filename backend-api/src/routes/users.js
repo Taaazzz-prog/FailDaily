@@ -177,7 +177,8 @@ router.get('/:userId/fails', authenticateToken, async (req, res) => {
       FROM fails f
       LEFT JOIN users u ON f.user_id = u.id
       LEFT JOIN profiles p ON f.user_id = p.user_id
-      WHERE f.user_id = ?
+      LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+      WHERE f.user_id = ? AND (fm.status IS NULL OR fm.status = 'approved')
       ORDER BY f.created_at DESC
     `, [userId]);
     

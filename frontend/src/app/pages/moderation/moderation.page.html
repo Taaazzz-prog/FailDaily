@@ -85,4 +85,51 @@
       </ion-card-content>
     </ion-card>
   </div>
+
+  <!-- Reported items -->
+  <div class="section">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Fails signalés</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let f of reportedFails">
+            <ion-label>
+              <h3>{{ f.title }} <small>#{{ f.fail_id }}</small></h3>
+              <p>Par: {{ f.display_name }} — {{ f.category }} — Signalements: {{ f.reports }}</p>
+              <p>Statut: {{ f.moderation_status || 'approved' }}</p>
+            </ion-label>
+            <ion-button size="small" color="success" (click)="approveFail(f.fail_id)">Approuver</ion-button>
+            <ion-button size="small" color="warning" (click)="hideFail(f.fail_id)">Masquer</ion-button>
+          </ion-item>
+          <ion-item *ngIf="!reportedFails.length">
+            <ion-label>Aucun fail à modérer</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Commentaires signalés</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let c of reportedComments">
+            <ion-label>
+              <h3>Commentaire #{{ c.comment?.id }} — Signalements: {{ c.reports }}</h3>
+              <p>{{ c.comment?.content }}</p>
+              <p>Fail: {{ c.comment?.fail_id }} — Auteur: {{ c.comment?.user_id }}</p>
+            </ion-label>
+            <ion-button size="small" color="success" (click)="approveComment(c.comment?.id)">Approuver</ion-button>
+            <ion-button size="small" color="warning" (click)="hideComment(c.comment?.id)">Masquer</ion-button>
+          </ion-item>
+          <ion-item *ngIf="!reportedComments.length">
+            <ion-label>Aucun commentaire à modérer</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  </div>
 </ion-content>

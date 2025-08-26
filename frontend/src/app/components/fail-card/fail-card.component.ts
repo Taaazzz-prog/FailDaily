@@ -234,6 +234,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       const ok = await this.failService.reportFail(this.fail.id);
       if (ok) {
         this.hidden = true; // masquer localement
+        (await this.toastController.create({ message: 'Fail signalé', duration: 1500, color: 'warning' })).present();
         this.cdr.detectChanges();
       }
     } catch {}

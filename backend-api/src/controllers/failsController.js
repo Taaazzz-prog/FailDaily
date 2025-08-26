@@ -174,7 +174,8 @@ class FailsController {
         FROM fails f
         JOIN users u ON f.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
-        ${whereClause}
+        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+        ${whereClause ? whereClause + ' AND ' : 'WHERE '} (fm.status IS NULL OR fm.status = 'approved')
         ORDER BY f.${sortBy} ${sortOrder}
         LIMIT ? OFFSET ?
       `;
@@ -191,7 +192,8 @@ class FailsController {
         SELECT COUNT(*) as total
         FROM fails f
         JOIN users u ON f.user_id = u.id
-        ${whereClause}
+        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+        ${whereClause ? whereClause + ' AND ' : 'WHERE '} (fm.status IS NULL OR fm.status = 'approved')
       `;
 
       const countParams = currentUserId 
@@ -753,7 +755,9 @@ class FailsController {
         FROM fails f
         JOIN users u ON f.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
+        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
         WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
+          AND (fm.status IS NULL OR fm.status = 'approved')
       `;
 
       const params = [];
@@ -790,7 +794,9 @@ class FailsController {
       let countQuery = `
         SELECT COUNT(*) as total
         FROM fails f
+        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
         WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
+          AND (fm.status IS NULL OR fm.status = 'approved')
       `;
       const countParams = [searchTerm, searchTerm, searchTerm];
 
