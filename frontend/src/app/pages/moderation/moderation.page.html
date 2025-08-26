@@ -5,17 +5,23 @@
 </ion-header>
 
 <ion-content>
-  <ion-segment [(ngModel)]="selectedSegment">
-    <ion-segment-button value="fails">
-      <ion-label>Fails</ion-label>
+  <ion-segment [(ngModel)]="selectedSegment" (ionChange)="onSegmentChange($event)">
+    <ion-segment-button value="fails_mod">
+      <ion-label>Fails à modérer</ion-label>
     </ion-segment-button>
-    <ion-segment-button value="pseudos">
-      <ion-label>Pseudos</ion-label>
+    <ion-segment-button value="comments_mod">
+      <ion-label>Commentaires à modérer</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="validated">
+      <ion-label>Validés</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="hidden">
+      <ion-label>Masqués</ion-label>
     </ion-segment-button>
   </ion-segment>
 
-  <!-- Fails moderation -->
-  <div *ngIf="selectedSegment === 'fails'" class="section">
+  <!-- Fails moderation tools (quick delete) -->
+  <div *ngIf="selectedSegment === 'fails_mod'" class="section">
     <ion-card>
       <ion-card-header>
         <ion-card-title>Supprimer un fail</ion-card-title>
@@ -37,8 +43,8 @@
     </ion-card>
   </div>
 
-  <!-- Pseudos moderation -->
-  <div *ngIf="selectedSegment === 'pseudos'" class="section">
+  <!-- Users (optional) -->
+  <div *ngIf="false" class="section">
     <ion-card>
       <ion-card-header>
         <ion-card-title>Rechercher un utilisateur</ion-card-title>
@@ -86,8 +92,8 @@
     </ion-card>
   </div>
 
-  <!-- Reported items -->
-  <div class="section">
+  <!-- Reported Fails -->
+  <div class="section" *ngIf="selectedSegment === 'fails_mod'">
     <ion-card>
       <ion-card-header>
         <ion-card-title>Fails signalés</ion-card-title>
@@ -110,6 +116,10 @@
       </ion-card-content>
     </ion-card>
 
+  </div>
+
+  <!-- Reported Comments -->
+  <div class="section" *ngIf="selectedSegment === 'comments_mod'">
     <ion-card>
       <ion-card-header>
         <ion-card-title>Commentaires signalés</ion-card-title>
@@ -118,15 +128,103 @@
         <ion-list>
           <ion-item *ngFor="let c of reportedComments">
             <ion-label>
-              <h3>Commentaire #{{ c.comment?.id }} — Signalements: {{ c.reports }}</h3>
-              <p>{{ c.comment?.content }}</p>
-              <p>Fail: {{ c.comment?.fail_id }} — Auteur: {{ c.comment?.user_id }}</p>
+              <h3>Commentaire #{{ c.comment_id || c.comment?.id }} — Signalements: {{ c.reports }}</h3>
+              <p>{{ c.content || c.comment?.content }}</p>
+              <p>Fail: {{ c.fail_id || c.comment?.fail_id }} — Auteur: {{ c.user_id || c.comment?.user_id }}</p>
             </ion-label>
-            <ion-button size="small" color="success" (click)="approveComment(c.comment?.id)">Approuver</ion-button>
-            <ion-button size="small" color="warning" (click)="hideComment(c.comment?.id)">Masquer</ion-button>
+            <ion-button size="small" color="success" (click)="approveComment(c.comment_id || c.comment?.id)">Approuver</ion-button>
+            <ion-button size="small" color="warning" (click)="hideComment(c.comment_id || c.comment?.id)">Masquer</ion-button>
           </ion-item>
           <ion-item *ngIf="!reportedComments.length">
             <ion-label>Aucun commentaire à modérer</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Validated lists -->
+  <div class="section" *ngIf="selectedSegment === 'validated'">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Fails validés</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let f of approvedFails">
+            <ion-label>
+              <h3>{{ f.title }} <small>#{{ f.fail_id }}</small></h3>
+              <p>Par: {{ f.display_name }} — {{ f.category }}</p>
+            </ion-label>
+            <ion-button size="small" color="warning" (click)="hideFail(f.fail_id)">Masquer</ion-button>
+          </ion-item>
+          <ion-item *ngIf="!approvedFails.length">
+            <ion-label>Aucun fail validé</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Commentaires validés</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let c of approvedComments">
+            <ion-label>
+              <h3>Commentaire #{{ c.comment_id }}</h3>
+              <p>{{ c.content }}</p>
+              <p>Fail: {{ c.fail_id }} — Auteur: {{ c.display_name }}</p>
+            </ion-label>
+            <ion-button size="small" color="warning" (click)="hideComment(c.comment_id)">Masquer</ion-button>
+          </ion-item>
+          <ion-item *ngIf="!approvedComments.length">
+            <ion-label>Aucun commentaire validé</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Hidden lists -->
+  <div class="section" *ngIf="selectedSegment === 'hidden'">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Fails masqués</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let f of hiddenFails">
+            <ion-label>
+              <h3>{{ f.title }} <small>#{{ f.fail_id }}</small></h3>
+              <p>Par: {{ f.display_name }} — {{ f.category }}</p>
+            </ion-label>
+            <ion-button size="small" color="success" (click)="approveFail(f.fail_id)">Approuver</ion-button>
+          </ion-item>
+          <ion-item *ngIf="!hiddenFails.length">
+            <ion-label>Aucun fail masqué</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Commentaires masqués</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list>
+          <ion-item *ngFor="let c of hiddenComments">
+            <ion-label>
+              <h3>Commentaire #{{ c.comment_id }}</h3>
+              <p>{{ c.content }}</p>
+              <p>Fail: {{ c.fail_id }} — Auteur: {{ c.display_name }}</p>
+            </ion-label>
+            <ion-button size="small" color="success" (click)="approveComment(c.comment_id)">Approuver</ion-button>
+          </ion-item>
+          <ion-item *ngIf="!hiddenComments.length">
+            <ion-label>Aucun commentaire masqué</ion-label>
           </ion-item>
         </ion-list>
       </ion-card-content>
@@ -144,6 +242,10 @@
       <ion-item>
         <ion-label position="stacked">Seuil signalements Commentaires</ion-label>
         <ion-input type="number" [(ngModel)]="commentThreshold"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Intervalle d'auto-refresh (secondes)</ion-label>
+        <ion-input type="number" [(ngModel)]="refreshIntervalSec" min="5"></ion-input>
       </ion-item>
       <ion-button expand="block" (click)="saveThresholds()">Enregistrer</ion-button>
     </ion-card-content>

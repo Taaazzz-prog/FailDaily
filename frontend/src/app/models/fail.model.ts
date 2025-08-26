@@ -27,4 +27,5 @@ export interface Fail {
   is_anonyme: boolean;
   createdAt: Date;
   encouragementMessage?: string;
+  moderationStatus?: 'approved' | 'hidden' | 'under_review';
 }

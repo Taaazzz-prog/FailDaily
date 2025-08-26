@@ -259,7 +259,8 @@ class CommentsController {
         updatedAt: comment.updated_at,
         repliesCount: 0,
         likesCount: 0,
-        replies: []
+        replies: [],
+        moderationStatus: comment.moderation_status || null
       }));
 
       res.json({

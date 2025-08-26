@@ -1,4 +1,4 @@
-<div class="fail-card imperfect-element" *ngIf="!hidden">
+<div class="fail-card imperfect-element" *ngIf="!hidden" [class.validated]="fail.moderationStatus === 'approved'">
   <!-- En-tête de la carte -->
   <div class="card-header">
     <div class="author-info" [class.clickable-author]="!fail.is_anonyme" [class.anonymous-author]="fail.is_anonyme">
@@ -15,6 +15,12 @@
 
   <!-- Titre et contenu du fail -->
   <div class="card-content">
+    <div class="validation-banner" *ngIf="fail.moderationStatus === 'approved'">
+      <ion-chip color="success">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <ion-label>Contenu validé</ion-label>
+      </ion-chip>
+    </div>
     <h2 class="fail-title">{{ fail.title }}</h2>
     <p class="fail-text">{{ fail.description }}</p>
   @if (fail.imageUrl) {
@@ -23,14 +29,6 @@
   </div>
 
   <!-- Actions de réaction -->
-  <!-- Statut de validation (affiché pour les contenus visibles) -->
-  <div class="validation-banner">
-    <ion-chip color="success" outline="false">
-      <ion-icon name="shield-checkmark-outline"></ion-icon>
-      <ion-label>Contenu validé</ion-label>
-    </ion-chip>
-  </div>
-
   <div class="card-actions">
     <ion-button fill="clear" size="small" (click)="onCourage()" class="reaction-button courage"
       [class.active]="isReactionActive('courage')">
@@ -55,7 +53,11 @@
       <ion-icon name="trophy-outline" slot="start"></ion-icon>
       <span>{{ fail.reactions.support }}</span>
     </ion-button>
-    <!-- Bouton signaler retiré et remplacé par un indicateur visuel de validation -->
+    <!-- Action discrète pour signaler (seulement si non validé) -->
+    <ion-button *ngIf="fail.moderationStatus !== 'approved'" fill="clear" size="small" (click)="onReportFail()">
+      <ion-icon name="flag-outline" slot="start"></ion-icon>
+      <span>Signaler</span>
+    </ion-button>
   </div>
 
   <!-- Commentaires -->

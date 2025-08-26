@@ -14,14 +14,18 @@
         <ion-label>
           <h3>{{ c.author?.displayName || 'Membre' }}</h3>
           <p>{{ c.content }}</p>
-          <div class="comment-valid">
+          <div class="comment-valid" *ngIf="c.moderationStatus === 'approved'">
             <ion-chip color="success">
               <ion-icon name="shield-checkmark-outline"></ion-icon>
               <ion-label>Commentaire validé</ion-label>
             </ion-chip>
           </div>
         </ion-label>
-        <!-- Bouton signaler retiré: remplacé par un indicateur discret de validation -->
+        <!-- Bouton signaler (compact) si non validé -->
+        <ion-button *ngIf="c.moderationStatus !== 'approved'" fill="clear" size="small" (click)="onReport(c)">
+          <ion-icon name="flag-outline" slot="start"></ion-icon>
+          <span>Signaler</span>
+        </ion-button>
       </ion-item>
       <ion-item *ngIf="comments.length === 0">
         <ion-label>Aucun commentaire pour le moment.</ion-label>

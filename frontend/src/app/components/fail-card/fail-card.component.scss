@@ -6,6 +6,10 @@
   padding: var(--fail-spacing-lg);
   transition: var(--fail-transition);
 
+  &.validated {
+    border: 2px solid #0f6d3f22;
+  }
+
   &:hover {
     box-shadow: var(--fail-shadow-medium);
     transform: translateY(-2px);

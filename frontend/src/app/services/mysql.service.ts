@@ -1649,6 +1649,20 @@ export class MysqlService {
     return res?.items || [];
   }
 
+  async getFailsByStatus(status: 'approved'|'hidden'): Promise<any[]> {
+    const res: any = await this.http.get(`${this.apiUrl}/admin/fails/by-status?status=${status}`, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+    return res?.items || [];
+  }
+
+  async getCommentsByStatus(status: 'approved'|'hidden'): Promise<any[]> {
+    const res: any = await this.http.get(`${this.apiUrl}/admin/comments/by-status?status=${status}`, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+    return res?.items || [];
+  }
+
   async setFailModerationStatus(failId: string, status: 'approved'|'hidden'|'under_review'): Promise<void> {
     await this.http.put(`${this.apiUrl}/admin/fails/${failId}/moderation`, { status }, {
       headers: this.getAuthHeaders()
@@ -1661,14 +1675,14 @@ export class MysqlService {
     }).toPromise();
   }
 
-  async getModerationConfig(): Promise<{ failReportThreshold: number, commentReportThreshold: number }> {
+  async getModerationConfig(): Promise<{ failReportThreshold: number, commentReportThreshold: number, panelAutoRefreshSec: number }> {
     const res: any = await this.http.get(`${this.apiUrl}/admin/moderation/config`, {
       headers: this.getAuthHeaders()
     }).toPromise();
-    return res?.config || { failReportThreshold: 1, commentReportThreshold: 1 };
+    return res?.config || { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
   }
 
-  async updateModerationConfig(cfg: { failReportThreshold: number, commentReportThreshold: number }): Promise<void> {
+  async updateModerationConfig(cfg: { failReportThreshold: number, commentReportThreshold: number, panelAutoRefreshSec?: number }): Promise<void> {
     await this.http.put(`${this.apiUrl}/admin/moderation/config`, cfg, {
       headers: this.getAuthHeaders()
     }).toPromise();

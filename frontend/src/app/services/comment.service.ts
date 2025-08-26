@@ -10,6 +10,7 @@ export interface CommentItem {
   isEncouragement: boolean;
   createdAt: string;
   author?: { displayName: string; avatarUrl?: string };
+  moderationStatus?: 'approved' | 'hidden' | 'under_review';
 }
 
 @Injectable({ providedIn: 'root' })

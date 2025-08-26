@@ -20,7 +20,8 @@ function mapFailRow(fail) {
     updatedAt: new Date(fail.updated_at).toISOString(),
     tags: fail.tags ? JSON.parse(fail.tags) : [],
     location: fail.location ? JSON.parse(fail.location) : null,
-    userReaction: fail.user_reaction
+    userReaction: fail.user_reaction,
+    moderationStatus: fail.moderation_status || 'approved'
   };
 }
 
@@ -168,6 +169,7 @@ class FailsController {
           f.*,
           p.display_name,
           p.avatar_url,
+          fm.status AS moderation_status,
           (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
           (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
           ${currentUserId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
@@ -251,7 +253,7 @@ class FailsController {
     // 2) Requête : pas de filtre sur is_anonyme (tout est visible)
     //    Ordre stable pour éviter doublons/manqués si nouveaux posts arrivent
     const sql = `
-      SELECT f.*, p.display_name, p.avatar_url
+      SELECT f.*, p.display_name, p.avatar_url, fm.status AS moderation_status
       FROM fails f
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
@@ -314,6 +316,7 @@ class FailsController {
           f.*,
           p.display_name,
           p.avatar_url,
+          fm.status AS moderation_status,
           (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
           (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
           ${userId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
@@ -749,6 +752,7 @@ class FailsController {
           f.*,
           p.display_name,
           p.avatar_url,
+          fm.status AS moderation_status,
           (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
           (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
           ${userId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}

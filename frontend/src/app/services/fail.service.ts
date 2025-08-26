@@ -232,7 +232,8 @@ export class FailService {
       createdAt: createdDate, // ✅ FIX: Date formatée correctement
       is_anonyme: failData.is_anonyme,
       commentsCount: (failData.commentsCount ?? failData.comments_count ?? 0),
-      reactions: reactions // ✅ FIX: Réactions récupérées depuis l'API
+      reactions: reactions, // ✅ FIX: Réactions récupérées depuis l'API
+      moderationStatus: failData.moderationStatus || failData.moderation_status || 'approved'
     };
   }
 

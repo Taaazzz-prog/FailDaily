@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonIcon, ViewWillEnter, ToastController, PopoverController, IonChip, IonLabel } from '@ionic/angular/standalone';
+import { IonButton, IonIcon, IonChip, IonLabel, ViewWillEnter, ToastController, PopoverController } from '@ionic/angular/standalone';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';

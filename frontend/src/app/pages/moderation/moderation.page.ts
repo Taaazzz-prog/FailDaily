@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
@@ -12,9 +12,9 @@ import { MysqlService } from '../../services/mysql.service';
   standalone: true,
   imports: [CommonModule, IonicModule, FormsModule]
 })
-export class ModerationPage {
+export class ModerationPage implements OnDestroy {
   // Segments
-  selectedSegment: 'fails' | 'pseudos' = 'fails';
+  selectedSegment: 'fails_mod' | 'comments_mod' | 'validated' | 'hidden' = 'fails_mod';
 
   // Fails moderation
   failId: string = '';
@@ -39,54 +39,122 @@ export class ModerationPage {
   // Reported items for moderation
   reportedFails: any[] = [];
   reportedComments: any[] = [];
-  // Config thresholds
+  // Approved/Hidden lists
+  approvedFails: any[] = [];
+  hiddenFails: any[] = [];
+  approvedComments: any[] = [];
+  hiddenComments: any[] = [];
+  // Config thresholds (affiché en bas de page)
   failThreshold = 1;
   commentThreshold = 1;
+  private configLoaded = false;
+  refreshIntervalSec = 20;
+  private refreshTimer: any = null;
+  private loading = false;
 
   async ionViewWillEnter() {
-    await this.loadReports();
+    await this.loadConfigOnce();
+    await this.loadVisibleData();
+    this.startAutoRefresh();
   }
 
-  async loadReports() {
+  ngOnDestroy(): void {
+    this.stopAutoRefresh();
+  }
+
+  private startAutoRefresh(intervalMs?: number) {
+    this.stopAutoRefresh();
+    const ms = Math.max(5000, Math.round((intervalMs ?? this.refreshIntervalSec * 1000)));
+    this.refreshTimer = setInterval(() => {
+      this.loadVisibleData();
+    }, ms);
+  }
+
+  private stopAutoRefresh() {
+    if (this.refreshTimer) {
+      clearInterval(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  private async loadConfigOnce() {
+    if (this.configLoaded) return;
     try {
       const cfg = await this.mysql.getModerationConfig();
       this.failThreshold = cfg.failReportThreshold;
       this.commentThreshold = cfg.commentReportThreshold;
-      this.reportedFails = await this.mysql.getReportedFails(1);
-      this.reportedComments = await this.mysql.getReportedComments(1);
+      this.refreshIntervalSec = Math.max(5, Number(cfg.panelAutoRefreshSec) || 20);
+      this.configLoaded = true;
     } catch {}
+  }
+
+  async loadVisibleData() {
+    if (this.loading) return;
+    this.loading = true;
+    try {
+      switch (this.selectedSegment) {
+        case 'fails_mod':
+          this.reportedFails = await this.mysql.getReportedFails(1);
+          break;
+        case 'comments_mod':
+          this.reportedComments = await this.mysql.getReportedComments(1);
+          break;
+        case 'validated':
+          [this.approvedFails, this.approvedComments] = await Promise.all([
+            this.mysql.getFailsByStatus('approved'),
+            this.mysql.getCommentsByStatus('approved')
+          ]);
+          break;
+        case 'hidden':
+          [this.hiddenFails, this.hiddenComments] = await Promise.all([
+            this.mysql.getFailsByStatus('hidden'),
+            this.mysql.getCommentsByStatus('hidden')
+          ]);
+          break;
+      }
+    } finally { this.loading = false; }
   }
 
   async approveFail(failId: string) {
     await this.mysql.setFailModerationStatus(failId, 'approved');
-    this.reportedFails = this.reportedFails.filter(f => f.fail_id !== failId);
+    await this.loadVisibleData();
     await this.showToast('Fail approuvé', 'success');
   }
 
   async hideFail(failId: string) {
     await this.mysql.setFailModerationStatus(failId, 'hidden');
-    this.reportedFails = this.reportedFails.filter(f => f.fail_id !== failId);
+    await this.loadVisibleData();
     await this.showToast('Fail masqué', 'warning');
   }
 
   async approveComment(commentId: string) {
+    if (!commentId) { await this.showToast('ID commentaire invalide', 'danger'); return; }
     await this.mysql.setCommentModerationStatus(commentId, 'approved');
-    this.reportedComments = this.reportedComments.filter(c => c.comment?.id !== commentId);
+    await this.loadVisibleData();
     await this.showToast('Commentaire approuvé', 'success');
   }
 
   async hideComment(commentId: string) {
+    if (!commentId) { await this.showToast('ID commentaire invalide', 'danger'); return; }
     await this.mysql.setCommentModerationStatus(commentId, 'hidden');
-    this.reportedComments = this.reportedComments.filter(c => c.comment?.id !== commentId);
+    await this.loadVisibleData();
     await this.showToast('Commentaire masqué', 'warning');
+  }
+
+  async onSegmentChange(_: any) {
+    // Recharge uniquement les listes visibles
+    await this.loadVisibleData();
   }
 
   async saveThresholds() {
     try {
       await this.mysql.updateModerationConfig({
         failReportThreshold: this.failThreshold,
-        commentReportThreshold: this.commentThreshold
+        commentReportThreshold: this.commentThreshold,
+        panelAutoRefreshSec: this.refreshIntervalSec
       });
+      // redémarre l'auto-refresh avec la nouvelle valeur
+      this.startAutoRefresh();
       await this.showToast('Configuration enregistrée', 'success');
     } catch {
       await this.showToast('Erreur enregistrement configuration', 'danger');

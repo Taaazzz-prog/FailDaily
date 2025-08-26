@@ -6,10 +6,23 @@ const { authenticateToken } = require('../middleware/auth');
 
 // Require admin role helper
 function requireAdmin(req, res, next) {
-  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'super_admin')) {
+  if (!req.user || !['admin','super_admin','moderator'].includes(String(req.user.role || '').toLowerCase())) {
     return res.status(403).json({ success: false, message: 'Accès administrateur requis' });
   }
   next();
+}
+
+// Ensure moderation table exists (defensive, in case migrations not applied)
+async function ensureCommentModerationTable() {
+  await executeQuery(`
+    CREATE TABLE IF NOT EXISTS comment_moderation (
+      comment_id CHAR(36) NOT NULL,
+      status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+      updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (comment_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
 }
 
 // GET /api/admin/dashboard/stats
@@ -80,7 +93,7 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
 router.get('/moderation/config', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
-    let cfg = { failReportThreshold: 1, commentReportThreshold: 1 };
+    let cfg = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
     if (row && row[0] && row[0].value) {
       try { cfg = { ...cfg, ...JSON.parse(row[0].value) }; } catch {}
     }
@@ -95,17 +108,27 @@ router.get('/moderation/config', authenticateToken, requireAdmin, async (req, re
 router.put('/moderation/config', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const input = req.body || {};
-    const cfg = {
-      failReportThreshold: Number(input.failReportThreshold) || 1,
-      commentReportThreshold: Number(input.commentReportThreshold) || 1
+    // Load existing to preserve unknown keys
+    let currentCfg = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
+    try {
+      const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
+      if (row && row[0] && row[0].value) currentCfg = { ...currentCfg, ...JSON.parse(row[0].value) };
+    } catch {}
+
+    const nextCfg = {
+      ...currentCfg,
+      failReportThreshold: Number(input.failReportThreshold ?? currentCfg.failReportThreshold) || 1,
+      commentReportThreshold: Number(input.commentReportThreshold ?? currentCfg.commentReportThreshold) || 1,
+      panelAutoRefreshSec: Math.max(5, Number(input.panelAutoRefreshSec ?? currentCfg.panelAutoRefreshSec) || 20)
     };
+
     await executeQuery(
       `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
        VALUES (UUID(), 'moderation', ?, NOW(), NOW())
        ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
-      [JSON.stringify(cfg)]
+      [JSON.stringify(nextCfg)]
     );
-    res.json({ success: true, config: cfg });
+    res.json({ success: true, config: nextCfg });
   } catch (e) {
     console.error('❌ /admin/moderation/config update error:', e);
     res.status(500).json({ success: false, message: 'Erreur mise à jour config modération' });
@@ -162,12 +185,78 @@ router.get('/comments/reported', authenticateToken, requireAdmin, async (req, re
   }
 });
 
+// GET /api/admin/fails/by-status?status=approved|hidden
+router.get('/fails/by-status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || '').toLowerCase();
+    if (!['approved','hidden'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Statut invalide' });
+    }
+
+    const items = await executeQuery(`
+      SELECT f.id          AS fail_id,
+             f.title, f.description, f.category,
+             f.user_id, f.created_at,
+             p.display_name, p.avatar_url,
+             fm.status      AS moderation_status
+      FROM fail_moderation fm
+      JOIN fails f   ON f.id = fm.fail_id
+      JOIN profiles p ON p.user_id = f.user_id
+      WHERE fm.status = ?
+      ORDER BY f.created_at DESC
+      LIMIT 500
+    `, [status]);
+
+    res.json({ success: true, items, status });
+  } catch (error) {
+    console.error('❌ /admin/fails/by-status error:', error);
+    res.status(500).json({ success: false, message: 'Erreur récupération fails par statut' });
+  }
+});
+
+// GET /api/admin/comments/by-status?status=approved|hidden
+router.get('/comments/by-status', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || '').toLowerCase();
+    if (!['approved','hidden'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Statut invalide' });
+    }
+
+    const items = await executeQuery(`
+      SELECT cm.comment_id,
+             cm.status            AS moderation_status,
+             c.content,
+             c.fail_id, c.user_id, c.created_at,
+             p.display_name, p.avatar_url
+      FROM comment_moderation cm
+      JOIN comments c ON c.id = cm.comment_id
+      JOIN profiles p ON p.user_id = c.user_id
+      WHERE cm.status = ?
+      ORDER BY c.created_at DESC
+      LIMIT 1000
+    `, [status]);
+
+    res.json({ success: true, items, status });
+  } catch (error) {
+    console.error('❌ /admin/comments/by-status error:', error);
+    res.status(500).json({ success: false, message: 'Erreur récupération commentaires par statut' });
+  }
+});
+
 // POST /api/admin/comments/:id/moderate { action }
 router.post('/comments/:id/moderate', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    await ensureCommentModerationTable();
     const { id } = req.params;
     const { action } = req.body || {};
     if (!action) return res.status(400).json({ success: false, message: 'Action requise' });
+    if (!id || typeof id !== 'string' || id.length < 10) {
+      return res.status(400).json({ success: false, message: 'Comment ID invalide' });
+    }
+
+    // Validate comment exists
+    const rows = await executeQuery('SELECT id FROM comments WHERE id = ? LIMIT 1', [id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Commentaire non trouvé' });
 
     if (action === 'hide') {
       await executeQuery('INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()', [id]);
@@ -182,7 +271,7 @@ router.post('/comments/:id/moderate', authenticateToken, requireAdmin, async (re
       return res.status(400).json({ success: false, message: 'Action inconnue' });
     }
 
-    res.json({ success: true, message: 'Décision de modération appliquée' });
+    res.json({ success: true, message: 'Décision de modération appliquée', commentId: id, action });
   } catch (error) {
     console.error('❌ /admin/comments/:id/moderate error:', error);
     res.status(500).json({ success: false, message: 'Erreur modération commentaire' });
@@ -243,20 +332,26 @@ router.put('/fails/:id/moderation', authenticateToken, requireAdmin, async (req,
 // PUT /api/admin/comments/:id/moderation { status }
 router.put('/comments/:id/moderation', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    await ensureCommentModerationTable();
     const { id } = req.params;
     const { status } = req.body || {};
+    if (!id || typeof id !== 'string' || id.length < 10) {
+      return res.status(400).json({ success: false, message: 'Comment ID invalide' });
+    }
     if (!['approved','hidden','under_review'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Statut invalide' });
     }
+    // Validate comment exists for safety and to avoid orphan rows
+    const exists = await executeQuery('SELECT id FROM comments WHERE id = ? LIMIT 1', [id]);
+    if (exists.length === 0) return res.status(404).json({ success: false, message: 'Commentaire non trouvé' });
+
     await executeQuery(
       'INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
       [id, status]
     );
-    res.json({ success: true, message: 'Statut de modération du commentaire mis à jour' });
+    res.json({ success: true, message: 'Statut de modération du commentaire mis à jour', commentId: id, status });
   } catch (e) {
     console.error('admin set comment moderation error:', e);
     res.status(500).json({ success: false, message: 'Erreur MAJ modération commentaire' });
   }
 });
-
-
