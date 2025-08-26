@@ -10,12 +10,18 @@
   <div class="list">
     <ion-spinner *ngIf="loading" name="dots"></ion-spinner>
     <ion-list *ngIf="!loading">
-      <ion-item *ngFor="let c of comments">
+      <ion-item *ngFor="let c of comments" class="comment-item">
         <ion-label>
           <h3>{{ c.author?.displayName || 'Membre' }}</h3>
           <p>{{ c.content }}</p>
+          <div class="comment-valid">
+            <ion-chip color="success">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+              <ion-label>Commentaire validé</ion-label>
+            </ion-chip>
+          </div>
         </ion-label>
-        <ion-button slot="end" fill="clear" size="small" (click)="onReport(c)">Signaler</ion-button>
+        <!-- Bouton signaler retiré: remplacé par un indicateur discret de validation -->
       </ion-item>
       <ion-item *ngIf="comments.length === 0">
         <ion-label>Aucun commentaire pour le moment.</ion-label>

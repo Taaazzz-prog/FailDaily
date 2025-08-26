@@ -1,7 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonButton, IonItem, IonList, IonLabel, IonTextarea, IonSpinner, ToastController } from '@ionic/angular/standalone';
+import { IonButton, IonItem, IonList, IonLabel, IonTextarea, IonSpinner, ToastController, IonChip, IonIcon } from '@ionic/angular/standalone';
 import { CommentService, CommentItem } from '../../services/comment.service';
 import { AuthService } from '../../services/auth.service';
 
@@ -10,7 +10,7 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   templateUrl: './comments-thread.component.html',
   styleUrls: ['./comments-thread.component.scss'],
-  imports: [CommonModule, FormsModule, IonList, IonItem, IonLabel, IonTextarea, IonButton, IonSpinner]
+  imports: [CommonModule, FormsModule, IonList, IonItem, IonLabel, IonTextarea, IonButton, IonSpinner, IonChip, IonIcon]
 })
 export class CommentsThreadComponent implements OnInit {
   @Input() failId!: string;

@@ -119,11 +119,23 @@ router.post('/:id/comments/:commentId/report', authenticateToken, async (req, re
       );
     } catch (_) { /* duplicate */ }
 
-    // Masquer immédiatement jusqu'à modération
-    await require('../config/database').executeQuery(
-      'INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
-      [commentId]
-    );
+    const db = require('../config/database');
+    const [{ reports }] = await db.executeQuery('SELECT COUNT(*) AS reports FROM comment_reports WHERE comment_id = ?', [commentId]);
+    // Threshold (default 1): hide when reached
+    let threshold = 1;
+    try {
+      const row = await db.executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
+      if (row && row[0]) {
+        const cfg = JSON.parse(row[0].value || '{}');
+        threshold = Number(cfg.commentReportThreshold) || 1;
+      }
+    } catch {}
+    if (reports >= threshold) {
+      await db.executeQuery(
+        'INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+        [commentId]
+      );
+    }
 
     res.json({ success: true, reports });
   } catch (error) {

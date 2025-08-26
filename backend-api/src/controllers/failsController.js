@@ -1024,14 +1024,25 @@ class FailsController {
           [rid, id, userId, reason]
         );
       } catch (_) { /* duplicate ok */ }
+      // Threshold logic from app_config.moderation (default 1)
+      const [{ reports }] = await executeQuery('SELECT COUNT(*) AS reports FROM fail_reports WHERE fail_id = ?', [id]);
+      let threshold = 1;
+      try {
+        const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
+        if (row && row[0]) {
+          const cfg = JSON.parse(row[0].value || '{}');
+          threshold = Number(cfg.failReportThreshold) || 1;
+        }
+      } catch {}
 
-      // Immediately hide until moderation
-      await executeQuery(
-        'INSERT INTO fail_moderation (fail_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
-        [id]
-      );
+      if (reports >= threshold) {
+        await executeQuery(
+          'INSERT INTO fail_moderation (fail_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+          [id]
+        );
+      }
 
-      return res.json({ success: true, message: 'Fail signalé et masqué en attente de modération' });
+      return res.json({ success: true, message: 'Fail signalé' });
     } catch (error) {
       console.error('❌ reportFail error:', error);
       return res.status(500).json({ success: false, message: 'Erreur signalement fail' });

@@ -1661,6 +1661,19 @@ export class MysqlService {
     }).toPromise();
   }
 
+  async getModerationConfig(): Promise<{ failReportThreshold: number, commentReportThreshold: number }> {
+    const res: any = await this.http.get(`${this.apiUrl}/admin/moderation/config`, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+    return res?.config || { failReportThreshold: 1, commentReportThreshold: 1 };
+  }
+
+  async updateModerationConfig(cfg: { failReportThreshold: number, commentReportThreshold: number }): Promise<void> {
+    await this.http.put(`${this.apiUrl}/admin/moderation/config`, cfg, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+  }
+
   async reportFail(failId: string, reason?: string): Promise<any> {
     const body: any = reason ? { reason } : {};
     const response: any = await this.http.post(`${this.apiUrl}/fails/${failId}/report`, body, {

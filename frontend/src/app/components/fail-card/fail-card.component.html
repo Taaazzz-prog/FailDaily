@@ -23,6 +23,14 @@
   </div>
 
   <!-- Actions de réaction -->
+  <!-- Statut de validation (affiché pour les contenus visibles) -->
+  <div class="validation-banner">
+    <ion-chip color="success" outline="false">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <ion-label>Contenu validé</ion-label>
+    </ion-chip>
+  </div>
+
   <div class="card-actions">
     <ion-button fill="clear" size="small" (click)="onCourage()" class="reaction-button courage"
       [class.active]="isReactionActive('courage')">
@@ -47,10 +55,7 @@
       <ion-icon name="trophy-outline" slot="start"></ion-icon>
       <span>{{ fail.reactions.support }}</span>
     </ion-button>
-    <ion-button fill="clear" size="small" (click)="onReportFail()">
-      <ion-icon name="flag-outline" slot="start"></ion-icon>
-      <span>Signaler</span>
-    </ion-button>
+    <!-- Bouton signaler retiré et remplacé par un indicateur visuel de validation -->
   </div>
 
   <!-- Commentaires -->

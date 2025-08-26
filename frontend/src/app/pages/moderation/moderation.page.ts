@@ -39,6 +39,9 @@ export class ModerationPage {
   // Reported items for moderation
   reportedFails: any[] = [];
   reportedComments: any[] = [];
+  // Config thresholds
+  failThreshold = 1;
+  commentThreshold = 1;
 
   async ionViewWillEnter() {
     await this.loadReports();
@@ -46,6 +49,9 @@ export class ModerationPage {
 
   async loadReports() {
     try {
+      const cfg = await this.mysql.getModerationConfig();
+      this.failThreshold = cfg.failReportThreshold;
+      this.commentThreshold = cfg.commentReportThreshold;
       this.reportedFails = await this.mysql.getReportedFails(1);
       this.reportedComments = await this.mysql.getReportedComments(1);
     } catch {}
@@ -73,6 +79,18 @@ export class ModerationPage {
     await this.mysql.setCommentModerationStatus(commentId, 'hidden');
     this.reportedComments = this.reportedComments.filter(c => c.comment?.id !== commentId);
     await this.showToast('Commentaire masqué', 'warning');
+  }
+
+  async saveThresholds() {
+    try {
+      await this.mysql.updateModerationConfig({
+        failReportThreshold: this.failThreshold,
+        commentReportThreshold: this.commentThreshold
+      });
+      await this.showToast('Configuration enregistrée', 'success');
+    } catch {
+      await this.showToast('Erreur enregistrement configuration', 'danger');
+    }
   }
 
   async deleteFail() {

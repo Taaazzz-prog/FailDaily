@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const { createFail, getFails, getFailById, updateFail, deleteFail } = require('../controllers/failController');
-const { reportFail } = require('../controllers/failsController');
+const FailsController = require('../controllers/failsController');
 const CommentsController = require('../controllers/commentsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { executeQuery } = require('../config/database');
@@ -137,6 +137,6 @@ router.get('/:id/comments', optionalAuth, CommentsController.getComments);
 router.post('/:id/comments', authenticateToken, CommentsController.addComment);
 
 // POST /api/fails/:id/report - Signaler un fail
-router.post('/:id/report', authenticateToken, reportFail);
+router.post('/:id/report', authenticateToken, (req, res) => FailsController.reportFail(req, res));
 
 module.exports = router;

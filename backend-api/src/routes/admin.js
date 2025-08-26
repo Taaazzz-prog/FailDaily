@@ -76,6 +76,42 @@ router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/moderation/config
+router.get('/moderation/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
+    let cfg = { failReportThreshold: 1, commentReportThreshold: 1 };
+    if (row && row[0] && row[0].value) {
+      try { cfg = { ...cfg, ...JSON.parse(row[0].value) }; } catch {}
+    }
+    res.json({ success: true, config: cfg });
+  } catch (e) {
+    console.error('❌ /admin/moderation/config error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture config modération' });
+  }
+});
+
+// PUT /api/admin/moderation/config
+router.put('/moderation/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const input = req.body || {};
+    const cfg = {
+      failReportThreshold: Number(input.failReportThreshold) || 1,
+      commentReportThreshold: Number(input.commentReportThreshold) || 1
+    };
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'moderation', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(cfg)]
+    );
+    res.json({ success: true, config: cfg });
+  } catch (e) {
+    console.error('❌ /admin/moderation/config update error:', e);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour config modération' });
+  }
+});
+
 // GET /api/admin/fails/reported?threshold=10
 router.get('/fails/reported', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -90,7 +126,7 @@ router.get('/fails/reported', authenticateToken, requireAdmin, async (req, res) 
       JOIN profiles p ON p.user_id = f.user_id
       LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
       GROUP BY fr.fail_id
-      HAVING reports >= ?
+      HAVING reports >= ? AND (moderation_status IS NULL OR moderation_status <> 'approved')
       ORDER BY reports DESC, f.created_at DESC
     `, [threshold]);
 
@@ -104,26 +140,22 @@ router.get('/fails/reported', authenticateToken, requireAdmin, async (req, res) 
 // GET /api/admin/comments/reported?threshold=10
 router.get('/comments/reported', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const threshold = parseInt(req.query.threshold) || 10;
-    // Count reports per comment
-    const reported = await executeQuery(`
-      SELECT cr.comment_id, COUNT(*) AS reports
+    const threshold = parseInt(req.query.threshold) || 1;
+    const items = await executeQuery(`
+      SELECT cr.comment_id, COUNT(*) AS reports,
+             c.fail_id, c.user_id, c.content, c.created_at,
+             p.display_name, p.avatar_url,
+             cm.status AS moderation_status
       FROM comment_reports cr
+      JOIN comments c ON c.id = cr.comment_id
+      JOIN profiles p ON p.user_id = c.user_id
+      LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
       GROUP BY cr.comment_id
-      HAVING reports >= ?
-      ORDER BY reports DESC
+      HAVING reports >= ? AND (moderation_status IS NULL OR moderation_status <> 'approved')
+      ORDER BY reports DESC, c.created_at DESC
     `, [threshold]);
 
-    const results = [];
-    for (const row of reported) {
-      const [comment] = await executeQuery(
-        'SELECT c.id, c.fail_id, c.user_id, c.content, c.created_at FROM comments c WHERE c.id = ? LIMIT 1',
-        [row.comment_id]
-      );
-      results.push({ comment, reports: row.reports });
-    }
-
-    res.json({ success: true, items: results, threshold });
+    res.json({ success: true, items, threshold });
   } catch (error) {
     console.error('❌ /admin/comments/reported error:', error);
     res.status(500).json({ success: false, message: 'Erreur récupération commentaires signalés' });
@@ -226,3 +258,5 @@ router.put('/comments/:id/moderation', authenticateToken, requireAdmin, async (r
     res.status(500).json({ success: false, message: 'Erreur MAJ modération commentaire' });
   }
 });
+
+

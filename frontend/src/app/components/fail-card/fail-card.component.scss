@@ -228,3 +228,11 @@
     color: var(--ion-color-primary);
   }
 }
+.validation-banner {
+  padding: 4px 12px 0 12px;
+  ion-chip {
+    --background: #d7f7e2;
+    --color: #0f6d3f;
+    font-weight: 600;
+  }
+}

@@ -132,4 +132,21 @@
       </ion-card-content>
     </ion-card>
   </div>
+  <ion-card>
+    <ion-card-header>
+      <ion-card-title>Configuration de Modération</ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <ion-item>
+        <ion-label position="stacked">Seuil signalements Fails</ion-label>
+        <ion-input type="number" [(ngModel)]="failThreshold"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Seuil signalements Commentaires</ion-label>
+        <ion-input type="number" [(ngModel)]="commentThreshold"></ion-input>
+      </ion-item>
+      <ion-button expand="block" (click)="saveThresholds()">Enregistrer</ion-button>
+    </ion-card-content>
+
+  </ion-card>
 </ion-content>
