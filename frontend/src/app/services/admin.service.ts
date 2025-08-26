@@ -86,7 +86,7 @@ export class AdminService {
     // USER MANAGEMENT
     async getAllUsers() {
         try {
-            return await this.MysqlService.getAllProfiles();
+            return await this.MysqlService.getAllUsers();
         } catch (error) {
             this.debugService.addLog('error', 'AdminService', 'Error getting all users', error);
             throw error;
@@ -356,7 +356,7 @@ export class AdminService {
             let finalActiveUsers = activeUsers;
             if (activeUsers.length === 0 && currentUser) {
                 try {
-                    const currentUserProfile = await this.MysqlService.getProfile(currentUser.id);
+                    const currentUserProfile = await this.MysqlService.getUserProfile(currentUser.id);
                     if (currentUserProfile) {
                         finalActiveUsers = [currentUserProfile];
                     } else {
@@ -394,7 +394,7 @@ export class AdminService {
 
             if (currentUser) {
                 try {
-                    const currentUserProfile = await this.MysqlService.getProfile(currentUser.id);
+                    const currentUserProfile = await this.MysqlService.getUserProfile(currentUser.id);
                     fallbackActiveUsers = currentUserProfile ? [currentUserProfile] : [{
                         id: currentUser.id,
                         display_name: currentUser.displayName || 'Utilisateur actuel',

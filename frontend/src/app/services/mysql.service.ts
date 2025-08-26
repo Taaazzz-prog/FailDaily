@@ -130,6 +130,21 @@ export class MysqlService {
     });
   }
 
+  // Normalise les valeurs de rôle provenant du backend vers l'enum local
+  private normalizeRole(role: any): UserRole {
+    const r = String(role || '').toLowerCase().trim();
+    if (['super_admin', 'super-admin', 'superadmin', 'owner', 'root'].includes(r)) {
+      return UserRole.SUPER_ADMIN;
+    }
+    if (['admin', 'administrator'].includes(r)) {
+      return UserRole.ADMIN;
+    }
+    if (['moderator', 'mod'].includes(r)) {
+      return UserRole.MODERATOR;
+    }
+    return UserRole.USER;
+  }
+
   private getMultipartHeaders(): HttpHeaders {
     const token = localStorage.getItem('faildaily_token') || localStorage.getItem('auth_token');
     return new HttpHeaders({
@@ -175,7 +190,7 @@ export class MysqlService {
           totalFails: 0, // À récupérer si nécessaire
           couragePoints: 0, // À récupérer si nécessaire
           badges: [], // À récupérer si nécessaire
-          role: response.data.role || UserRole.USER,
+          role: this.normalizeRole(response.data.role),
           emailConfirmed: true, // Supposer confirmé si on a pu récupérer le profil
           registrationCompleted: response.data.registrationCompleted || false,
           legalConsent: response.data.legalConsent ? {
@@ -1612,6 +1627,23 @@ export class MysqlService {
     } catch (error: any) {
       console.error('❌ Erreur upload image:', error);
       throw error;
+    }
+  }
+
+  async getUserProfile(userId: string): Promise<any | null> {
+    try {
+      const response: any = await this.http.get(`${this.apiUrl}/admin/users/${userId}`, {
+        headers: this.getAuthHeaders()
+      }).toPromise();
+
+      if (response.success) {
+        return response.user;
+      } else {
+        return null;
+      }
+    } catch (error: any) {
+      console.error('❌ Erreur récupération profil utilisateur:', error);
+      return null;
     }
   }
 

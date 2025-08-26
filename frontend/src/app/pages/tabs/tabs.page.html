@@ -34,6 +34,16 @@
       <ion-label>Profil</ion-label>
     </ion-tab-button>
 
+    <!-- Modération - Visible pour modérateurs et + -->
+    <ion-tab-button 
+      *ngIf="canShowTab('moderation')" 
+      tab="moderation" 
+      class="moderation-tab"
+      (click)="onTabClick('moderation', $event)">
+      <ion-icon name="shield-checkmark-outline"></ion-icon>
+      <ion-label>Modération</ion-label>
+    </ion-tab-button>
+
     <!-- Admin - Visible seulement si admin -->
     <ion-tab-button 
       *ngIf="canShowTab('admin')" 

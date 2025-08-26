@@ -1,0 +1,88 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>🛡️ Espace Modération</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-segment [(ngModel)]="selectedSegment">
+    <ion-segment-button value="fails">
+      <ion-label>Fails</ion-label>
+    </ion-segment-button>
+    <ion-segment-button value="pseudos">
+      <ion-label>Pseudos</ion-label>
+    </ion-segment-button>
+  </ion-segment>
+
+  <!-- Fails moderation -->
+  <div *ngIf="selectedSegment === 'fails'" class="section">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Supprimer un fail</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">ID du fail</ion-label>
+          <ion-input [(ngModel)]="failId" placeholder="ex: 123"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Raison</ion-label>
+          <ion-textarea [(ngModel)]="failDeleteReason" rows="3" placeholder="ex: contenu inapproprié"></ion-textarea>
+        </ion-item>
+        <ion-button expand="block" color="danger" (click)="deleteFail()" [disabled]="deleting">
+          <ion-icon name="trash-outline" slot="start"></ion-icon>
+          Supprimer le fail
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
+
+  <!-- Pseudos moderation -->
+  <div *ngIf="selectedSegment === 'pseudos'" class="section">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-title>Rechercher un utilisateur</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">Email / Pseudo / ID</ion-label>
+          <ion-input [(ngModel)]="searchQuery" (keyup.enter)="searchUsers()" placeholder="ex: alice@…"></ion-input>
+        </ion-item>
+        <ion-button expand="block" (click)="searchUsers()" [disabled]="loadingUsers">
+          <ion-icon name="search-outline" slot="start"></ion-icon>
+          Rechercher
+        </ion-button>
+
+        <ion-list *ngIf="users.length">
+          <ion-list-header>Résultats</ion-list-header>
+          <ion-item *ngFor="let u of users" (click)="pickUser(u)">
+            <ion-label>
+              <h3>{{ u.display_name || u.username || 'Utilisateur' }} <small>#{{ u.id }}</small></h3>
+              <p>{{ u.email }}</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card *ngIf="selectedUser">
+      <ion-card-header>
+        <ion-card-title>Modifier le pseudo</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-item>
+          <ion-label position="stacked">Nouveau pseudo</ion-label>
+          <ion-input [(ngModel)]="newDisplayName" placeholder="Nouveau pseudo"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label position="stacked">Raison</ion-label>
+          <ion-textarea [(ngModel)]="updateReason" rows="2" placeholder="Motif de la modification"></ion-textarea>
+        </ion-item>
+        <ion-button expand="block" color="primary" (click)="updateDisplayName()">
+          <ion-icon name="save-outline" slot="start"></ion-icon>
+          Enregistrer
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

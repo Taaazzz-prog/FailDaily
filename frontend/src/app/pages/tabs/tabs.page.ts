@@ -9,11 +9,12 @@ import {
   IonLabel
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { homeOutline, addCircle, ribbonOutline, personOutline, settingsOutline } from 'ionicons/icons';
+import { homeOutline, addCircle, ribbonOutline, personOutline, settingsOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { User } from '../../models/user.model';
 import { UserRole } from '../../models/user-role.model';
 import { Subscription } from 'rxjs';
+import { RoleService } from '../../services/role.service';
 
 @Component({
   selector: 'app-tabs',
@@ -33,16 +34,18 @@ import { Subscription } from 'rxjs';
 export class TabsPage implements OnInit, OnDestroy {
   currentUser: User | null = null;
   isAuthenticated = false;
-  isAdmin = false;
+  hasAdminAccess = false;
+  hasModerationAccess = false;
   private authSubscription: Subscription = new Subscription();
 
   constructor(
     private authService: AuthService,
+    private roleService: RoleService,
     private router: Router
   ) {
     // Configuration des icônes pour les tabs
     addIcons({
-      homeOutline, addCircle, ribbonOutline, personOutline, settingsOutline
+      homeOutline, addCircle, ribbonOutline, personOutline, settingsOutline, shieldCheckmarkOutline
     });
   }
 
@@ -58,7 +61,8 @@ export class TabsPage implements OnInit, OnDestroy {
       
       this.currentUser = user === undefined ? null : user;
       this.isAuthenticated = !!user;
-      this.isAdmin = user?.role === UserRole.ADMIN;
+      this.hasAdminAccess = this.roleService.canAccessAdmin(user || null);
+      this.hasModerationAccess = this.roleService.hasPermission(user || null, 'canModerateComments');
 
       // Si l'utilisateur n'est pas connecté et qu'il est sur une route protégée
       if (!this.isAuthenticated) {
@@ -125,7 +129,9 @@ export class TabsPage implements OnInit, OnDestroy {
       case 'profile':
         return this.isAuthenticated; // Nécessite une connexion
       case 'admin':
-        return this.isAuthenticated && this.isAdmin; // Nécessite admin
+        return this.isAuthenticated && this.hasAdminAccess; // Nécessite admin/super_admin
+      case 'moderation':
+        return this.isAuthenticated && this.hasModerationAccess; // Modérateurs et +
       default:
         return false;
     }
@@ -141,7 +147,7 @@ export class TabsPage implements OnInit, OnDestroy {
         console.log('📱 TabsPage: Accès refusé - redirection vers login');
         this.router.navigate(['/auth/login']);
       }
-      
+
       return false;
     }
     return true;

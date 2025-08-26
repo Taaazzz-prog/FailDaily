@@ -245,7 +245,7 @@ CREATE TABLE IF NOT EXISTS `fails` (
   `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `category` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `image_url` text COLLATE utf8mb4_unicode_ci,
-  `is_public` tinyint(1) DEFAULT '1',
+  `is_anonyme` tinyint(1) DEFAULT '1',
   `reactions` longtext COLLATE utf8mb4_unicode_ci COMMENT 'JSON data',
   `comments_count` int DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
@@ -259,7 +259,7 @@ CREATE TABLE IF NOT EXISTS `fails` (
 -- Déchargement des données de la table `fails`
 --
 
-INSERT INTO `fails` (`id`, `user_id`, `title`, `description`, `category`, `image_url`, `is_public`, `reactions`, `comments_count`, `created_at`, `updated_at`) VALUES
+INSERT INTO `fails` (`id`, `user_id`, `title`, `description`, `category`, `image_url`, `is_anonyme`, `reactions`, `comments_count`, `created_at`, `updated_at`) VALUES
 ('0f29dcc0-0b48-47cd-b0c5-dd1adc225198', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'fails test 1 : jeudi adulte test 1', 'poste du premie fails', 'humour', NULL, 0, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 0, '2025-08-21 09:51:05', '2025-08-21 09:51:05');
 
 --

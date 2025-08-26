@@ -1,5 +1,7 @@
 import { provideRouter, Routes } from '@angular/router';
 import { AuthGuard } from './guards/auth.guard';
+import { AdminGuard } from './guards/admin.guard';
+import { ModerationGuard } from './guards/moderation.guard';
 import { NoAuthGuard } from './guards/no-auth.guard';
 
 export const routes: Routes = [
@@ -35,7 +37,12 @@ export const routes: Routes = [
       {
         path: 'admin',
         loadComponent: () => import('./pages/admin/admin.page').then(m => m.AdminPage),
-        canActivate: [AuthGuard] // Protection obligatoire
+        canActivate: [AuthGuard, AdminGuard] // Auth + Autorisation admin
+      },
+      {
+        path: 'moderation',
+        loadComponent: () => import('./pages/moderation/moderation.page').then(m => m.ModerationPage),
+        canActivate: [AuthGuard, ModerationGuard] // Auth + Autorisation modération
       },
       {
         path: 'privacy-settings',

@@ -76,10 +76,11 @@ class CommentsController {
    * Ajouter un commentaire à un fail
    */
   static async addComment(req, res) {
-    
     try {
+      await CommentsController.ensureAuxTables();
+
       const { id: failId } = req.params;
-      const { content, parentId = null } = req.body;
+      const { content } = req.body;
       const userId = req.user.id;
 
       // Validation du contenu
@@ -125,39 +126,19 @@ class CommentsController {
         });
       }
 
-      // Vérifier le commentaire parent s'il existe
-      if (parentId) {
-        const parentComments = await executeQuery(`
-          SELECT id, fail_id 
-          FROM comments 
-          WHERE id = ?
-        `, [parentId]);
-
-        if (parentComments.length === 0) {
-          return res.status(404).json({
-            success: false,
-            message: 'Commentaire parent non trouvé',
-            code: 'PARENT_COMMENT_NOT_FOUND'
-          });
-        }
-
-        if (parentComments[0].fail_id !== failId) {
-          return res.status(400).json({
-            success: false,
-            message: 'Le commentaire parent n\'appartient pas à ce fail',
-            code: 'INVALID_PARENT_COMMENT'
-          });
-        }
-      }
-
       // Créer le commentaire
       const commentId = uuidv4();
       
       await executeQuery(`
         INSERT INTO comments (
-          id, fail_id, user_id, content, parent_id, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-      `, [commentId, failId, userId, content.trim(), parentId]);
+          id, fail_id, user_id, content, is_encouragement, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, 1, NOW(), NOW())
+      `, [commentId, failId, userId, content.trim()]);
+
+      // Mettre à jour le compteur de commentaires du fail
+      await executeQuery(`
+        UPDATE fails SET comments_count = COALESCE(comments_count, 0) + 1, updated_at = NOW() WHERE id = ?
+      `, [failId]);
 
       // Award courage points for comment creation
       const pointsCfg = await CommentsController.getPointsConfig();
@@ -170,7 +151,6 @@ class CommentsController {
         SELECT 
           c.id,
           c.content,
-          c.parent_id,
           c.created_at,
           c.updated_at,
           p.display_name,
@@ -188,7 +168,6 @@ class CommentsController {
         data: {
           id: newComment[0].id,
           content: newComment[0].content,
-          parentId: newComment[0].parent_id,
           user: {
             id: newComment[0].user_id,
             displayName: newComment[0].display_name,
@@ -214,8 +193,8 @@ class CommentsController {
    * Récupérer tous les commentaires d'un fail
    */
   static async getComments(req, res) {
-    
     try {
+      await CommentsController.ensureAuxTables();
       const { id: failId } = req.params;
       const { page = 1, limit = 20 } = req.query;
       const userId = req.user ? req.user.id : null;
@@ -255,13 +234,11 @@ class CommentsController {
         SELECT 
           c.id,
           c.content,
-          c.parent_id,
           c.created_at,
           c.updated_at,
           p.display_name,
           p.avatar_url,
           u.id as user_id,
-          (SELECT COUNT(*) FROM comments WHERE parent_id = c.id) as replies_count,
           (SELECT COUNT(*) FROM comment_reactions cr WHERE cr.comment_id = c.id) as likes_count,
           (SELECT status FROM comment_moderation m WHERE m.comment_id = c.id LIMIT 1) as moderation_status
         FROM comments c
@@ -275,19 +252,17 @@ class CommentsController {
       // Compter le total de commentaires
       const totalResult = await executeQuery(`
         SELECT COUNT(*) as total
-        FROM fail_comments 
+        FROM comments
         WHERE fail_id = ?
       `, [failId]);
 
       const total = totalResult[0].total;
       const totalPages = Math.ceil(total / limitNum);
 
-      // Organiser les commentaires en arbre (parents et réponses)
-      const commentsMap = new Map();
-      const rootComments = [];
-
-      comments.forEach(comment => {
-        const commentData = {
+      // Construire une liste plate (pas de fil de discussion dans le schéma actuel)
+      const flat = comments
+        .filter(c => !c.moderation_status || c.moderation_status === 'approved')
+        .map(comment => ({
           id: comment.id,
           content: comment.content,
           user: {
@@ -297,34 +272,15 @@ class CommentsController {
           },
           createdAt: comment.created_at,
           updatedAt: comment.updated_at,
-          repliesCount: comment.replies_count,
+          repliesCount: 0,
           likesCount: comment.likes_count || 0,
           replies: []
-        };
-
-        commentsMap.set(comment.id, commentData);
-
-        if (comment.moderation_status && comment.moderation_status !== 'approved') {
-          // Skip moderated comments
-          return;
-        }
-
-        if (comment.parent_id) {
-          // C'est une réponse
-          const parent = commentsMap.get(comment.parent_id);
-          if (parent) {
-            parent.replies.push(commentData);
-          }
-        } else {
-          // C'est un commentaire racine
-          rootComments.push(commentData);
-        }
-      });
+        }));
 
       res.json({
         success: true,
         data: {
-          comments: rootComments,
+          comments: flat,
           pagination: {
             page: pageNum,
             limit: limitNum,
@@ -351,8 +307,8 @@ class CommentsController {
    * Modifier un commentaire
    */
   static async updateComment(req, res) {
-    
     try {
+      await CommentsController.ensureAuxTables();
       const { id: failId, commentId } = req.params;
       const { content } = req.body;
       const userId = req.user.id;
@@ -377,7 +333,7 @@ class CommentsController {
       // Vérifier que le commentaire existe et appartient à l'utilisateur
       const comments = await executeQuery(`
         SELECT id, user_id, fail_id
-        FROM fail_comments 
+        FROM comments
         WHERE id = ? AND fail_id = ?
       `, [commentId, failId]);
 
@@ -401,26 +357,25 @@ class CommentsController {
 
       // Mettre à jour le commentaire
       await executeQuery(`
-        UPDATE fail_comments 
-        SET content = ?, updated_at = NOW() 
+        UPDATE comments
+        SET content = ?, updated_at = NOW()
         WHERE id = ?
       `, [content.trim(), commentId]);
 
       // Récupérer le commentaire mis à jour
       const updatedComment = await executeQuery(`
         SELECT 
-          fc.id,
-          fc.content,
-          fc.parent_id,
-          fc.created_at,
-          fc.updated_at,
+          c.id,
+          c.content,
+          c.created_at,
+          c.updated_at,
           p.display_name,
           p.avatar_url,
           u.id as user_id
-        FROM fail_comments fc
-        JOIN users u ON fc.user_id = u.id
+        FROM comments c
+        JOIN users u ON c.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
-        WHERE fc.id = ?
+        WHERE c.id = ?
       `, [commentId]);
 
       res.json({
@@ -429,7 +384,6 @@ class CommentsController {
         data: {
           id: updatedComment[0].id,
           content: updatedComment[0].content,
-          parentId: updatedComment[0].parent_id,
           user: {
             id: updatedComment[0].user_id,
             displayName: updatedComment[0].display_name,
@@ -455,8 +409,8 @@ class CommentsController {
    * Supprimer un commentaire
    */
   static async deleteComment(req, res) {
-    
     try {
+      await CommentsController.ensureAuxTables();
       const { id: failId, commentId } = req.params;
       const userId = req.user.id;
 
@@ -485,11 +439,16 @@ class CommentsController {
         });
       }
 
-      // Supprimer le commentaire et ses réponses en cascade
+      // Supprimer le commentaire
       const result = await executeQuery(`
-        DELETE FROM comments 
-        WHERE id = ? OR parent_id = ?
-      `, [commentId, commentId]);
+        DELETE FROM comments
+        WHERE id = ?
+      `, [commentId]);
+
+      // Mettre à jour le compteur (décrémenter sans passer sous 0)
+      await executeQuery(`
+        UPDATE fails SET comments_count = GREATEST(COALESCE(comments_count,0) - 1, 0), updated_at = NOW() WHERE id = ?
+      `, [failId]);
 
       res.json({
         success: true,

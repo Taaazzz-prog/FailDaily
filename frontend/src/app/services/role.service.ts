@@ -9,6 +9,23 @@ export class RoleService {
 
     constructor() { }
 
+    private normalizeRole(role: any): UserRole {
+        const r = String(role || '').toLowerCase().trim();
+        if (['super_admin', 'super-admin', 'superadmin', 'owner', 'root'].includes(r)) {
+            return UserRole.SUPER_ADMIN;
+        }
+        if (['admin', 'administrator'].includes(r)) {
+            return UserRole.ADMIN;
+        }
+        if (['moderator', 'mod'].includes(r)) {
+            return UserRole.MODERATOR;
+        }
+        if (Object.values<string>(UserRole as any).includes(r)) {
+            return r as UserRole;
+        }
+        return UserRole.USER;
+    }
+
     /**
      * Obtenir les permissions d'un utilisateur basées sur son rôle
      */
@@ -17,7 +34,8 @@ export class RoleService {
             return ROLE_PERMISSIONS[UserRole.USER]; // Permissions par défaut pour les non-connectés
         }
 
-        return ROLE_PERMISSIONS[user.role] || ROLE_PERMISSIONS[UserRole.USER];
+        const normalized = this.normalizeRole(user.role);
+        return ROLE_PERMISSIONS[normalized] || ROLE_PERMISSIONS[UserRole.USER];
     }
 
     /**
@@ -32,21 +50,22 @@ export class RoleService {
      * Vérifier si un utilisateur a le rôle admin
      */
     isAdmin(user: User | null): boolean {
-        return user?.role === UserRole.ADMIN;
+        return this.normalizeRole(user?.role) === UserRole.ADMIN;
     }
 
     /**
      * Vérifier si un utilisateur a le rôle super admin
      */
     isSuperAdmin(user: User | null): boolean {
-        return user?.role === UserRole.SUPER_ADMIN;
+        return this.normalizeRole(user?.role) === UserRole.SUPER_ADMIN;
     }
 
     /**
      * Vérifier si un utilisateur a le rôle modérateur ou plus
      */
     isModerator(user: User | null): boolean {
-        return user?.role === UserRole.MODERATOR || user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
+        const r = this.normalizeRole(user?.role);
+        return r === UserRole.MODERATOR || r === UserRole.ADMIN || r === UserRole.SUPER_ADMIN;
     }    /**
      * Vérifier si un utilisateur peut accéder au panel admin
      */
