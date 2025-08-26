@@ -44,7 +44,7 @@ describe('GET /api/fails/public', () => {
     }
   });
 
-  it('renvoie 200 (ou 204) et un booléen is_public quand des données existent', async () => {
+it('renvoie 200 (ou 204) et un booléen is_anonyme quand des données existent', async () => {
     if (!authToken) {
       console.log('⚠️ Test skippé - pas de token d\'authentification disponible');
       return;
@@ -61,7 +61,7 @@ describe('GET /api/fails/public', () => {
       if (res.body.length) {
         const sample = res.body[0];
         // doit être un booléen selon le schéma et la sélection SQL
-        expect(typeof sample.is_public).toBe('boolean');
+        expect(typeof sample.is_anonyme).toBe('boolean');
         // Pour les fails anonymes, user_id ne doit pas être exposé
         expect(sample.user_id).toBeUndefined();
       }

@@ -10,7 +10,7 @@ export interface CreateFailData {
   description: string;
   category: FailCategory;
   image?: File;
-  is_public: boolean;
+  is_anonyme: boolean;
 }
 
 export interface FailsResponse {
@@ -72,7 +72,7 @@ export class HttpFailService {
         description: failData.description.trim(),
         category: failData.category,
         imageUrl: imageUrl,
-        is_public: failData.is_public
+        is_anonyme: failData.is_anonyme
       };
 
       const response: any = await this.http.post(`${this.apiUrl}/fails`, failToCreate, {
@@ -124,7 +124,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response.success && response.fails) {
-        const fails = response.fails.map((f: any) => ({ ...f, is_public: !!f.is_public }));
+        const fails = response.fails.map((f: any) => ({ ...f, is_anonyme: !!f.is_anonyme }));
 
         // Mettre à jour le BehaviorSubject
         this.failsSubject.next(fails);
@@ -178,7 +178,7 @@ export class HttpFailService {
       if (updateData.description) failToUpdate.description = updateData.description.trim();
       if (updateData.category) failToUpdate.category = updateData.category;
       if (imageUrl) (failToUpdate as any).imageUrl = imageUrl;
-      if (updateData.is_public !== undefined) failToUpdate.is_public = updateData.is_public;
+      if (updateData.is_anonyme !== undefined) failToUpdate.is_anonyme = updateData.is_anonyme;
 
       const response: any = await this.http.put(`${this.apiUrl}/fails/${failId}`, failToUpdate, {
         headers: this.getAuthHeaders()
@@ -231,7 +231,7 @@ export class HttpFailService {
       }).toPromise();
 
       if (response.success && response.fails) {
-        return response.fails.map((f: any) => ({ ...f, is_public: !!f.is_public }));
+        return response.fails.map((f: any) => ({ ...f, is_anonyme: !!f.is_anonyme }));
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fails utilisateur');
       }

@@ -168,7 +168,7 @@ router.get('/:userId/fails', authenticateToken, async (req, res) => {
         f.description,
         f.category,
         f.image_url,
-        f.is_public,
+        f.is_anonyme,
         f.created_at,
         f.updated_at,
         u.email,

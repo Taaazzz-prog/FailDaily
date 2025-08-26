@@ -36,10 +36,26 @@ export class CommentService {
     return [];
   }
 
-  async add(failId: string, content: string, isEncouragement: boolean = true): Promise<boolean> {
+  async add(failId: string, content: string, isEncouragement: boolean = true): Promise<CommentItem | null> {
     const body = { content, isEncouragement } as any;
     const res: any = await this.http.post(`${this.apiUrl}/fails/${failId}/comments`, body, { headers: this.getAuthHeaders() }).toPromise();
-    return !!res?.success || !!res?.comment?.id;
+    const data = res?.data || res?.comment || null;
+    if (!data) return null;
+    return {
+      id: data.id,
+      content: data.content,
+      failId: data.failId || failId,
+      userId: data.author?.id,
+      isEncouragement: true,
+      createdAt: data.createdAt,
+      author: { displayName: data.author?.displayName, avatarUrl: data.author?.avatarUrl }
+    } as CommentItem;
+  }
+
+  async report(failId: string, commentId: string, reason?: string): Promise<boolean> {
+    const body = reason ? { reason } : {};
+    const res: any = await this.http.post(`${this.apiUrl}/fails/${failId}/comments/${commentId}/report`, body, { headers: this.getAuthHeaders() }).toPromise();
+    return !!res?.success;
   }
 
   async update(failId: string, commentId: string, content: string): Promise<boolean> {

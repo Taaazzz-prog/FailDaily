@@ -114,7 +114,7 @@ class DebugController {
         req.dbConnection,
         `SELECT 
           COUNT(*) as total_fails,
-          COUNT(CASE WHEN is_public = 1 THEN 1 END) as public_fails,
+          COUNT(CASE WHEN is_anonyme = 0 THEN 1 END) as public_fails,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as fails_24h,
           COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as fails_7d,
           AVG(view_count) as avg_views

@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const { createFail, getFails, getFailById, updateFail, deleteFail } = require('../controllers/failController');
+const { reportFail } = require('../controllers/failsController');
 const CommentsController = require('../controllers/commentsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { executeQuery } = require('../config/database');
@@ -58,7 +59,7 @@ router.get('/public', optionalAuth, async (req, res) => {
         f.description, 
         f.category, 
         f.image_url, 
-        f.is_public, 
+        f.is_anonyme, 
         f.created_at, 
         f.updated_at,
         COALESCE(f.comments_count, 0) as comments_count,
@@ -79,23 +80,23 @@ router.get('/public', optionalAuth, async (req, res) => {
 
     const fails = await executeQuery(query, [limitNum, offset]);
     
-    // Traiter le résultat - anonymiser conditionnellement selon is_public
+    // Traiter le résultat - anonymiser conditionnellement selon is_anonyme
     const processed = Array.isArray(fails) ? fails.map(fail => ({
       id: fail.id,
       title: fail.title,
       description: fail.description,
       category: fail.category,
       imageUrl: fail.image_url,
-      is_public: !!fail.is_public,
+      is_anonyme: !!fail.is_anonyme,
       commentsCount: fail.comments_count || 0,
       reactions: typeof fail.reactions === 'string' ? JSON.parse(fail.reactions) : (fail.reactions || { courage: 0, empathy: 0, laugh: 0, support: 0 }),
       createdAt: fail.created_at,
       // Anonymisation conditionnelle :
-      // Si is_public = 1 (public) : afficher pseudo/avatar
-      // Si is_public = 0 (anonyme) : masquer pseudo/avatar
+      // Si is_anonyme = 0 : afficher pseudo/avatar
+      // Si is_anonyme = 1 : masquer pseudo/avatar
       authorId: fail.user_id,
-      authorName: fail.is_public ? (fail.display_name || fail.username || 'Utilisateur') : 'Anonyme',
-      authorAvatar: fail.is_public ? (fail.avatar_url || 'assets/profil/face.png') : 'assets/profil/anonymous.png'
+      authorName: !fail.is_anonyme ? (fail.display_name || fail.username || 'Utilisateur') : 'Anonyme',
+      authorAvatar: !fail.is_anonyme ? (fail.avatar_url || 'assets/profil/face.png') : 'assets/profil/anonymous.png'
     })) : [];
 
     console.log(`📊 Récupération fails publics: ${processed.length} fails trouvés`);
@@ -130,9 +131,12 @@ router.put('/:id', authenticateToken, updateFail);
 router.delete('/:id', authenticateToken, deleteFail);
 
 // GET /api/fails/:id/comments - Récupérer les commentaires d'un fail
-router.get('/:id/comments', authenticateToken, CommentsController.getComments);
+router.get('/:id/comments', optionalAuth, CommentsController.getComments);
 
 // POST /api/fails/:id/comments - Ajouter un commentaire
 router.post('/:id/comments', authenticateToken, CommentsController.addComment);
+
+// POST /api/fails/:id/report - Signaler un fail
+router.post('/:id/report', authenticateToken, reportFail);
 
 module.exports = router;

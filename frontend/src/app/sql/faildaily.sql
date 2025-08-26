@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS `fails` (
   `description` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `category` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `image_url` text COLLATE utf8mb4_unicode_ci,
-  `is_public` tinyint(1) DEFAULT '1',
+  `is_anonyme` tinyint(1) DEFAULT '0',
   `reactions` longtext COLLATE utf8mb4_unicode_ci COMMENT 'JSON data',
   `comments_count` int DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,

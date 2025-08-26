@@ -36,10 +36,21 @@ export class CommentsThreadComponent implements OnInit {
 
   async addComment() {
     if (!this.newComment?.trim()) return;
-    const ok = await this.commentsSvc.add(this.failId, this.newComment.trim(), true);
-    if (ok) {
+    const created = await this.commentsSvc.add(this.failId, this.newComment.trim(), true);
+    if (created) {
+      // Affichage immédiat (optimiste)
+      this.comments = [created, ...this.comments];
       this.newComment = '';
-      await this.refresh();
     }
+  }
+
+  async onReport(c: CommentItem) {
+    try {
+      const ok = await this.commentsSvc.report(this.failId, c.id);
+      if (ok) {
+        // Masquer immédiatement localement
+        this.comments = this.comments.filter(x => x.id !== c.id);
+      }
+    } catch {}
   }
 }

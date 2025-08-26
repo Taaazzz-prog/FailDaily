@@ -77,7 +77,6 @@ class CommentsController {
    */
   static async addComment(req, res) {
     try {
-      await CommentsController.ensureAuxTables();
 
       const { id: failId } = req.params;
       const { content } = req.body;
@@ -102,8 +101,8 @@ class CommentsController {
 
       // Vérifier que le fail existe et est accessible
       const fails = await executeQuery(`
-        SELECT id, user_id, is_public 
-        FROM fails 
+        SELECT id, user_id, is_anonyme
+        FROM fails
         WHERE id = ?
       `, [failId]);
 
@@ -116,15 +115,7 @@ class CommentsController {
       }
 
       const fail = fails[0];
-
-      // Vérifier les permissions (fail public ou propriétaire)
-      if (!fail.is_public && fail.user_id !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Accès non autorisé à ce fail',
-          code: 'ACCESS_DENIED'
-        });
-      }
+      // Aucune restriction d'accès basée sur l'anonymat
 
       // Créer le commentaire
       const commentId = uuidv4();
@@ -151,6 +142,7 @@ class CommentsController {
         SELECT 
           c.id,
           c.content,
+          c.fail_id,
           c.created_at,
           c.updated_at,
           p.display_name,
@@ -168,7 +160,8 @@ class CommentsController {
         data: {
           id: newComment[0].id,
           content: newComment[0].content,
-          user: {
+          failId: newComment[0].fail_id,
+          author: {
             id: newComment[0].user_id,
             displayName: newComment[0].display_name,
             avatarUrl: newComment[0].avatar_url
@@ -194,7 +187,6 @@ class CommentsController {
    */
   static async getComments(req, res) {
     try {
-      await CommentsController.ensureAuxTables();
       const { id: failId } = req.params;
       const { page = 1, limit = 20 } = req.query;
       const userId = req.user ? req.user.id : null;
@@ -205,8 +197,8 @@ class CommentsController {
 
       // Vérifier que le fail existe et est accessible
       const fails = await executeQuery(`
-        SELECT id, user_id, is_public 
-        FROM fails 
+        SELECT id, user_id, is_anonyme
+        FROM fails
         WHERE id = ?
       `, [failId]);
 
@@ -219,35 +211,29 @@ class CommentsController {
       }
 
       const fail = fails[0];
-
-      // Vérifier les permissions (fail public ou propriétaire)
-      if (!fail.is_public && (!userId || fail.user_id !== userId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Accès non autorisé à ce fail',
-          code: 'ACCESS_DENIED'
-        });
-      }
+      // Aucune restriction d'accès basée sur l'anonymat
 
       // Récupérer les commentaires avec pagination
       const comments = await executeQuery(`
         SELECT 
           c.id,
           c.content,
+          c.fail_id,
           c.created_at,
           c.updated_at,
           p.display_name,
           p.avatar_url,
           u.id as user_id,
-          (SELECT COUNT(*) FROM comment_reactions cr WHERE cr.comment_id = c.id) as likes_count,
-          (SELECT status FROM comment_moderation m WHERE m.comment_id = c.id LIMIT 1) as moderation_status
+          cm.status as moderation_status
         FROM comments c
         JOIN users u ON c.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
+        LEFT JOIN comment_moderation cm ON cm.comment_id = c.id
         WHERE c.fail_id = ?
+          AND (cm.status IS NULL OR cm.status = 'approved')
         ORDER BY c.created_at ASC
         LIMIT ? OFFSET ?
-      `, [failId, limitNum, offset]);
+      `, [failId, limitNum, offset], { textProtocol: true });
 
       // Compter le total de commentaires
       const totalResult = await executeQuery(`
@@ -260,22 +246,21 @@ class CommentsController {
       const totalPages = Math.ceil(total / limitNum);
 
       // Construire une liste plate (pas de fil de discussion dans le schéma actuel)
-      const flat = comments
-        .filter(c => !c.moderation_status || c.moderation_status === 'approved')
-        .map(comment => ({
-          id: comment.id,
-          content: comment.content,
-          user: {
-            id: comment.user_id,
-            displayName: comment.display_name,
-            avatarUrl: comment.avatar_url
-          },
-          createdAt: comment.created_at,
-          updatedAt: comment.updated_at,
-          repliesCount: 0,
-          likesCount: comment.likes_count || 0,
-          replies: []
-        }));
+      const flat = comments.map(comment => ({
+        id: comment.id,
+        content: comment.content,
+        failId: comment.fail_id,
+        author: {
+          id: comment.user_id,
+          displayName: comment.display_name,
+          avatarUrl: comment.avatar_url
+        },
+        createdAt: comment.created_at,
+        updatedAt: comment.updated_at,
+        repliesCount: 0,
+        likesCount: 0,
+        replies: []
+      }));
 
       res.json({
         success: true,
@@ -308,7 +293,6 @@ class CommentsController {
    */
   static async updateComment(req, res) {
     try {
-      await CommentsController.ensureAuxTables();
       const { id: failId, commentId } = req.params;
       const { content } = req.body;
       const userId = req.user.id;
@@ -367,6 +351,7 @@ class CommentsController {
         SELECT 
           c.id,
           c.content,
+          c.fail_id,
           c.created_at,
           c.updated_at,
           p.display_name,
@@ -384,7 +369,8 @@ class CommentsController {
         data: {
           id: updatedComment[0].id,
           content: updatedComment[0].content,
-          user: {
+          failId: updatedComment[0].fail_id,
+          author: {
             id: updatedComment[0].user_id,
             displayName: updatedComment[0].display_name,
             avatarUrl: updatedComment[0].avatar_url

@@ -34,7 +34,7 @@ async function testCommentsLikeReport() {
     const tokenAuthor = author.token;
 
     const failsUrl = API_CONFIG.baseUrl + API_CONFIG.endpoints.fails.create;
-    const failRes = await fetch(failsUrl, { method: 'POST', headers: { ...DEFAULT_HEADERS, Authorization: `Bearer ${tokenAuthor}` }, body: JSON.stringify({ title: 'Fail A', description: 'Desc', category: 'personnel', is_public: true }) });
+  const failRes = await fetch(failsUrl, { method: 'POST', headers: { ...DEFAULT_HEADERS, Authorization: `Bearer ${tokenAuthor}` }, body: JSON.stringify({ title: 'Fail A', description: 'Desc', category: 'personnel', is_anonyme: false }) });
     if (failRes.status !== 201) throw new Error('Création fail auteur échouée');
     const failJson = await failRes.json();
     results.failCreated = true;
@@ -105,4 +105,3 @@ if (require.main === module) {
 }
 
 module.exports = testCommentsLikeReport;
-

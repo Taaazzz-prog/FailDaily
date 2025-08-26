@@ -69,7 +69,7 @@ async function testFailCreation() {
       title: 'Mon premier échec de test',
       description: 'Ceci est une description détaillée de mon échec pour les tests',
       category: 'personnel',
-      is_public: true
+      is_anonyme: false
     };
 
     const createResponse = await fetch(failsUrl, {
@@ -113,7 +113,7 @@ async function testFailCreation() {
     const noTitleData = {
       description: 'Description sans titre',
       category: 'personnel',
-      is_public: true
+      is_anonyme: false
     };
 
     const noTitleResponse = await fetch(failsUrl, {
@@ -141,7 +141,7 @@ async function testFailCreation() {
       title: 'Échec public de test',
       description: 'Ceci est un échec visible par tous',
       category: 'professionnel',
-      is_public: true
+      is_anonyme: false
     };
 
     const publicResponse = await fetch(failsUrl, {
@@ -155,7 +155,7 @@ async function testFailCreation() {
 
     if (publicResponse.status === 201) {
       const data = await publicResponse.json();
-      if (data.fail.is_public === true) {
+      if (data.fail.is_anonyme === false) {
         results.publicFail = true;
         TEST_UTILS.log('✅', 'Fail public créé correctement');
       }
@@ -169,7 +169,7 @@ async function testFailCreation() {
       title: 'Échec privé de test',
       description: 'Ceci est un échec privé',
       category: 'personnel',
-      is_public: false
+      is_anonyme: true
     };
 
     const privateResponse = await fetch(failsUrl, {
@@ -183,7 +183,7 @@ async function testFailCreation() {
 
     if (privateResponse.status === 201) {
       const data = await privateResponse.json();
-      if (data.fail.is_public === false) {
+      if (data.fail.is_anonyme === true) {
         results.privateFail = true;
         TEST_UTILS.log('✅', 'Fail privé créé correctement');
       }
@@ -201,7 +201,7 @@ async function testFailCreation() {
         title: `Échec ${category}`,
         description: `Test de la catégorie ${category}`,
         category: category,
-        is_public: true
+        is_anonyme: false
       };
 
       const categoryResponse = await fetch(failsUrl, {

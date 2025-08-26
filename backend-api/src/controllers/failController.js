@@ -24,7 +24,7 @@ const getUserActivityData = (req, userId, userEmail, userName = null) => {
 // Créer un fail
 const createFail = async (req, res) => {
   try {
-    const { title, description, category, is_public } = req.body;
+    const { title, description, category, is_anonyme } = req.body;
     const userId = req.user.id;
 
     // Validation
@@ -52,13 +52,13 @@ const createFail = async (req, res) => {
 
     const failId = uuidv4();
 
-    // Créer le fail - Conversion correcte du boolean is_public
-    const isPublicValue = is_public === true || is_public === 'true' || is_public === 1 ? 1 : 0;
+    // Créer le fail - Conversion correcte du boolean is_anonyme
+    const isAnonymeValue = is_anonyme === true || is_anonyme === 'true' || is_anonyme === 1 ? 1 : 0;
     
     await executeQuery(`
-      INSERT INTO fails (id, user_id, title, description, category, image_url, is_public, created_at)
+      INSERT INTO fails (id, user_id, title, description, category, image_url, is_anonyme, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-    `, [failId, userId, title, description, category, req.file?.filename || null, isPublicValue]);
+    `, [failId, userId, title, description, category, req.file?.filename || null, isAnonymeValue]);
 
   // (Optionnel) Mise à jour des stats utilisateur ou attribution de badges
   // Désactivé car les colonnes/tables attendues ne sont pas standardisées dans le schéma actuel.
@@ -78,7 +78,7 @@ const createFail = async (req, res) => {
         title,
         description,
         category,
-        is_public: !!is_public,
+        is_anonyme: !!is_anonyme,
         createdAt: new Date().toISOString()
       }
     });
@@ -104,7 +104,7 @@ const getFails = async (req, res) => {
 
     // Requête simplifiée sans sous-requête complexe
     let query = `
-      SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
+      SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_anonyme, f.created_at,
              COALESCE(f.comments_count, 0) as comments_count,
              COALESCE(f.reactions, '{"courage":0,"empathy":0,"laugh":0,"support":0}') as reactions
       FROM fails f
@@ -115,8 +115,8 @@ const getFails = async (req, res) => {
 
     // Filtres additionnels
     if (filterUserId && filterUserId !== currentUserId) {
-      // Si on demande les fails d'un autre utilisateur, ne montrer que les publics
-      query += ' AND f.is_public = 1 AND f.user_id = ?';
+      // Afficher aussi les fails d'autres utilisateurs (pas filtrés par anonymat)
+      query += ' AND f.user_id = ?';
       params.push(filterUserId);
       // Remplacer le premier paramètre
       params[0] = filterUserId;
@@ -143,7 +143,7 @@ const getFails = async (req, res) => {
     let countParams = [currentUserId];
 
     if (filterUserId && filterUserId !== currentUserId) {
-      countQuery = `SELECT COUNT(*) as total FROM fails f WHERE f.is_public = 1 AND f.user_id = ?`;
+      countQuery = `SELECT COUNT(*) as total FROM fails f WHERE f.user_id = ?`;
       countParams = [filterUserId];
     }
 
@@ -162,7 +162,7 @@ const getFails = async (req, res) => {
       description: fail.description,
       category: fail.category,
       imageUrl: fail.image_url,
-      isPublic: !!fail.is_public,
+      is_anonyme: !!fail.is_anonyme,
       commentsCount: fail.comments_count || 0,
       reactions: typeof fail.reactions === 'string' ? JSON.parse(fail.reactions) : (fail.reactions || { courage: 0, empathy: 0, laugh: 0, support: 0 }),
       createdAt: fail.created_at,
@@ -201,7 +201,7 @@ const getFailById = async (req, res) => {
 
     // Requête simplifiée sans sous-requête
     const fails = await executeQuery(`
-      SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at,
+      SELECT f.id, f.user_id, f.title, f.description, f.category, f.image_url, f.is_anonyme, f.created_at,
              COALESCE(f.comments_count, 0) as comments_count,
              COALESCE(f.reactions, '{"courage":0,"empathy":0,"laugh":0,"support":0}') as reactions
       FROM fails f
@@ -225,7 +225,8 @@ const getFailById = async (req, res) => {
         description: fail.description,
         category: fail.category,
         imageUrl: fail.image_url,
-        is_public: !!fail.is_public,
+        is_anonyme: !!fail.is_anonyme,
+        commentsCount: fail.comments_count || 0,
         createdAt: fail.created_at,
         reactionsCount: fail.reactions_count
       }
@@ -296,7 +297,7 @@ const deleteFail = async (req, res) => {
 const updateFail = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, category, is_public } = req.body;
+    const { title, description, category, is_anonyme } = req.body;
     const userId = req.user.id;
 
     // Validation des données
@@ -362,9 +363,9 @@ const updateFail = async (req, res) => {
       updateValues.push(category);
     }
 
-    if (is_public !== undefined) {
-      updateFields.push('is_public = ?');
-      updateValues.push(is_public ? 1 : 0);
+    if (is_anonyme !== undefined) {
+      updateFields.push('is_anonyme = ?');
+      updateValues.push(is_anonyme ? 1 : 0);
     }
 
     updateFields.push('updated_at = NOW()');
@@ -377,7 +378,7 @@ const updateFail = async (req, res) => {
 
     // Récupérer le fail mis à jour avec les informations de l'auteur
     const updatedFails = await executeQuery(`
-      SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_public, f.created_at, f.updated_at,
+      SELECT f.id, f.title, f.description, f.category, f.image_url, f.is_anonyme, f.created_at, f.updated_at,
              p.display_name as author_name, p.avatar_url as author_avatar,
              u.id as author_id,
              (SELECT COUNT(*) FROM reactions r WHERE r.fail_id = f.id) as reactions_count

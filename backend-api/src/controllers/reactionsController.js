@@ -27,8 +27,8 @@ class ReactionsController {
 
       // Vérifier que le fail existe et est accessible
       const fails = await executeQuery(`
-        SELECT id, user_id, is_public 
-        FROM fails 
+        SELECT id, user_id, is_anonyme
+        FROM fails
         WHERE id = ?
       `, [failId]);
 
@@ -42,14 +42,7 @@ class ReactionsController {
 
       const fail = fails[0];
 
-      // Vérifier les permissions (fail public ou propriétaire)
-      if (!fail.is_public && fail.user_id !== userId) {
-        return res.status(403).json({
-          success: false,
-          message: 'Accès non autorisé à ce fail',
-          code: 'ACCESS_DENIED'
-        });
-      }
+      // Aucune restriction d'accès basée sur l'anonymat
 
       // Vérifier si une réaction existe déjà
       const existingReactions = await executeQuery(`
@@ -171,8 +164,8 @@ class ReactionsController {
 
       // Vérifier que le fail existe et est accessible
       const fails = await executeQuery(`
-        SELECT id, user_id, is_public 
-        FROM fails 
+        SELECT id, user_id, is_anonyme
+        FROM fails
         WHERE id = ?
       `, [failId]);
 
@@ -186,14 +179,7 @@ class ReactionsController {
 
       const fail = fails[0];
 
-      // Vérifier les permissions (fail public ou propriétaire)
-      if (!fail.is_public && (!userId || fail.user_id !== userId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Accès non autorisé à ce fail',
-          code: 'ACCESS_DENIED'
-        });
-      }
+      // Aucune restriction d'accès basée sur l'anonymat
 
       // Récupérer toutes les réactions avec les informations des utilisateurs
       const reactions = await executeQuery(`

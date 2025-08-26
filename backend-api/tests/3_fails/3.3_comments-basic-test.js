@@ -41,7 +41,7 @@ async function testCommentsBasic() {
       title: 'Fail pour test commentaires',
       description: 'Contenu test',
       category: 'personnel',
-      is_public: true
+      is_anonyme: false
     };
     const failRes = await fetch(failsUrl, { method: 'POST', headers: { ...DEFAULT_HEADERS, Authorization: `Bearer ${token}` }, body: JSON.stringify(failPayload) });
     if (failRes.status !== 201) {
@@ -104,4 +104,3 @@ if (require.main === module) {
 }
 
 module.exports = testCommentsBasic;
-

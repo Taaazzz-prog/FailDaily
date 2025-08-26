@@ -320,7 +320,7 @@ export class ApiTestComponent implements OnInit {
       description: 'Ceci est un fail de test',
       category: 'Général',
       tags: ['test', 'api'],
-      is_public: true
+      is_anonyme: false
     };
 
     try {

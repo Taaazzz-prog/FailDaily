@@ -15,7 +15,7 @@ function mapFailRow(fail) {
     authorAvatar: fail.avatar_url,
     reactions: fail.reactions ? JSON.parse(fail.reactions) : {},
     commentsCount: fail.comments_count,
-    is_public: !!fail.is_public,
+    is_anonyme: !!fail.is_anonyme,
     createdAt: new Date(fail.created_at).toISOString(),
     updatedAt: new Date(fail.updated_at).toISOString(),
     tags: fail.tags ? JSON.parse(fail.tags) : [],
@@ -39,7 +39,7 @@ class FailsController {
         description,
         category = 'Général',
         tags = [],
-        is_public = true,
+        is_anonyme = false,
         imageUrl = null,
         location = null
       } = req.body;
@@ -72,7 +72,7 @@ class FailsController {
       const failQuery = `
         INSERT INTO fails (
           user_id, title, description, category, tags, 
-          is_public, image_url, location, created_at, updated_at
+          is_anonyme, image_url, location, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
       `;
 
@@ -82,7 +82,7 @@ class FailsController {
         description ? description.trim() : null,
         category,
         JSON.stringify(tags),
-        is_public,
+        is_anonyme,
         imageUrl,
         location ? JSON.stringify(location) : null
       ];
@@ -129,7 +129,7 @@ class FailsController {
         category = null,
         search = null,
         userId = null,
-        is_public = true,
+        // is_anonyme is not a visibility filter; no filter here
         sortBy = 'created_at',
         sortOrder = 'DESC'
       } = req.query;
@@ -142,10 +142,7 @@ class FailsController {
       let queryParams = [];
 
       // Filtres de base
-      if (is_public === 'true') {
-        whereConditions.push('f.is_public = ?');
-        queryParams.push(true);
-      }
+      // No filter on anonymity
 
       if (category && category !== 'all') {
         whereConditions.push('f.category = ?');
@@ -233,7 +230,7 @@ class FailsController {
  * - Scroll infini supporté via ?offset=
  * - Pagination classique via ?page=
  */
-static async getPublicFails(req, res) {
+  static async getPublicFails(req, res) {
   try {
     // 1) Params robustes
     const rawLimit  = Number(req.query.limit);
@@ -249,25 +246,27 @@ static async getPublicFails(req, res) {
     const page = useOffset ? Math.floor(offset / limit) + 1
                            : (Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1);
 
-    // 2) Requête : pas de filtre sur is_public (tout est visible)
+    // 2) Requête : pas de filtre sur is_anonyme (tout est visible)
     //    Ordre stable pour éviter doublons/manqués si nouveaux posts arrivent
     const sql = `
       SELECT f.*, p.display_name, p.avatar_url
       FROM fails f
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
+      LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+      WHERE (fm.status IS NULL OR fm.status = 'approved')
       ORDER BY f.created_at DESC, f.id DESC
-      LIMIT ?, ?`; // offset, limit
+      LIMIT ?, ?`;
 
     const rows = await executeQuery(sql, [offset, limit], { textProtocol: true });
 
-    // 3) Mapping + anonymisation (si is_public = 0)
+    // 3) Mapping + anonymisation (si is_anonyme = 1)
     const processed = rows.map((row) => {
       const mapped = mapFailRow(row);
-      const isPublic = !!row.is_public; // tinyint -> bool
-      mapped.is_public = isPublic;
+      const isAnon = !!row.is_anonyme; // tinyint -> bool
+      mapped.is_anonyme = isAnon;
 
-      if (!isPublic) {
+      if (isAnon) {
         mapped.authorName   = 'Anonyme';
         mapped.authorAvatar = 'assets/profil/anonymous.png';
       } else {
@@ -319,7 +318,8 @@ static async getPublicFails(req, res) {
         FROM fails f
         JOIN users u ON f.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
-        WHERE f.id = ?
+        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+        WHERE f.id = ? AND (fm.status IS NULL OR fm.status = 'approved')
       `;
 
       const params = userId ? [userId, failId] : [failId];
@@ -334,7 +334,7 @@ static async getPublicFails(req, res) {
         ...fail,
         tags: JSON.parse(fail.tags || '[]'),
         location: fail.location ? JSON.parse(fail.location) : null,
-        is_public: !!fail.is_public,
+        is_anonyme: !!fail.is_anonyme,
         created_at: new Date(fail.created_at).toISOString(),
         updated_at: new Date(fail.updated_at).toISOString()
       };
@@ -362,12 +362,7 @@ static async getPublicFails(req, res) {
       }
 
       // Vérifier si l'utilisateur peut voir ce fail
-      if (!fail.is_public && (!userId || fail.user_id !== userId)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Accès non autorisé à ce fail'
-        });
-      }
+      // No visibility restriction based on anonymity
 
       // Incrémenter le compteur de vues si ce n'est pas l'auteur
       if (userId && fail.user_id !== userId) {
@@ -419,13 +414,13 @@ static async getPublicFails(req, res) {
       }
 
       // Construire la requête de mise à jour
-      const allowedFields = ['title', 'description', 'category', 'tags', 'is_public', 'imageUrl'];
+      const allowedFields = ['title', 'description', 'category', 'tags', 'is_anonyme', 'imageUrl'];
       const updateFields = [];
       const updateValues = [];
 
       allowedFields.forEach(field => {
         if (Object.prototype.hasOwnProperty.call(updateData, field)) {
-          const dbField = field === 'is_public' ? 'is_public' :
+          const dbField = field === 'is_anonyme' ? 'is_anonyme' :
                          field === 'imageUrl' ? 'image_url' : field;
           
           updateFields.push(`${dbField} = ?`);
@@ -672,7 +667,7 @@ static async getPublicFails(req, res) {
         SELECT 
           COUNT(*) as total_fails,
           COUNT(DISTINCT user_id) as total_users,
-          SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as public_fails,
+          SUM(CASE WHEN is_anonyme = 0 THEN 1 ELSE 0 END) as public_fails,
           (SELECT COUNT(*) FROM reactions) as total_reactions
         FROM fails
       `);
@@ -683,7 +678,7 @@ static async getPublicFails(req, res) {
       const categoryStats = await executeQuery(`
         SELECT category, COUNT(*) as count
         FROM fails
-        WHERE is_public = 1
+        WHERE is_anonyme = 0
         GROUP BY category
         ORDER BY count DESC
       `);
@@ -695,7 +690,7 @@ static async getPublicFails(req, res) {
         const userStats = await executeQuery(`
           SELECT 
             COUNT(*) as my_fails,
-            SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as my_public_fails,
+            SUM(CASE WHEN is_anonyme = 0 THEN 1 ELSE 0 END) as my_public_fails,
             (SELECT COUNT(*) FROM reactions WHERE fail_id IN 
               (SELECT id FROM fails WHERE user_id = ?)) as reactions_on_my_fails
           FROM fails
@@ -769,13 +764,7 @@ static async getPublicFails(req, res) {
       const searchTerm = `%${searchQuery}%`;
       params.push(searchTerm, searchTerm, searchTerm);
 
-      // Filtres de visibilité
-      if (!userId) {
-        query += ' AND f.is_public = 1';
-      } else {
-        query += ' AND (f.is_public = 1 OR f.user_id = ?)';
-        params.push(userId);
-      }
+      // Aucun filtre de visibilité basé sur l'anonymat (is_anonyme)
 
       // Filtre par catégorie
       if (category) {
@@ -805,12 +794,7 @@ static async getPublicFails(req, res) {
       `;
       const countParams = [searchTerm, searchTerm, searchTerm];
 
-      if (!userId) {
-        countQuery += ' AND f.is_public = 1';
-      } else {
-        countQuery += ' AND (f.is_public = 1 OR f.user_id = ?)';
-        countParams.push(userId);
-      }
+      // Aucun filtre de visibilité basé sur l'anonymat (is_anonyme)
 
       if (category) {
         countQuery += ' AND f.category = ?';
@@ -873,7 +857,7 @@ static async getPublicFails(req, res) {
           category,
           COUNT(*) as count
         FROM fails 
-        WHERE is_public = 1
+        WHERE is_anonyme = 0
         GROUP BY category
         ORDER BY count DESC, category ASC
       `);
@@ -910,7 +894,7 @@ static async getPublicFails(req, res) {
       const tagsResults = await executeQuery(`
         SELECT tags 
         FROM fails 
-        WHERE is_public = 1 AND tags IS NOT NULL AND tags != '[]'
+        WHERE is_anonyme = 0 AND tags IS NOT NULL AND tags != '[]'
       `);
 
       // Compter la fréquence de chaque tag
@@ -988,6 +972,63 @@ static async getPublicFails(req, res) {
     } catch (error) {
       console.error('❌ Erreur incrémentation vues:', error);
       // Ne pas faire échouer la requête principale
+    }
+  }
+  static async ensureModerationTables() {
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS fail_reports (
+        id CHAR(36) NOT NULL,
+        fail_id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        reason TEXT NULL,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_fail_report (fail_id, user_id),
+        KEY idx_fail (fail_id),
+        KEY idx_user (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS fail_moderation (
+        fail_id CHAR(36) NOT NULL,
+        status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+        updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (fail_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  }
+
+  static async reportFail(req, res) {
+    try {
+      await this.ensureModerationTables();
+      const { id } = req.params;
+      const userId = req.user.id;
+      const reason = (req.body && req.body.reason) || null;
+
+      // Existence
+      const rows = await executeQuery('SELECT id FROM fails WHERE id = ? LIMIT 1', [id]);
+      if (rows.length === 0) return res.status(404).json({ success: false, message: 'Fail non trouvé' });
+
+      // Insert report (ignore duplicate)
+      try {
+        const rid = require('uuid').v4();
+        await executeQuery(
+          'INSERT INTO fail_reports (id, fail_id, user_id, reason, created_at) VALUES (?, ?, ?, ?, NOW())',
+          [rid, id, userId, reason]
+        );
+      } catch (_) { /* duplicate ok */ }
+
+      // Immediately hide until moderation
+      await executeQuery(
+        'INSERT INTO fail_moderation (fail_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+        [id]
+      );
+
+      return res.json({ success: true, message: 'Fail signalé et masqué en attente de modération' });
+    } catch (error) {
+      console.error('❌ reportFail error:', error);
+      return res.status(500).json({ success: false, message: 'Erreur signalement fail' });
     }
   }
 }

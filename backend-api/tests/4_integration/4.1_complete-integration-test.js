@@ -90,19 +90,19 @@ async function testCompleteIntegration() {
         title: 'Premier échec professionnel',
         description: 'J\'ai complètement raté ma présentation importante',
         category: 'professionnel',
-        is_public: true
+        is_anonyme: false
       },
       {
         title: 'Échec relationnel',
         description: 'Dispute avec un proche',
         category: 'relationnel',
-        is_public: false
+        is_anonyme: true
       },
       {
         title: 'Échec financier',
         description: 'Mauvais investissement',
         category: 'financier',
-        is_public: true
+        is_anonyme: false
       }
     ];
 

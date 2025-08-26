@@ -16,8 +16,8 @@ class UserController {
       const failsStats = await executeQuery(`
         SELECT 
           COUNT(*) as total_fails,
-          SUM(CASE WHEN is_public = 1 THEN 1 ELSE 0 END) as public_fails,
-          SUM(CASE WHEN is_public = 0 THEN 1 ELSE 0 END) as private_fails,
+          SUM(CASE WHEN is_anonyme = 0 THEN 1 ELSE 0 END) as public_fails,
+          SUM(CASE WHEN is_anonyme = 1 THEN 1 ELSE 0 END) as private_fails,
           SUM(views_count) as total_views
         FROM fails 
         WHERE user_id = ?
@@ -160,7 +160,7 @@ class UserController {
           COUNT(*) as public_fails,
           SUM(views_count) as total_views
         FROM fails 
-        WHERE user_id = ? AND is_public = 1
+        WHERE user_id = ? AND is_anonyme = 0
       `, [targetUserId]);
 
       // Compter les réactions reçues sur les fails publics
@@ -168,7 +168,7 @@ class UserController {
         SELECT COUNT(*) as total_reactions
         FROM fail_reactions fr
         JOIN fails f ON fr.fail_id = f.id
-        WHERE f.user_id = ? AND f.is_public = 1
+        WHERE f.user_id = ? AND f.is_anonyme = 0
       `, [targetUserId]);
 
       res.json({
@@ -248,7 +248,7 @@ class UserController {
 
       // Si ce n'est pas le propriétaire, ne montrer que les fails publics
       if (currentUserId !== targetUserId) {
-        query += ' AND f.is_public = 1';
+        query += ' AND f.is_anonyme = 0';
       }
 
       query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
@@ -265,7 +265,7 @@ class UserController {
       const countParams = [targetUserId];
 
       if (currentUserId !== targetUserId) {
-        countQuery += ' AND is_public = 1';
+        countQuery += ' AND is_anonyme = 0';
       }
 
       const totalResult = await executeQuery(countQuery, countParams);

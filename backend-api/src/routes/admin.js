@@ -94,7 +94,7 @@ router.get('/fails/reported', authenticateToken, requireAdmin, async (req, res) 
     const results = [];
     for (const row of reported) {
       const [fail] = await executeQuery(
-        'SELECT id, user_id, title, description, category, is_public, created_at FROM fails WHERE id = ? LIMIT 1',
+        'SELECT id, user_id, title, description, category, is_anonyme, created_at FROM fails WHERE id = ? LIMIT 1',
         [row.fail_id]
       );
       results.push({ fail, reports: row.reports });
@@ -171,7 +171,7 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
     if (!action) return res.status(400).json({ success: false, message: 'Action requise' });
 
     if (action === 'hide') {
-      await executeQuery('UPDATE fails SET is_public = 0, updated_at = NOW() WHERE id = ?', [id]);
+      await executeQuery('UPDATE fails SET is_anonyme = 1, updated_at = NOW() WHERE id = ?', [id]);
     } else if (action === 'delete') {
       await executeQuery('DELETE FROM reactions WHERE fail_id = ?', [id]);
       await executeQuery('DELETE FROM comments WHERE fail_id = ?', [id]);
@@ -195,3 +195,40 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
 });
 
 module.exports = router;
+// PUT /api/admin/fails/:id/moderation { status }
+router.put('/fails/:id/moderation', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    if (!['approved','hidden','under_review'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Statut invalide' });
+    }
+    await executeQuery(
+      'INSERT INTO fail_moderation (fail_id, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+      [id, status]
+    );
+    res.json({ success: true, message: 'Statut de modération du fail mis à jour' });
+  } catch (e) {
+    console.error('admin set fail moderation error:', e);
+    res.status(500).json({ success: false, message: 'Erreur MAJ modération fail' });
+  }
+});
+
+// PUT /api/admin/comments/:id/moderation { status }
+router.put('/comments/:id/moderation', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body || {};
+    if (!['approved','hidden','under_review'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Statut invalide' });
+    }
+    await executeQuery(
+      'INSERT INTO comment_moderation (comment_id, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+      [id, status]
+    );
+    res.json({ success: true, message: 'Statut de modération du commentaire mis à jour' });
+  } catch (e) {
+    console.error('admin set comment moderation error:', e);
+    res.status(500).json({ success: false, message: 'Erreur MAJ modération commentaire' });
+  }
+});

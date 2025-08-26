@@ -614,7 +614,7 @@ export class MysqlService {
         description: fail.description.trim(),
         category: fail.category,
         image_url: imageUrl,
-        is_public: !!fail.is_public
+        is_anonyme: !!fail.is_anonyme
       };
 
       const response: any = await this.http.post(`${this.apiUrl}/fails`, failToCreate, {
@@ -667,7 +667,7 @@ export class MysqlService {
             authorId: fail.authorId,
             authorName: fail.authorName,
             authorAvatar: fail.authorAvatar,
-            isPublic: fail.isPublic
+            isAnonyme: fail.is_anonyme
           });
         });
         
@@ -1628,6 +1628,14 @@ export class MysqlService {
       console.error('❌ Erreur upload image:', error);
       throw error;
     }
+  }
+
+  async reportFail(failId: string, reason?: string): Promise<any> {
+    const body: any = reason ? { reason } : {};
+    const response: any = await this.http.post(`${this.apiUrl}/fails/${failId}/report`, body, {
+      headers: this.getAuthHeaders()
+    }).toPromise();
+    return response;
   }
 
   async getUserProfile(userId: string): Promise<any | null> {

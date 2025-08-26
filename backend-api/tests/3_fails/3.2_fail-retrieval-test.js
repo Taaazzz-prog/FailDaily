@@ -63,10 +63,10 @@ async function testFailRetrieval() {
 
     // Créer plusieurs fails de test
     const testFails = [
-      { title: 'Échec public 1', description: 'Premier échec public', category: 'personnel', is_public: true },
-      { title: 'Échec privé 1', description: 'Premier échec privé', category: 'professionnel', is_public: false },
-      { title: 'Échec public 2', description: 'Deuxième échec public', category: 'relationnel', is_public: true },
-      { title: 'Échec public 3', description: 'Troisième échec public', category: 'personnel', is_public: true }
+      { title: 'Échec public 1', description: 'Premier échec public', category: 'personnel', is_anonyme: false },
+      { title: 'Échec privé 1', description: 'Premier échec privé', category: 'professionnel', is_anonyme: true },
+      { title: 'Échec public 2', description: 'Deuxième échec public', category: 'relationnel', is_anonyme: false },
+      { title: 'Échec public 3', description: 'Troisième échec public', category: 'personnel', is_anonyme: false }
     ];
 
     TEST_UTILS.log('📝', 'Création de fails de test...');
@@ -121,8 +121,8 @@ async function testFailRetrieval() {
         TEST_UTILS.log('✅', `Récupération réussie: ${allFailsData.fails.length} fails trouvés`);
         
         // Vérifier que tous les fails retournés sont publics (pour un utilisateur standard)
-        const publicFails = allFailsData.fails.filter(fail => fail.is_public === true);
-        const privateFails = allFailsData.fails.filter(fail => fail.is_public === false && fail.user_id === userId);
+        const publicFails = allFailsData.fails.filter(fail => fail.is_anonyme === false);
+        const privateFails = allFailsData.fails.filter(fail => fail.is_anonyme === true && fail.user_id === userId);
         
         // Un utilisateur connecté voit : tous les fails publics + ses propres fails privés
         if (publicFails.length > 0) {
@@ -246,7 +246,7 @@ async function testFailRetrieval() {
       
       // Devrait inclure les fails privés de l'utilisateur
       const userFails = authData.fails.filter(fail => fail.user_id === userId);
-      const privateUserFails = userFails.filter(fail => !fail.is_public);
+      const privateUserFails = userFails.filter(fail => fail.is_anonyme);
       
       if (privateUserFails.length > 0) {
         TEST_UTILS.log('✅', `Fails privés inclus avec auth: ${privateUserFails.length}`);

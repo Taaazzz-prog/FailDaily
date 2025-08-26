@@ -24,7 +24,7 @@ export interface Fail {
   authorAvatar: string;
   reactions: FailReactions;
   commentsCount: number;
-  is_public: boolean;
+  is_anonyme: boolean;
   createdAt: Date;
   encouragementMessage?: string;
 }

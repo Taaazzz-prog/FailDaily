@@ -19,6 +19,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   @Input() fail!: Fail;
   userReactions: string[] = []; // Array des réactions de l'utilisateur
   showComments = false;
+  hidden = false;
 
   private encouragementMessages = [
     'Chaque échec est un pas vers la réussite ! 💪',
@@ -226,5 +227,15 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       [FailCategory.COMMUNICATION]: 'dark'
     };
     return colors[category] || 'medium';
+  }
+
+  async onReportFail() {
+    try {
+      const ok = await this.failService.reportFail(this.fail.id);
+      if (ok) {
+        this.hidden = true; // masquer localement
+        this.cdr.detectChanges();
+      }
+    } catch {}
   }
 }

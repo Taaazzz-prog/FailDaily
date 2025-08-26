@@ -13,7 +13,7 @@ export interface CreateFailData {
   description: string;
   category: FailCategory;
   image?: File;
-  is_public: boolean;
+  is_anonyme: boolean;
 }
 
 @Injectable({
@@ -66,7 +66,7 @@ export class FailService {
       description: failData.description?.trim() || '',
       category: failData.category, // Suppression du fallback
       image_url: imageUrl,
-      is_public: Boolean(failData.is_public),
+      is_anonyme: Boolean(failData.is_anonyme),
       user_id: user.id
     };
 
@@ -85,7 +85,7 @@ export class FailService {
       // Logger la création du fail
       await this.logger.logFail('create', failToCreate.title, undefined, {
         category: failToCreate.category,
-        is_public: failToCreate.is_public,
+        is_anonyme: failToCreate.is_anonyme,
         hasImage: !!imageUrl
       });
 
@@ -107,6 +107,15 @@ export class FailService {
       }, false);
 
       throw error;
+    }
+  }
+
+  async reportFail(failId: string, reason?: string): Promise<boolean> {
+    try {
+      const res: any = await this.mysqlService.reportFail(failId, reason);
+      return !!res?.success || res === true;
+    } catch {
+      return false;
     }
   }
 
@@ -161,7 +170,7 @@ export class FailService {
       authorId: failData.authorId,
       authorName: failData.authorName,
       authorAvatar: failData.authorAvatar,
-      isPublic: failData.isPublic
+      isAnonyme: failData.is_anonyme
     });
 
     // ✅ UTILISER LES DONNÉES DÉJÀ CALCULÉES PAR LE BACKEND
@@ -218,11 +227,11 @@ export class FailService {
       category: failData.category as FailCategory,
       authorName: authorName,
       authorAvatar: authorAvatar,
-      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par is_public)
+      authorId: failData.user_id, // ID de l'auteur toujours présent (anonymat géré par is_anonyme)
       imageUrl: failData.imageUrl,
       createdAt: createdDate, // ✅ FIX: Date formatée correctement
-      is_public: failData.is_public,
-      commentsCount: 0, // À implémenter plus tard
+      is_anonyme: failData.is_anonyme,
+      commentsCount: (failData.commentsCount ?? failData.comments_count ?? 0),
       reactions: reactions // ✅ FIX: Réactions récupérées depuis l'API
     };
   }

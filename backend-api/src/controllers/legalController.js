@@ -226,7 +226,7 @@ class LegalController {
       // Profil utilisateur
       const profileData = await executeQuery(
         req.dbConnection,
-        'SELECT bio, location, website, is_public FROM user_profiles WHERE user_id = ?',
+        'SELECT bio, location, website, is_anonyme FROM user_profiles WHERE user_id = ?',
         [userId]
       );
 
@@ -234,7 +234,7 @@ class LegalController {
       const failsData = await executeQuery(
         req.dbConnection,
         `SELECT 
-          id, title, description, category, tags, is_public, 
+          id, title, description, category, tags, is_anonyme, 
           view_count, created_at, updated_at
         FROM fails WHERE user_id = ?`,
         [userId]

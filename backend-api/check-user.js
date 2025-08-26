@@ -232,7 +232,7 @@ async function createTestUser() {
 
     // Créer le profil
     await connection.execute(
-      `INSERT INTO user_profiles (user_id, bio, is_public, created_at, updated_at) 
+      `INSERT INTO user_profiles (user_id, bio, is_anonyme, created_at, updated_at) 
        VALUES (?, ?, 1, NOW(), NOW())`,
       [userId, 'Utilisateur de test administrateur']
     );

@@ -219,7 +219,7 @@ export class PostFailPage implements OnInit {
           description: formValues.content.trim(),
           category: formValues.category, // Suppression de la valeur par défaut
           image: this.selectedImageFile,
-          is_public: !formValues.isAnonymous // false => anonyme (is_public=0), true => public (is_public=1)
+          is_anonyme: !!formValues.isAnonymous // true => anonyme, false => affichage du créateur
         };
 
         console.log('Données du fail à créer:', createFailData);

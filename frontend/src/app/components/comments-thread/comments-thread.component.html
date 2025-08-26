@@ -15,6 +15,7 @@
           <h3>{{ c.author?.displayName || 'Membre' }}</h3>
           <p>{{ c.content }}</p>
         </ion-label>
+        <ion-button slot="end" fill="clear" size="small" (click)="onReport(c)">Signaler</ion-button>
       </ion-item>
       <ion-item *ngIf="comments.length === 0">
         <ion-label>Aucun commentaire pour le moment.</ion-label>
