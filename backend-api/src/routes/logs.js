@@ -108,16 +108,16 @@ router.post('/system', authenticateToken, async (req, res) => {
     const userId = req.user?.id || null;
     
     const query = `
-      INSERT INTO system_logs (level, message, details, user_id, action)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO system_logs (id, level, message, details, user_id, action, created_at)
+      VALUES (UUID(), ?, ?, ?, ?, ?, NOW())
     `;
     
     const result = await executeQuery(query, [
-      level,
-      message,
-      JSON.stringify(details),
+      String(level || 'info').toLowerCase(),
+      message || '',
+      details ? JSON.stringify(details) : null,
       userId,
-      action
+      action || null
     ]);
     
     res.json({
@@ -239,7 +239,7 @@ router.put('/comprehensive/:id', authenticateToken, requireAdmin, async (req, re
     if (message) { fields.push('message = ?'); params.push(message); }
     if (details) { fields.push('details = ?'); params.push(JSON.stringify(details)); }
     params.push(id);
-    const sql = `UPDATE system_logs SET ${fields.join(', ')}, updated_at = NOW() WHERE id = ?`;
+    const sql = `UPDATE system_logs SET ${fields.join(', ')} WHERE id = ?`;
     await executeQuery(sql, params);
     res.json({ success: true, message: 'Log mis à jour' });
   } catch (error) {

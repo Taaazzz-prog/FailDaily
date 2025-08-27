@@ -298,7 +298,7 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
     }
 
     await executeQuery(
-      'INSERT INTO system_logs (level, message, details, user_id, action, created_at) VALUES (?,?,?,?,?,NOW())',
+      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
       ['info', 'Moderation decision on fail', JSON.stringify({ failId: id, action }), req.user.id, 'moderation_decision']
     );
 

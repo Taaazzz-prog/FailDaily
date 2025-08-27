@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const CommentsController = require('../controllers/commentsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
+const { logSystem } = require('../utils/logger');
 
 /**
  * POST /api/fails/:id/comments
@@ -67,6 +68,7 @@ router.post('/:id/comments/:commentId/like', authenticateToken, async (req, res)
     const [{ likes }] = await require('../config/database').executeQuery(
       'SELECT COUNT(*) AS likes FROM comment_reactions WHERE comment_id = ?',[commentId]
     );
+    await logSystem({ level: 'info', action: 'comment_like', message: 'Comment liked', details: { commentId, likes }, userId });
     res.json({ success: true, likes });
   } catch (error) {
     console.error('❌ like comment error:', error);
@@ -90,6 +92,7 @@ router.delete('/:id/comments/:commentId/like', authenticateToken, async (req, re
     const [{ likes }] = await require('../config/database').executeQuery(
       'SELECT COUNT(*) AS likes FROM comment_reactions WHERE comment_id = ?',[commentId]
     );
+    await logSystem({ level: 'info', action: 'comment_unlike', message: 'Comment unliked', details: { commentId, likes }, userId });
     res.json({ success: true, likes });
   } catch (error) {
     console.error('❌ unlike comment error:', error);
@@ -136,7 +139,7 @@ router.post('/:id/comments/:commentId/report', authenticateToken, async (req, re
         [commentId]
       );
     }
-
+    await logSystem({ level: 'warning', action: 'comment_report', message: 'Comment reported', details: { commentId, reason, reports, threshold, autoHidden: reports >= threshold }, userId });
     res.json({ success: true, reports });
   } catch (error) {
     console.error('❌ report comment error:', error);

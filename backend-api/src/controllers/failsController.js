@@ -1,4 +1,5 @@
 const { executeQuery, executeTransaction } = require('../config/database');
+const { logSystem } = require('../utils/logger');
 
 /**
  * Map a raw database fail row to the API contract
@@ -131,6 +132,7 @@ class FailsController {
       await this.checkBadgeProgress(userId, 'fail_created');
 
       console.log(`✅ Fail créé: ${failId} par utilisateur ${userId}`);
+      await logSystem({ level: 'info', action: 'fail_create', message: 'Fail created', details: { failId, title, category, is_anonyme }, userId });
 
       res.status(201).json({
         success: true,
@@ -503,6 +505,7 @@ class FailsController {
       const mappedFail = mapFailRow(updatedFail);
 
       console.log(`✅ Fail mis à jour: ${id}`);
+      await logSystem({ level: 'info', action: 'fail_update', message: 'Fail updated', details: { failId: id, fields: Object.keys(updateData || {}) }, userId });
 
       res.json({
         success: true,
@@ -629,6 +632,7 @@ class FailsController {
       ]);
 
       console.log(`✅ Fail supprimé: ${id}`);
+      await logSystem({ level: 'warning', action: 'fail_delete', message: 'Fail deleted', details: { failId: id }, userId });
 
       res.json({
         success: true,
@@ -1124,6 +1128,59 @@ class FailsController {
         PRIMARY KEY (fail_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+  }
+
+  /**
+   * Signaler un fail (pour modération)
+   */
+  static async reportFail(req, res) {
+    try {
+      const { id } = req.params; // failId
+      const userId = req.user.id;
+      const reason = (req.body && req.body.reason) || null;
+
+      // Vérifier l'existence du fail
+      const rows = await executeQuery('SELECT id, user_id, title FROM fails WHERE id = ? LIMIT 1', [id]);
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: 'Fail non trouvé' });
+      }
+
+      // Insérer un report (unique par user/fail)
+      try {
+        const { v4: uuidv4 } = require('uuid');
+        await executeQuery(
+          'INSERT INTO fail_reports (id, fail_id, user_id, reason, created_at) VALUES (?, ?, ?, ?, NOW())',
+          [uuidv4(), id, userId, reason]
+        );
+      } catch (_) { /* duplicate, ignore */ }
+
+      // Compter reports et comparer au seuil
+      const [{ reports }] = await executeQuery('SELECT COUNT(*) AS reports FROM fail_reports WHERE fail_id = ?', [id]);
+      let threshold = 1;
+      try {
+        const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
+        if (row && row[0] && row[0].value) {
+          const cfg = JSON.parse(row[0].value || '{}');
+          threshold = Number(cfg.failReportThreshold) || 1;
+        }
+      } catch {}
+
+      let autoHidden = false;
+      if (reports >= threshold) {
+        await executeQuery(
+          'INSERT INTO fail_moderation (fail_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
+          [id]
+        );
+        autoHidden = true;
+      }
+
+      await logSystem({ level: 'warning', action: 'fail_report', message: 'Fail reported', details: { failId: id, reason, reports, threshold, autoHidden }, userId });
+
+      res.json({ success: true, reports, autoHidden, threshold });
+    } catch (error) {
+      console.error('❌ report fail error:', error);
+      res.status(500).json({ success: false, message: 'Erreur signalement fail' });
+    }
   }
 
   static async reportFail(req, res) {

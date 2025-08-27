@@ -70,6 +70,7 @@ class ReactionsController {
             reactionType,
             points: -Math.abs(revoked || 0)
           });
+          await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_remove', message: 'Reaction removed (toggle)', details: { failId, reactionType }, userId });
 
           return res.json({
             success: true,
@@ -95,6 +96,7 @@ class ReactionsController {
             reactionType,
             points: awarded
           });
+          await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_update', message: 'Reaction updated', details: { failId, reactionType }, userId });
 
           return res.json({
             success: true,
@@ -122,6 +124,7 @@ class ReactionsController {
           reactionType,
           points: awarded
         });
+        await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_add', message: 'Reaction added', details: { failId, reactionType }, userId });
 
         return res.json({
           success: true,
@@ -191,6 +194,7 @@ class ReactionsController {
           points: -Math.abs(revoked || 0)
         });
       }
+      await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_remove', message: 'Reaction removed', details: { failId, reactionType: reactionType || null }, userId });
 
       res.json({
         success: true,

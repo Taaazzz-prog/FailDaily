@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
+const { logSystem } = require('../utils/logger');
 
 // Fonction utilitaire pour obtenir les informations de l'utilisateur et de la requête
 const getUserActivityData = (req, userId, userEmail, userName = null) => {
@@ -148,6 +149,9 @@ const register = async (req, res) => {
       [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'register', JSON.stringify({ email: email.toLowerCase() }), activityData.ip_address, activityData.user_agent]
     );
 
+    // Log system
+    await logSystem({ level: 'info', action: 'user_register', message: 'User registered', details: { email: email.toLowerCase(), displayName }, userId });
+
     res.status(201).json({
       message: 'Inscription réussie',
       user: {
@@ -239,6 +243,7 @@ const login = async (req, res) => {
     };
 
     console.log('🔐 Réponse de connexion envoyée:', JSON.stringify(response, null, 2));
+    await logSystem({ level: 'info', action: 'user_login', message: 'User login', details: { email: user.email }, userId: user.id });
     res.json(response);
 
   } catch (error) {
@@ -298,6 +303,7 @@ const logout = async (req, res) => {
       [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'logout', JSON.stringify({ reason: 'user_logout' }), activityData.ip_address, activityData.user_agent]
     );
 
+    await logSystem({ level: 'info', action: 'user_logout', message: 'User logout', userId: req.user.id });
     res.json({
       message: 'Déconnexion réussie'
     });
@@ -370,6 +376,7 @@ const getProfile = async (req, res) => {
 
     const profile = userProfile[0];
 
+    await logSystem({ level: 'info', action: 'profile_get', message: 'Profile fetched', userId });
     res.json({
       success: true,
       data: {
@@ -474,6 +481,7 @@ const updateProfile = async (req, res) => {
     `;
 
     await executeQuery(updateQuery, updateValues);
+    await logSystem({ level: 'info', action: 'profile_update', message: 'Profile updated', details: { displayName, hasBio: !!bio, hasAvatar: !!avatarUrl }, userId });
 
     // Récupérer le profil mis à jour
     const updatedProfile = await executeQuery(`
@@ -574,6 +582,7 @@ const changePassword = async (req, res) => {
       [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'password_change', JSON.stringify({}), activityData.ip_address, activityData.user_agent]
     );
 
+    await logSystem({ level: 'info', action: 'password_change', message: 'Password changed', userId });
     res.json({
       success: true,
       message: 'Mot de passe changé avec succès'
@@ -626,6 +635,7 @@ const requestPasswordReset = async (req, res) => {
         'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
         [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'password_reset_request', JSON.stringify({ email }), activityData.ip_address, activityData.user_agent]
       );
+      await logSystem({ level: 'info', action: 'password_reset_request', message: 'Password reset requested', details: { email }, userId: users[0].id });
     }
 
   } catch (error) {

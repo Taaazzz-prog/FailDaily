@@ -1,5 +1,6 @@
 const { executeQuery } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
+const { logSystem } = require('../utils/logger');
 
 /**
  * Contrôleur pour la gestion des commentaires aux fails
@@ -158,6 +159,7 @@ class CommentsController {
         WHERE c.id = ?
       `, [commentId]);
 
+      await logSystem({ level: 'info', action: 'comment_add', message: 'Comment added', details: { commentId, failId }, userId });
       res.status(201).json({
         success: true,
         message: 'Commentaire ajouté avec succès',
@@ -368,6 +370,7 @@ class CommentsController {
         WHERE c.id = ?
       `, [commentId]);
 
+      await logSystem({ level: 'info', action: 'comment_update', message: 'Comment updated', details: { commentId, failId }, userId });
       res.json({
         success: true,
         message: 'Commentaire mis à jour avec succès',
@@ -464,6 +467,7 @@ class CommentsController {
         console.warn('⚠️ Décrément points commentaire (ignore):', e?.message);
       }
 
+      await logSystem({ level: 'warning', action: 'comment_delete', message: 'Comment deleted', details: { commentId, failId }, userId });
       res.json({
         success: true,
         message: `Commentaire supprimé avec succès (${result.affectedRows} éléments)`,
