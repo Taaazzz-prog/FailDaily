@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 27 août 2025 à 08:46
+-- Généré le : mer. 27 août 2025 à 09:08
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -333,7 +333,6 @@ CREATE TABLE IF NOT EXISTS `fails` (
   `category` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `image_url` text COLLATE utf8mb4_unicode_ci,
   `is_anonyme` tinyint(1) DEFAULT '1',
-  `reactions` longtext COLLATE utf8mb4_unicode_ci COMMENT 'JSON data',
   `comments_count` int DEFAULT '0',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -346,23 +345,10 @@ CREATE TABLE IF NOT EXISTS `fails` (
 -- Déchargement des données de la table `fails`
 --
 
-INSERT INTO `fails` (`id`, `user_id`, `title`, `description`, `category`, `image_url`, `is_anonyme`, `reactions`, `comments_count`, `created_at`, `updated_at`) VALUES
-('0f29dcc0-0b48-47cd-b0c5-dd1adc225198', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'fails test 1 : jeudi adulte test 1', 'poste du premie fails', 'humour', NULL, 0, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 0, '2025-08-21 09:51:05', '2025-08-26 12:54:29'),
-('85efade8-0857-40a9-a790-8253c270157f', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails anonyme 1', 'je cree cette fois ci un fails en anonyme dans la categorie sprot', 'sport', NULL, 1, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 2, '2025-08-23 08:18:57', '2025-08-26 12:54:22'),
-('965883d5-c51b-4ccb-a7e4-e90aecc49016', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails public 1', 'je vais rentrer un fails en public pour que pseudo et avatar soit afficher, cree categorie technologie', 'technologie', NULL, 0, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 2, '2025-08-23 08:17:15', '2025-08-26 12:54:13');
-
---
--- Déclencheurs `fails`
---
-DROP TRIGGER IF EXISTS `fails_before_insert`;
-DELIMITER $$
-CREATE TRIGGER `fails_before_insert` BEFORE INSERT ON `fails` FOR EACH ROW BEGIN
-    IF NEW.reactions IS NULL THEN
-        SET NEW.reactions = '{"laugh": 0, "courage": 0, "empathy": 0, "support": 0}';
-    END IF;
-END
-$$
-DELIMITER ;
+INSERT INTO `fails` (`id`, `user_id`, `title`, `description`, `category`, `image_url`, `is_anonyme`, `comments_count`, `created_at`, `updated_at`) VALUES
+('0f29dcc0-0b48-47cd-b0c5-dd1adc225198', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'fails test 1 : jeudi adulte test 1', 'poste du premie fails', 'humour', NULL, 0, 0, '2025-08-21 09:51:05', '2025-08-26 12:54:29'),
+('85efade8-0857-40a9-a790-8253c270157f', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails anonyme 1', 'je cree cette fois ci un fails en anonyme dans la categorie sprot', 'sport', NULL, 1, 2, '2025-08-23 08:18:57', '2025-08-26 12:54:22'),
+('965883d5-c51b-4ccb-a7e4-e90aecc49016', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails public 1', 'je vais rentrer un fails en public pour que pseudo et avatar soit afficher, cree categorie technologie', 'technologie', NULL, 0, 2, '2025-08-23 08:17:15', '2025-08-26 12:54:13');
 
 -- --------------------------------------------------------
 
@@ -378,6 +364,30 @@ CREATE TABLE IF NOT EXISTS `fail_moderation` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`fail_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `fail_reactions_archive`
+--
+
+DROP TABLE IF EXISTS `fail_reactions_archive`;
+CREATE TABLE IF NOT EXISTS `fail_reactions_archive` (
+  `fail_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `reactions_json` longtext COLLATE utf8mb4_unicode_ci,
+  `archived_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`fail_id`),
+  KEY `idx_archived_at` (`archived_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `fail_reactions_archive`
+--
+
+INSERT INTO `fail_reactions_archive` (`fail_id`, `reactions_json`, `archived_at`) VALUES
+('0f29dcc0-0b48-47cd-b0c5-dd1adc225198', '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', '2025-08-27 09:05:38'),
+('85efade8-0857-40a9-a790-8253c270157f', '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', '2025-08-27 09:05:38'),
+('965883d5-c51b-4ccb-a7e4-e90aecc49016', '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', '2025-08-27 09:05:38');
 
 -- --------------------------------------------------------
 
