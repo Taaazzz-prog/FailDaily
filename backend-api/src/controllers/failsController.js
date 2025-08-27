@@ -357,7 +357,7 @@ class FailsController {
       const { id } = req.params;
       const userId = req.user ? req.user.id : null;
 
-      const fail = await this.getFailById(parseInt(id), userId);
+      const fail = await this.getFailById(id, userId);
 
       if (!fail) {
         return res.status(404).json({
@@ -371,7 +371,7 @@ class FailsController {
 
       // Incrémenter le compteur de vues si ce n'est pas l'auteur
       if (userId && fail.user_id !== userId) {
-        await this.incrementViewCount(parseInt(id), userId);
+        await this.incrementViewCount(id, userId);
       }
 
       const mappedFail = mapFailRow(fail);
@@ -402,7 +402,7 @@ class FailsController {
       const updateData = req.body;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFail = await this.getFailById(parseInt(id), userId);
+      const existingFail = await this.getFailById(id, userId);
       
       if (!existingFail) {
         return res.status(404).json({
@@ -446,7 +446,7 @@ class FailsController {
       }
 
       updateFields.push('updated_at = NOW()');
-      updateValues.push(parseInt(id));
+      updateValues.push(id);
 
       const updateQuery = `
         UPDATE fails 
@@ -457,7 +457,7 @@ class FailsController {
       await executeQuery(updateQuery, updateValues);
 
       // Récupérer le fail mis à jour
-      const updatedFail = await this.getFailById(parseInt(id), userId);
+      const updatedFail = await this.getFailById(id, userId);
       const mappedFail = mapFailRow(updatedFail);
 
       console.log(`✅ Fail mis à jour: ${id}`);
@@ -488,7 +488,7 @@ class FailsController {
       const userId = req.user.id;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFail = await this.getFailById(parseInt(id), userId);
+      const existingFail = await this.getFailById(id, userId);
       
       if (!existingFail) {
         return res.status(404).json({
@@ -506,9 +506,9 @@ class FailsController {
 
       // Supprimer en cascade (réactions, commentaires, etc.)
       await executeTransaction([
-        { query: 'DELETE FROM reactions WHERE fail_id = ?', params: [parseInt(id)] },
-        { query: 'DELETE FROM comments WHERE fail_id = ?', params: [parseInt(id)] },
-        { query: 'DELETE FROM fails WHERE id = ?', params: [parseInt(id)] }
+        { query: 'DELETE FROM reactions WHERE fail_id = ?', params: [id] },
+        { query: 'DELETE FROM comments WHERE fail_id = ?', params: [id] },
+        { query: 'DELETE FROM fails WHERE id = ?', params: [id] }
       ]);
 
       console.log(`✅ Fail supprimé: ${id}`);
@@ -547,7 +547,7 @@ class FailsController {
       }
 
       // Vérifier que le fail existe
-      const fail = await this.getFailById(parseInt(id), userId);
+      const fail = await this.getFailById(id, userId);
       if (!fail) {
         return res.status(404).json({
           success: false,
@@ -557,18 +557,18 @@ class FailsController {
 
       // Vérifier/insérer la réaction
       const existingReaction = await executeQuery('SELECT * FROM reactions WHERE fail_id = ? AND user_id = ?',
-        [parseInt(id), userId]
+        [id, userId]
       );
 
       if (existingReaction.length > 0) {
         // Mettre à jour la réaction existante
         await executeQuery('UPDATE reactions SET reaction_type = ?, created_at = NOW() WHERE fail_id = ? AND user_id = ?',
-          [reactionType, parseInt(id), userId]
+          [reactionType, id, userId]
         );
       } else {
         // Créer une nouvelle réaction
         await executeQuery('INSERT INTO reactions (fail_id, user_id, reaction_type, created_at) VALUES (?, ?, ?, NOW())',
-          [parseInt(id), userId, reactionType]
+          [id, userId, reactionType]
         );
       }
 
@@ -605,7 +605,7 @@ class FailsController {
       const userId = req.user.id;
 
       await executeQuery('DELETE FROM reactions WHERE fail_id = ? AND user_id = ?',
-        [parseInt(id), userId]
+        [id, userId]
       );
 
       res.json({

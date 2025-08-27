@@ -14,6 +14,8 @@ router.post('/:id/reactions', authenticateToken, ReactionsController.addReaction
  * Supprimer la réaction de l'utilisateur pour un fail
  */
 router.delete('/:id/reactions', authenticateToken, ReactionsController.removeReaction);
+// Support legacy frontend calling DELETE with reactionType in URL
+router.delete('/:id/reactions/:reactionType', authenticateToken, ReactionsController.removeReaction);
 
 /**
  * GET /api/fails/:id/reactions

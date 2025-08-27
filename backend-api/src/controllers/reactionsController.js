@@ -27,9 +27,10 @@ class ReactionsController {
 
       // Vérifier que le fail existe et est accessible
       const fails = await executeQuery(`
-        SELECT id, user_id, is_anonyme
-        FROM fails
-        WHERE id = ?
+        SELECT f.id, f.user_id, f.title, f.is_anonyme, p.display_name
+        FROM fails f
+        LEFT JOIN profiles p ON p.user_id = f.user_id
+        WHERE f.id = ?
       `, [failId]);
 
       if (fails.length === 0) {
@@ -60,6 +61,13 @@ class ReactionsController {
             DELETE FROM reactions 
             WHERE id = ?
           `, [existingReaction.id]);
+          // Log suppression
+          await logReaction(req, {
+            userId,
+            fail,
+            reactionType,
+            points: 0
+          });
 
           return res.json({
             success: true,
@@ -76,6 +84,13 @@ class ReactionsController {
             SET reaction_type = ?, created_at = NOW() 
             WHERE id = ?
           `, [reactionType, existingReaction.id]);
+          // Log modification (comme ajout du nouveau type)
+          await logReaction(req, {
+            userId,
+            fail,
+            reactionType,
+            points: 0
+          });
 
           return res.json({
             success: true,
@@ -94,6 +109,13 @@ class ReactionsController {
           INSERT INTO reactions (id, fail_id, user_id, reaction_type, created_at) 
           VALUES (?, ?, ?, ?, NOW())
         `, [reactionId, failId, userId, reactionType]);
+        // Log ajout
+        await logReaction(req, {
+          userId,
+          fail,
+          reactionType,
+          points: 0
+        });
 
         return res.json({
           success: true,
@@ -121,14 +143,27 @@ class ReactionsController {
    */
   static async removeReaction(req, res) {
     try {
-      const { id: failId } = req.params;
+      const { id: failId, reactionType } = req.params;
       const userId = req.user.id;
 
-      // Supprimer la réaction de l'utilisateur pour ce fail
-      const result = await executeQuery(`
-        DELETE FROM reactions 
-        WHERE fail_id = ? AND user_id = ?
-      `, [failId, userId]);
+      // Optionnel: restreindre par type si fourni
+      let deleteQuery = 'DELETE FROM reactions WHERE fail_id = ? AND user_id = ?';
+      const params = [failId, userId];
+      if (reactionType) {
+        deleteQuery += ' AND reaction_type = ?';
+        params.push(reactionType);
+      }
+
+      // Préparer log
+      const fails = await executeQuery(`
+        SELECT f.id, f.user_id, f.title, f.is_anonyme, p.display_name
+        FROM fails f
+        LEFT JOIN profiles p ON p.user_id = f.user_id
+        WHERE f.id = ?
+      `, [failId]);
+      const fail = fails[0] || null;
+
+      const result = await executeQuery(deleteQuery, params);
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
@@ -137,6 +172,14 @@ class ReactionsController {
           code: 'NO_REACTION_FOUND'
         });
       }
+
+      // Log suppression (sans type si non fourni)
+      await logReaction(req, {
+        userId,
+        fail,
+        reactionType: reactionType || 'unknown',
+        points: 0
+      });
 
       res.json({
         success: true,
@@ -316,3 +359,58 @@ class ReactionsController {
 }
 
 module.exports = ReactionsController;
+
+/**
+ * Logger basique vers reaction_logs et user_activities
+ */
+async function logReaction(req, { userId, fail, reactionType, points }) {
+  try {
+    if (!fail) return;
+    const ip = req.headers['x-forwarded-for'] || req.connection?.remoteAddress || req.socket?.remoteAddress || '';
+    const userAgent = req.headers['user-agent'] || '';
+
+    // Récup info utilisateur (email/display)
+    const userRows = await executeQuery(
+      'SELECT email FROM users WHERE id = ? LIMIT 1',
+      [userId]
+    );
+    const userEmail = userRows[0]?.email || null;
+
+    await executeQuery(
+      `INSERT INTO reaction_logs (id, user_id, user_email, user_name, fail_id, fail_title, fail_author_name, reaction_type, points_awarded, ip_address, user_agent, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        uuidv4(),
+        userId,
+        userEmail,
+        req.user?.displayName || null,
+        fail.id,
+        fail.title || null,
+        fail.display_name || null,
+        reactionType,
+        Number(points) || 0,
+        ip,
+        userAgent
+      ]
+    );
+
+    // User activity mirror
+    await executeQuery(
+      `INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, fail_id, reaction_type, ip_address, user_agent, created_at)
+       VALUES (?, ?, ?, ?, 'reaction', ?, ?, ?, ?, ?, NOW())`,
+      [
+        uuidv4(),
+        userId,
+        userEmail,
+        req.user?.displayName || null,
+        JSON.stringify({ reactionType }),
+        fail.id,
+        reactionType,
+        ip,
+        userAgent
+      ]
+    );
+  } catch (e) {
+    console.warn('⚠️ logReaction: impossible de journaliser la réaction:', e?.message);
+  }
+}
