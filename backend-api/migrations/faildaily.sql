@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mar. 26 août 2025 à 12:48
+-- Généré le : mer. 27 août 2025 à 08:46
 -- Version du serveur : 9.1.0
 -- Version de PHP : 8.3.14
 
@@ -90,6 +90,15 @@ CREATE TABLE IF NOT EXISTS `app_config` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_config_key` (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `app_config`
+--
+
+INSERT INTO `app_config` (`id`, `key`, `value`, `description`, `created_at`, `updated_at`) VALUES
+('0869c46c-831e-11f0-b1c5-345a608f406b', 'reaction_points', '{\"courage\":5, \"laugh\":3, \"empathy\":2, \"support\":3}', 'Points attribués à l\'auteur lors d\'une réaction', '2025-08-27 08:15:46', '2025-08-27 08:15:46'),
+('1671a16a-8322-11f0-b1c5-345a608f406b', 'points', '{\"failCreate\":10, \"commentCreate\":2, \"reactionRemovePenalty\":true}', 'Configuration générique des points (création fail, commentaire, etc.)', '2025-08-27 08:44:47', '2025-08-27 08:44:47'),
+('168b0e1e-8322-11f0-b1c5-345a608f406b', 'moderation', '{\"failReportThreshold\":3, \"commentReportThreshold\":3, \"panelAutoRefreshSec\":20}', 'Configuration modération (seuils de signalements, etc.)', '2025-08-27 08:44:47', '2025-08-27 08:44:47');
 
 -- --------------------------------------------------------
 
@@ -261,10 +270,8 @@ CREATE TABLE IF NOT EXISTS `comment_moderation` (
 --
 
 INSERT INTO `comment_moderation` (`comment_id`, `status`, `updated_at`, `created_at`) VALUES
-('49116b23-f484-4ed1-a782-f8f18d289847', 'hidden', '2025-08-26 12:25:56', '2025-08-26 12:03:32'),
-('9e3c449e-3ec1-44b8-9963-adbb57fa1e0b', 'approved', '2025-08-26 12:04:36', '2025-08-26 12:03:34'),
-('bc4fe6ed-0cab-44d2-a5e8-a6cee2a04889', 'approved', '2025-08-26 12:04:37', '2025-08-26 11:23:59'),
-('null', 'hidden', '2025-08-26 12:32:55', '2025-08-26 12:26:05');
+('2de94425-b0cd-4466-b026-a72f0747af94', 'hidden', '2025-08-26 13:19:58', '2025-08-26 13:19:58'),
+('null', 'approved', '2025-08-26 13:20:12', '2025-08-26 13:20:12');
 
 -- --------------------------------------------------------
 
@@ -309,9 +316,7 @@ CREATE TABLE IF NOT EXISTS `comment_reports` (
 --
 
 INSERT INTO `comment_reports` (`id`, `comment_id`, `user_id`, `reason`, `created_at`) VALUES
-('120f09bf-8481-4935-bcc8-3a1250f4ab2e', 'bc4fe6ed-0cab-44d2-a5e8-a6cee2a04889', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', NULL, '2025-08-26 11:23:58'),
-('55646e48-d519-4fbe-8176-875c4428df19', '9e3c449e-3ec1-44b8-9963-adbb57fa1e0b', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', NULL, '2025-08-26 12:03:34'),
-('a7347c77-9482-490a-b901-fc6d8c41c6ee', '49116b23-f484-4ed1-a782-f8f18d289847', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', NULL, '2025-08-26 12:03:32');
+('a9616206-a684-46de-b8c4-1a7a08ae05cc', '2de94425-b0cd-4466-b026-a72f0747af94', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', NULL, '2025-08-26 13:19:58');
 
 -- --------------------------------------------------------
 
@@ -342,9 +347,9 @@ CREATE TABLE IF NOT EXISTS `fails` (
 --
 
 INSERT INTO `fails` (`id`, `user_id`, `title`, `description`, `category`, `image_url`, `is_anonyme`, `reactions`, `comments_count`, `created_at`, `updated_at`) VALUES
-('0f29dcc0-0b48-47cd-b0c5-dd1adc225198', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'fails test 1 : jeudi adulte test 1', 'poste du premie fails', 'humour', NULL, 1, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 0, '2025-08-21 09:51:05', '2025-08-23 08:15:57'),
-('85efade8-0857-40a9-a790-8253c270157f', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails anonyme 1', 'je cree cette fois ci un fails en anonyme dans la categorie sprot', 'sport', NULL, 0, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 2, '2025-08-23 08:18:57', '2025-08-26 10:57:58'),
-('965883d5-c51b-4ccb-a7e4-e90aecc49016', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails public 1', 'je vais rentrer un fails en public pour que pseudo et avatar soit afficher, cree categorie technologie', 'technologie', NULL, 1, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 2, '2025-08-23 08:17:15', '2025-08-26 11:06:46');
+('0f29dcc0-0b48-47cd-b0c5-dd1adc225198', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'fails test 1 : jeudi adulte test 1', 'poste du premie fails', 'humour', NULL, 0, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 0, '2025-08-21 09:51:05', '2025-08-26 12:54:29'),
+('85efade8-0857-40a9-a790-8253c270157f', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails anonyme 1', 'je cree cette fois ci un fails en anonyme dans la categorie sprot', 'sport', NULL, 1, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 2, '2025-08-23 08:18:57', '2025-08-26 12:54:22'),
+('965883d5-c51b-4ccb-a7e4-e90aecc49016', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'samedi test fails public 1', 'je vais rentrer un fails en public pour que pseudo et avatar soit afficher, cree categorie technologie', 'technologie', NULL, 0, '{\"laugh\": 0, \"courage\": 0, \"empathy\": 0, \"support\": 0}', 2, '2025-08-23 08:17:15', '2025-08-26 12:54:13');
 
 --
 -- Déclencheurs `fails`
@@ -374,13 +379,6 @@ CREATE TABLE IF NOT EXISTS `fail_moderation` (
   PRIMARY KEY (`fail_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Déchargement des données de la table `fail_moderation`
---
-
-INSERT INTO `fail_moderation` (`fail_id`, `status`, `updated_at`, `created_at`) VALUES
-('85efade8-0857-40a9-a790-8253c270157f', 'approved', '2025-08-26 12:33:11', '2025-08-26 12:32:28');
-
 -- --------------------------------------------------------
 
 --
@@ -399,13 +397,6 @@ CREATE TABLE IF NOT EXISTS `fail_reports` (
   KEY `idx_fail_reports_fail` (`fail_id`),
   KEY `idx_fail_reports_user` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `fail_reports`
---
-
-INSERT INTO `fail_reports` (`id`, `fail_id`, `user_id`, `reason`, `created_at`) VALUES
-('7fc4ed8f-0f0a-4662-b61e-8cd6791b094a', '85efade8-0857-40a9-a790-8253c270157f', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', NULL, '2025-08-26 12:32:28');
 
 -- --------------------------------------------------------
 
@@ -542,7 +533,9 @@ CREATE TABLE IF NOT EXISTS `reactions` (
 --
 
 INSERT INTO `reactions` (`id`, `user_id`, `fail_id`, `reaction_type`, `created_at`) VALUES
+('2040f91e-edf1-4cdf-99fa-c15d64cafc25', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', '85efade8-0857-40a9-a790-8253c270157f', 'support', '2025-08-27 08:33:46'),
 ('5c18bb2d-cd68-4b54-8045-aaaca336791c', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', '0f29dcc0-0b48-47cd-b0c5-dd1adc225198', 'courage', '2025-08-21 11:49:45'),
+('e6b1454e-2d89-4187-818c-9b6175709838', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', '0f29dcc0-0b48-47cd-b0c5-dd1adc225198', 'empathy', '2025-08-27 07:43:59'),
 ('f80fb208-79a7-4a21-a7c3-e0bc9d27f6c0', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', '965883d5-c51b-4ccb-a7e4-e90aecc49016', 'courage', '2025-08-23 08:45:07');
 
 -- --------------------------------------------------------
@@ -568,6 +561,18 @@ CREATE TABLE IF NOT EXISTS `reaction_logs` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `reaction_logs`
+--
+
+INSERT INTO `reaction_logs` (`id`, `user_id`, `user_email`, `user_name`, `fail_id`, `fail_title`, `fail_author_name`, `reaction_type`, `points_awarded`, `timestamp`, `ip_address`, `user_agent`, `created_at`) VALUES
+('905a655a-1c19-4b80-8730-3fff25190d9b', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, '85efade8-0857-40a9-a790-8253c270157f', 'samedi test fails anonyme 1', 'vendredi test 1', 'courage', 5, '2025-08-27 08:28:47', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:28:47'),
+('b93c9195-75e0-4026-ae46-df20f249209d', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, '85efade8-0857-40a9-a790-8253c270157f', 'samedi test fails anonyme 1', 'vendredi test 1', 'laugh', 3, '2025-08-27 08:33:31', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:31'),
+('ce2f9bb2-c6d8-4437-b945-d30ebcc87f96', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, '85efade8-0857-40a9-a790-8253c270157f', 'samedi test fails anonyme 1', 'vendredi test 1', 'courage', 5, '2025-08-27 08:33:39', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:39'),
+('d63b7517-acb0-435e-ad86-fc29ae6439cb', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, '85efade8-0857-40a9-a790-8253c270157f', 'samedi test fails anonyme 1', 'vendredi test 1', 'laugh', 3, '2025-08-27 08:33:44', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:44'),
+('d9eaf66d-37e4-4623-83b1-dc2e66442870', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, '85efade8-0857-40a9-a790-8253c270157f', 'samedi test fails anonyme 1', 'vendredi test 1', 'empathy', 2, '2025-08-27 08:33:45', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:45'),
+('f13304a7-7159-43e2-a5e5-ae7283e2c338', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, '85efade8-0857-40a9-a790-8253c270157f', 'samedi test fails anonyme 1', 'vendredi test 1', 'support', 3, '2025-08-27 08:33:46', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:46');
 
 -- --------------------------------------------------------
 
@@ -682,6 +687,8 @@ INSERT INTO `user_activities` (`id`, `user_id`, `user_email`, `user_name`, `acti
 ('02e21c6c-9a1d-4fe2-a87d-b1ddeac6c36e', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:37:16', '2025-08-21 09:37:16'),
 ('13b80e09-57d4-4a6f-8fd6-8db0a4e63cfe', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-23 09:10:38', '2025-08-23 09:10:38'),
 ('13dd5e81-f437-4742-96d8-638437c2fbe1', 'd096d562-988d-44be-bd9a-55272e9ed9ff', 'temp.test.1755862785778@test.local', 'Test User 1755862785778', 'register', '{\"email\":\"temp.test.1755862785778@test.local\"}', NULL, NULL, '::ffff:127.0.0.1', '', '2025-08-22 11:39:46', '2025-08-22 11:39:46'),
+('18b4a727-9969-4466-916a-3e38c1353e74', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 07:54:09', '2025-08-27 07:54:09'),
+('193f0312-3112-4edc-85ad-a3cf7b673d92', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 07:38:13', '2025-08-27 07:38:13'),
 ('199fe062-8395-4039-b102-3f1cd73e61b0', 'd096d562-988d-44be-bd9a-55272e9ed9ff', 'temp.test.1755862785778@test.local', 'Test User 1755862785778', 'login', '{\"email\":\"temp.test.1755862785778@test.local\"}', NULL, NULL, '::ffff:127.0.0.1', '', '2025-08-22 11:39:47', '2025-08-22 11:39:47'),
 ('20c945fa-4a7b-4e97-a64e-b7ae2be69c24', '5efe0f4e-ea21-4418-9e15-5e361c43b3f8', 'test.public.1755862087925@example.com', 'Test Public User', 'register', '{\"email\":\"test.public.1755862087925@example.com\"}', NULL, NULL, '::ffff:127.0.0.1', '', '2025-08-22 11:28:08', '2025-08-22 11:28:08'),
 ('28ae6dd8-ad02-4e4a-9ffd-bf56b6599cd6', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 10:00:34', '2025-08-21 10:00:34'),
@@ -692,8 +699,12 @@ INSERT INTO `user_activities` (`id`, `user_id`, `user_email`, `user_name`, `acti
 ('30ca79fe-d51f-46c2-ae88-39bfa3dc976e', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 11:53:52', '2025-08-26 11:53:52'),
 ('33d33aea-9e1b-4dcf-9fbd-df3a863d35c9', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'register', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 07:43:28', '2025-08-26 07:43:28'),
 ('3693e545-73ba-4709-8a29-dfbcd9445deb', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:28:55', '2025-08-21 09:28:55'),
+('3ce575a3-85b8-4ab3-83c7-dacd4e739157', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 06:59:20', '2025-08-27 06:59:20'),
+('40f0037d-648c-4725-b184-f9d8626c5a8e', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 13:30:13', '2025-08-26 13:30:13'),
 ('4399e570-014d-481d-8a5e-46712cfd22db', '3eec9236-40db-46ca-ae18-9b089bef0e75', 'vfr@vfr.vfr', 'Lundi 25 test 1', 'register', '{\"email\":\"vfr@vfr.vfr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-25 07:22:10', '2025-08-25 07:22:10'),
 ('44c8bf4b-3762-47a8-8898-009e8199dd27', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 11:49:42', '2025-08-26 11:49:42'),
+('4ad519c0-ea12-4ae8-88ac-f5f307f0051b', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 07:10:08', '2025-08-27 07:10:08'),
+('540b775c-8016-4513-b397-f46e384332fb', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:43:49', '2025-08-27 08:43:49'),
 ('54f3d2a9-2425-4fc7-8f75-b8ad028dc596', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 10:41:35', '2025-08-21 10:41:35'),
 ('555dc245-49ac-4464-ab9d-555e11d3013c', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-25 13:31:28', '2025-08-25 13:31:28'),
 ('592ab2fb-8670-47c8-b979-74fcd0c18cc7', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 12:01:56', '2025-08-21 12:01:56'),
@@ -701,6 +712,7 @@ INSERT INTO `user_activities` (`id`, `user_id`, `user_email`, `user_name`, `acti
 ('717918fa-c190-4da9-af4f-8cd8d01b9504', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:15:06', '2025-08-21 09:15:06'),
 ('74be9599-6e82-43aa-a3c6-68a4874fca45', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 11:34:10', '2025-08-26 11:34:10'),
 ('7a5e33eb-3490-4f6d-9572-1835b7d45944', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 22:10:32', '2025-08-22 22:10:32'),
+('80852f00-768c-499c-8c33-e18f25a9075c', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:28:43', '2025-08-27 08:28:43'),
 ('815f716c-a209-4ba4-8a6a-5cc115b8ec49', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', 'vendredi test 1', 'register', '{\"email\":\"tre@rte.ee\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 21:40:02', '2025-08-22 21:40:02'),
 ('81f85dbc-494b-424f-81a3-01ea5e14aeb2', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 08:35:13', '2025-08-26 08:35:13'),
 ('83994a5f-6f19-4c7a-9f37-80c6f27b4ed7', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 11:15:02', '2025-08-21 11:15:02'),
@@ -708,31 +720,39 @@ INSERT INTO `user_activities` (`id`, `user_id`, `user_email`, `user_name`, `acti
 ('86fe16d9-86c3-4bcb-9ad1-2a1cf90ac354', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-25 08:47:47', '2025-08-25 08:47:47'),
 ('87b60d00-8523-4429-a596-e4eb62adf556', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 11:35:57', '2025-08-26 11:35:57'),
 ('8e72dede-d532-4812-880c-a85a5eac842d', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', 'vendredi test 1', 'login', '{\"email\":\"tre@rte.ee\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 22:28:20', '2025-08-22 22:28:20'),
+('91eaa83f-2648-4567-990f-b2b31e0ff080', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 13:11:41', '2025-08-26 13:11:41'),
 ('93d0c42c-1c35-4ee4-b47f-6a93e909b391', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 08:34:50', '2025-08-26 08:34:50'),
+('94809be8-9ede-4fc3-acaf-2b931b6c4ac9', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'reaction', '{\"reactionType\":\"empathy\"}', '85efade8-0857-40a9-a790-8253c270157f', 'empathy', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:45', '2025-08-27 08:33:45'),
 ('967da4ad-7fd0-4ae6-b103-8bf47f312aa7', '411dd9ff-9673-48c9-838a-50b49074fff0', 'test@test.com', 'Test User', 'register', '{\"email\":\"test@test.com\"}', NULL, NULL, '::1', 'curl/8.14.1', '2025-08-25 09:46:12', '2025-08-25 09:46:12'),
 ('9b706e19-6112-4ff2-a3d9-e195b8a78a53', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 22:03:02', '2025-08-22 22:03:02'),
+('a521f3a7-e9f6-4111-97b2-c5935d30d779', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 13:11:54', '2025-08-26 13:11:54'),
 ('a68c8082-66da-43fe-b46f-03705108020a', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 12:25:38', '2025-08-26 12:25:38'),
 ('ad4cff51-6325-446c-bb60-034b9234288f', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 08:47:35', '2025-08-26 08:47:35'),
 ('ae4b02d0-f68c-4973-91d6-820445a02621', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 12:15:51', '2025-08-26 12:15:51'),
 ('b4250761-b1f2-4f10-8e85-07168f6c48c8', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:10:17', '2025-08-21 09:10:17'),
+('b7fd08c1-ff3d-4e48-b1bc-ed8f9de0ea21', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'reaction', '{\"reactionType\":\"courage\"}', '85efade8-0857-40a9-a790-8253c270157f', 'courage', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:39', '2025-08-27 08:33:39'),
 ('bcad8ea2-a112-4a94-b054-5ceb95e6acfb', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', NULL, 'create_fail', '{\"title\":\"fails test 1 : jeudi adulte test 1\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:51:05', '2025-08-21 09:51:05'),
 ('bcc22f9a-070f-48f7-8006-2b97d841fd68', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 11:39:27', '2025-08-21 11:39:27'),
 ('c1db7702-207e-477b-9144-cf55314bec9a', '5efe0f4e-ea21-4418-9e15-5e361c43b3f8', 'test.public.1755862087925@example.com', 'Test Public User', 'login', '{\"email\":\"test.public.1755862087925@example.com\"}', NULL, NULL, '::ffff:127.0.0.1', '', '2025-08-22 11:28:09', '2025-08-22 11:28:09'),
+('c7ca0f56-b7a7-4eed-a2c8-e79c7079d032', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'reaction', '{\"reactionType\":\"support\"}', '85efade8-0857-40a9-a790-8253c270157f', 'support', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:46', '2025-08-27 08:33:46'),
 ('cc825aa0-84be-4086-bff4-02fead106563', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 07:43:52', '2025-08-26 07:43:52'),
 ('cd53de5f-2b34-4b38-a47d-a1287a6c0c97', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-25 09:08:07', '2025-08-25 09:08:07'),
 ('cf6850b9-5130-4d4a-8690-ec3a6776089c', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 22:27:53', '2025-08-22 22:27:53'),
 ('d13ee542-698a-40b5-916a-d97f57f1d3ec', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', 'Taaazzz', 'login', '{\"email\":\"bruno@taaazzz.be\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 10:53:38', '2025-08-26 10:53:38'),
 ('d1887c63-9525-4fcb-9092-25a4d402aecc', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:40:32', '2025-08-21 09:40:32'),
 ('d72241b5-893e-47b3-b0a6-82e80e94a599', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', 'vendredi test 1', 'login', '{\"email\":\"tre@rte.ee\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 22:10:45', '2025-08-22 22:10:45'),
+('df3ae67b-78a1-4513-8e06-5010c44e4899', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'reaction', '{\"reactionType\":\"laugh\"}', '85efade8-0857-40a9-a790-8253c270157f', 'laugh', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:44', '2025-08-27 08:33:44'),
 ('e0dfbfd5-6324-40af-b1a4-c6b976d1e20d', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-26 07:23:36', '2025-08-26 07:23:36'),
 ('e288cf8b-34ea-4a62-88c6-680f04468e35', '3eec9236-40db-46ca-ae18-9b089bef0e75', 'vfr@vfr.vfr', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-25 07:54:17', '2025-08-25 07:54:17'),
 ('ea7e4897-d392-49d7-a60a-5a6751b96314', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', NULL, 'create_fail', '{\"title\":\"samedi test fails anonyme 1\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-23 08:18:57', '2025-08-23 08:18:57'),
 ('f18ee623-3c02-4620-9e9e-ef1bde1c05e0', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 11:33:46', '2025-08-21 11:33:46'),
 ('f1fdce03-fa5b-4de5-aff9-5d12d964d751', '411dd9ff-9673-48c9-838a-50b49074fff0', 'test@test.com', 'Test User', 'login', '{\"email\":\"test@test.com\"}', NULL, NULL, '::1', 'curl/8.14.1', '2025-08-25 09:47:02', '2025-08-25 09:47:02'),
+('f4be9bd7-1fc7-4af2-b8c6-bf41bbb6feca', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'reaction', '{\"reactionType\":\"laugh\"}', '85efade8-0857-40a9-a790-8253c270157f', 'laugh', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:33:31', '2025-08-27 08:33:31'),
 ('f5c0ea30-1954-4c19-809e-bff561c91984', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', NULL, NULL, 'register', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, NULL, NULL, '2025-08-21 08:51:48', '2025-08-21 08:51:48'),
 ('f70e140a-5ab1-4821-8387-a9a02b0e16dd', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:12:47', '2025-08-21 09:12:47'),
 ('f798a5a8-bd40-4657-937b-998ece59cc8b', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 'tre@rte.ee', NULL, 'logout', '{\"reason\":\"user_logout\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-23 09:01:42', '2025-08-23 09:01:42'),
 ('f9f981c5-2476-44ee-837a-bc951a8157db', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-22 22:10:21', '2025-08-22 22:10:21'),
+('fa3e985a-37ac-4dfd-a0c3-efb854bcbce2', '9f92d99e-5f70-427e-aebd-68ca8b727bd4', 'bruno@taaazzz.be', NULL, 'reaction', '{\"reactionType\":\"courage\"}', '85efade8-0857-40a9-a790-8253c270157f', 'courage', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-27 08:28:47', '2025-08-27 08:28:47'),
 ('fc11a360-1b76-43dc-bbe3-9e2a4495bfdf', '814b7d10-b3d4-4921-ab47-a388bec6c7fb', 'adulte1@adulte.fr', 'jeudi test adulte 1', 'login', '{\"email\":\"adulte1@adulte.fr\"}', NULL, NULL, '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36', '2025-08-21 09:25:03', '2025-08-21 09:25:03');
 
 -- --------------------------------------------------------
@@ -795,6 +815,60 @@ CREATE TABLE IF NOT EXISTS `user_management_logs` (
   KEY `user_management_logs_admin_id_fkey` (`admin_id`),
   KEY `user_management_logs_target_user_id_fkey` (`target_user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `user_points`
+--
+
+DROP TABLE IF EXISTS `user_points`;
+CREATE TABLE IF NOT EXISTS `user_points` (
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `points_total` int NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `user_points`
+--
+
+INSERT INTO `user_points` (`user_id`, `points_total`, `created_at`, `updated_at`) VALUES
+('57a2560d-b065-44f3-96c8-3b0d2e5b569b', 21, '2025-08-27 08:28:47', '2025-08-27 08:33:46');
+
+-- --------------------------------------------------------
+
+--
+-- Structure de la table `user_point_events`
+--
+
+DROP TABLE IF EXISTS `user_point_events`;
+CREATE TABLE IF NOT EXISTS `user_point_events` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `user_id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `amount` int NOT NULL,
+  `source` varchar(50) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `fail_id` char(36) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reaction_type` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `meta` longtext COLLATE utf8mb4_unicode_ci COMMENT 'JSON data',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_user_point_events_user` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Déchargement des données de la table `user_point_events`
+--
+
+INSERT INTO `user_point_events` (`id`, `user_id`, `amount`, `source`, `fail_id`, `reaction_type`, `meta`, `created_at`) VALUES
+('21c8fe3e-32c0-4bee-8df2-0a9c36397e11', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 3, 'reaction', '85efade8-0857-40a9-a790-8253c270157f', 'laugh', '{\"fromUser\":\"9f92d99e-5f70-427e-aebd-68ca8b727bd4\"}', '2025-08-27 08:33:44'),
+('4f7b40bb-c9fa-4fb5-9c89-c01329384a26', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 3, 'reaction', '85efade8-0857-40a9-a790-8253c270157f', 'laugh', '{\"fromUser\":\"9f92d99e-5f70-427e-aebd-68ca8b727bd4\"}', '2025-08-27 08:33:31'),
+('a0ad4f62-cb34-48ce-94e2-24303e47ce87', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 3, 'reaction', '85efade8-0857-40a9-a790-8253c270157f', 'support', '{\"fromUser\":\"9f92d99e-5f70-427e-aebd-68ca8b727bd4\"}', '2025-08-27 08:33:46'),
+('cfcd9dad-38a3-49c5-b102-3398bba356fa', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 2, 'reaction', '85efade8-0857-40a9-a790-8253c270157f', 'empathy', '{\"fromUser\":\"9f92d99e-5f70-427e-aebd-68ca8b727bd4\"}', '2025-08-27 08:33:45'),
+('d172f5c0-f9e5-486b-93ce-d84db0519b20', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 5, 'reaction', '85efade8-0857-40a9-a790-8253c270157f', 'courage', '{\"fromUser\":\"9f92d99e-5f70-427e-aebd-68ca8b727bd4\"}', '2025-08-27 08:28:47'),
+('f3ba781d-ba76-436c-a7ee-9f224a4984f1', '57a2560d-b065-44f3-96c8-3b0d2e5b569b', 5, 'reaction', '85efade8-0857-40a9-a790-8253c270157f', 'courage', '{\"fromUser\":\"9f92d99e-5f70-427e-aebd-68ca8b727bd4\"}', '2025-08-27 08:33:39');
 
 -- --------------------------------------------------------
 

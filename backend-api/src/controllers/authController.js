@@ -352,9 +352,11 @@ const getProfile = async (req, res) => {
       SELECT 
         u.id, u.email, u.role, u.account_status, u.created_at,
         p.display_name, p.avatar_url, p.bio,
-        p.registration_completed, p.legal_consent, p.age_verification
+        p.registration_completed, p.legal_consent, p.age_verification,
+        COALESCE(up.points_total, 0) as points_total
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
+      LEFT JOIN user_points up ON up.user_id = u.id
       WHERE u.id = ?
     `, [userId]);
 
@@ -381,7 +383,8 @@ const getProfile = async (req, res) => {
         registrationCompleted: profile.registration_completed,
         legalConsent: profile.legal_consent ? JSON.parse(profile.legal_consent) : null,
         ageVerification: profile.age_verification ? JSON.parse(profile.age_verification) : null,
-        createdAt: profile.created_at
+        createdAt: profile.created_at,
+        couragePoints: profile.points_total
       }
     });
 

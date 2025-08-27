@@ -13,7 +13,12 @@ function mapFailRow(fail) {
     authorId: fail.user_id,
     authorName: fail.display_name,
     authorAvatar: fail.avatar_url,
-    reactions: fail.reactions ? JSON.parse(fail.reactions) : {},
+    reactions: {
+      courage: Number(fail.courage_count || 0),
+      empathy: Number(fail.empathy_count || 0),
+      laugh:   Number(fail.laugh_count   || 0),
+      support: Number(fail.support_count || 0)
+    },
     commentsCount: fail.comments_count,
     is_anonyme: !!fail.is_anonyme,
     createdAt: new Date(fail.created_at).toISOString(),
@@ -89,7 +94,31 @@ class FailsController {
       ];
 
       const result = await executeQuery(failQuery, failValues);
-      const failId = result.insertId;
+      const failId = result.insertId || null;
+
+      // Award points to author (configurable)
+      try {
+        const rows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+        let cfg = { failCreate: 10 };
+        if (rows && rows[0] && rows[0].value) { try { cfg = { ...cfg, ...JSON.parse(rows[0].value) }; } catch {} }
+        const amount = Number(cfg.failCreate) || 0;
+        if (amount > 0) {
+          const { v4: uuidv4 } = require('uuid');
+          await executeQuery(
+            `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+             VALUES (?, ?, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+            [userId, amount]
+          );
+          await executeQuery(
+            `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+             VALUES (?, ?, ?, 'fail_create', ?, NULL, NULL, NOW())`,
+            [uuidv4(), userId, amount, failId]
+          );
+        }
+      } catch (e) {
+        console.warn('⚠️ Award failCreate points (ignore):', e?.message);
+      }
 
       // Récupérer le fail créé avec les informations utilisateur
       const createdFail = await this.getFailById(failId, userId);
@@ -152,7 +181,7 @@ class FailsController {
 
       if (userId) {
         whereConditions.push('f.user_id = ?');
-        queryParams.push(parseInt(userId));
+        queryParams.push(userId);
       }
 
       if (search) {
@@ -171,6 +200,10 @@ class FailsController {
           p.avatar_url,
           fm.status AS moderation_status,
           (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'courage') as courage_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'empathy') as empathy_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'laugh')   as laugh_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'support') as support_count,
           (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
           ${currentUserId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
         FROM fails f
@@ -253,7 +286,12 @@ class FailsController {
     // 2) Requête : pas de filtre sur is_anonyme (tout est visible)
     //    Ordre stable pour éviter doublons/manqués si nouveaux posts arrivent
     const sql = `
-      SELECT f.*, p.display_name, p.avatar_url, fm.status AS moderation_status
+      SELECT f.*, p.display_name, p.avatar_url, fm.status AS moderation_status,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'courage') as courage_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'empathy') as empathy_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'laugh')   as laugh_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'support') as support_count
       FROM fails f
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
@@ -318,6 +356,10 @@ class FailsController {
           p.avatar_url,
           fm.status AS moderation_status,
           (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'courage') as courage_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'empathy') as empathy_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'laugh')   as laugh_count,
+          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'support') as support_count,
           (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
           ${userId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
         FROM fails f
@@ -502,6 +544,81 @@ class FailsController {
           success: false,
           message: 'Vous ne pouvez supprimer que vos propres fails'
         });
+      }
+
+      // Avant suppression: révoquer les points liés aux réactions sur ce fail (attribués à l'auteur)
+      try {
+        // Charger config des points de réactions
+        const rows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']);
+        let cfg = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+        if (rows && rows[0] && rows[0].value) { try { cfg = { ...cfg, ...JSON.parse(rows[0].value) }; } catch {} }
+
+        // Compter les réactions par type (hors réactions de l'auteur sur son propre fail)
+        const counts = await executeQuery(
+          `SELECT reaction_type, COUNT(*) AS cnt
+             FROM reactions
+            WHERE fail_id = ? AND user_id <> ?
+            GROUP BY reaction_type`,
+          [id, userId]
+        );
+
+        // Calcul du total à révoquer
+        let totalToRevoke = 0;
+        for (const r of counts) {
+          const per = Number(cfg[r.reaction_type]) || 0;
+          totalToRevoke += per * (Number(r.cnt) || 0);
+        }
+
+        if (totalToRevoke > 0) {
+          const { v4: uuidv4 } = require('uuid');
+          await executeQuery(
+            `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+             VALUES (?, ?, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+            [userId, -totalToRevoke]
+          );
+          await executeQuery(
+            `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+             VALUES (?, ?, ?, 'fail_deleted_revoke', ?, NULL, ?, NOW())`,
+            [uuidv4(), userId, -totalToRevoke, id, JSON.stringify({ reason: 'Fail deleted: revoke reaction points' })]
+          );
+        }
+
+        // Décrémenter les user_points pour chaque commentateur (symétrique à addComment)
+        try {
+          const pcfgRows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+          let cCfg = { commentCreate: 2 };
+          if (pcfgRows && pcfgRows[0] && pcfgRows[0].value) { try { cCfg = { ...cCfg, ...JSON.parse(pcfgRows[0].value) }; } catch {} }
+          const perComment = Math.max(0, Number(cCfg.commentCreate) || 0);
+          if (perComment > 0) {
+            const commenters = await executeQuery(
+              `SELECT user_id, COUNT(*) AS cnt FROM comments WHERE fail_id = ? GROUP BY user_id`,
+              [id]
+            );
+            const { v4: uuidv4 } = require('uuid');
+            for (const c of commenters) {
+              const u = c.user_id;
+              const toDec = perComment * (Number(c.cnt) || 0);
+              if (toDec > 0) {
+                await executeQuery(
+                  `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+                   VALUES (?, ?, NOW(), NOW())
+                   ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+                  [u, -toDec]
+                );
+                await executeQuery(
+                  `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+                   VALUES (?, ?, ?, 'fail_deleted_revoke_comment', ?, NULL, NULL, NOW())`,
+                  [uuidv4(), u, -toDec, id]
+                );
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ Décrément user_points commentaires (ignore):', e?.message);
+        }
+      } catch (e) {
+        console.warn('⚠️ Révocation points lors suppression fail (ignore):', e?.message);
       }
 
       // Supprimer en cascade (réactions, commentaires, etc.)

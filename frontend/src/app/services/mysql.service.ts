@@ -747,6 +747,8 @@ export class MysqlService {
 
   async addReaction(failId: string, reactionType: string): Promise<void> {
     try {
+      // Harmoniser avec les types backend
+      reactionType = this.mapReactionType(reactionType);
       const currentUser = this.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('Utilisateur non connecté');
@@ -782,6 +784,8 @@ export class MysqlService {
 
   async removeReaction(failId: string, reactionType: string): Promise<void> {
     try {
+      // Harmoniser avec les types backend
+      reactionType = this.mapReactionType(reactionType);
       const currentUser = this.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('Utilisateur non connecté');
@@ -1632,6 +1636,25 @@ export class MysqlService {
       console.error('❌ Erreur upload image:', error);
       throw error;
     }
+  }
+
+  // Harmonisation des types de réactions côté FE -> BE
+  private mapReactionType(rt: string): string {
+    const t = String(rt || '').toLowerCase();
+    const map: Record<string, string> = {
+      // Synonymes FE → types BE
+      'heart': 'courage',
+      'fire': 'courage',
+      'thumbs_up': 'support',
+      'clap': 'support',
+      'muscle': 'support',
+      // Pass-through
+      'courage': 'courage',
+      'laugh': 'laugh',
+      'empathy': 'empathy',
+      'support': 'support'
+    };
+    return map[t] || t;
   }
 
   // Moderation API helpers

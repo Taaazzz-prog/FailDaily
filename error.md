@@ -1,700 +1,10 @@
-debug.service.ts:65 ✅ Connexion réussie pour: bruno@taaazzz.be
-debug.service.ts:65 📊 Log connexion utilisateur (désactivé temporairement): {userId: '9f92d99e-5f70-427e-aebd-68ca8b727bd4', ip: undefined, userAgent: undefined}
-debug.service.ts:65 🔐 AuthService: Login result structure: {
-  "data": {
-    "user": {
-      "id": "9f92d99e-5f70-427e-aebd-68ca8b727bd4",
-      "email": "bruno@taaazzz.be",
-      "displayName": "Taaazzz",
-      "avatarUrl": null,
-      "role": "super_admin"
-    },
-    "session": {
-      "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5ZjkyZDk5ZS01ZjcwLTQyN2UtYWViZC02OGNhOGI3MjdiZDQiLCJlbWFpbCI6ImJydW5vQHRhYWF6enouYmUiLCJpYXQiOjE3NTYyODAyOTMsImV4cCI6MTc1NjM2NjY5M30.pSF0_4drgGkYGlAAVok0712bhJX8wfCp_lRKZP073Xw"
-    }
-  }
-}
-debug.service.ts:65 ✅ AuthService: User authenticated successfully
-comprehensive-logger.service.ts:554 [AUTH] Connexion réussie
-debug.service.ts:65 Action: login_success
-debug.service.ts:65 Description: Action d'authentification: login_success
-debug.service.ts:65 Succès: true
-debug.service.ts:65 Données: {email: 'bruno@taaazzz.be', loginMethod: 'email'}
-debug.service.ts:65 Timestamp: 2025-08-27T07:38:13.187Z
-debug.service.ts:65 ✅ Log envoyé avec succès, ID: {success: true, message: 'Log reçu avec succès', timestamp: '2025-08-27T07:38:13.299Z'}
-debug.service.ts:65 🔍 MysqlService: Getting profile for user: 9f92d99e-5f70-427e-aebd-68ca8b727bd4
-debug.service.ts:65 ✅ MysqlService: Profile response: {success: true, data: {…}}
-debug.service.ts:65 🔐 AuthService: Setting user as current with cache...
-debug.service.ts:65 Auth state changed: logged in
-debug.service.ts:65 📱 TabsPage: Changement d'utilisateur: bruno@taaazzz.be
-debug.service.ts:65 FailService: User authenticated, loading fails...
-debug.service.ts:65 FailService: Loading public fails from backend...
-debug.service.ts:65 📡 MysqlService: Appel API /fails/public avec params: {limit: 20, offset: 0}
-debug.service.ts:65 🏠 HomePage - Fails observable initialized for logged user
-debug.service.ts:65 🔐 AuthService: Utilisateur mis en cache
-debug.service.ts:65 🔐 AuthService: User profile loaded, cached, and set as current user
-debug.service.ts:65 🔐 LoginPage - Login completed, user received: true
-debug.service.ts:65 📡 MysqlService: Réponse brute du backend: {success: true, fails: Array(3), pagination: {…}}
-debug.service.ts:65 ✅ MysqlService: Public fails récupérés avec succès: 3 fails
-debug.service.ts:65 FailService: Received public fails from backend: (3) [{…}, {…}, {…}]
-debug.service.ts:65 🔍 formatFailWithAuthor - Input data: {id: '85efade8-0857-40a9-a790-8253c270157f', title: 'samedi test fails anonyme 1', authorId: '57a2560d-b065-44f3-96c8-3b0d2e5b569b', authorName: 'Anonyme', authorAvatar: 'assets/profil/anonymous.png', …}
-debug.service.ts:65 ✅ formatFailWithAuthor - Using backend data: {authorName: 'Anonyme', authorAvatar: 'assets/profil/anonymous.png'}
-debug.service.ts:65 📊 formatFailWithAuthor - Raw failData.reactions: {laugh: 0, courage: 0, empathy: 0, support: 0}
-debug.service.ts:65 📊 formatFailWithAuthor - Type of reactions: object
-debug.service.ts:65 🔍 formatFailWithAuthor - Input data: {id: '965883d5-c51b-4ccb-a7e4-e90aecc49016', title: 'samedi test fails public 1', authorId: '57a2560d-b065-44f3-96c8-3b0d2e5b569b', authorName: 'vendredi test 1', authorAvatar: null, …}
-debug.service.ts:65 ✅ formatFailWithAuthor - Using backend data: {authorName: 'vendredi test 1', authorAvatar: 'assets/profil/base.png'}
-debug.service.ts:65 📊 formatFailWithAuthor - Raw failData.reactions: {laugh: 0, courage: 0, empathy: 0, support: 0}
-debug.service.ts:65 📊 formatFailWithAuthor - Type of reactions: object
-debug.service.ts:65 🔍 formatFailWithAuthor - Input data: {id: '0f29dcc0-0b48-47cd-b0c5-dd1adc225198', title: 'fails test 1 : jeudi adulte test 1', authorId: '814b7d10-b3d4-4921-ab47-a388bec6c7fb', authorName: 'jeudi test adulte 1', authorAvatar: null, …}
-debug.service.ts:65 ✅ formatFailWithAuthor - Using backend data: {authorName: 'jeudi test adulte 1', authorAvatar: 'assets/profil/base.png'}
-debug.service.ts:65 📊 formatFailWithAuthor - Raw failData.reactions: {laugh: 0, courage: 0, empathy: 0, support: 0}
-debug.service.ts:65 📊 formatFailWithAuthor - Type of reactions: object
-debug.service.ts:65 FailService: Formatted fails: (3) [{…}, {…}, {…}]
-debug.service.ts:65 FailService: Fails loaded and published to subscribers
-debug.service.ts:65 🔐 LoginPage - Success toast shown
-debug.service.ts:65 🔐 LoginPage - Redirecting to home...
-debug.service.ts:65 🔐 LoginPage - Navigation completed
-debug.service.ts:65 🔐 LoginPage - Loading finished
-debug.service.ts:65 FailService: getUserReactionsForFail called for fail: 85efade8-0857-40a9-a790-8253c270157f
-debug.service.ts:65 e TypeError: Failed to construct 'URL': Invalid base URL
-    at getAssetPath (index.js:330:20)
-    at getNamedUrl (icon.js:47:16)
-    at getUrl (icon.js:27:16)
-    at Icon2.loadIcon (icon.js:363:25)
-    at icon.js:301:18
-    at Icon2.waitUntilVisible (icon.js:346:20)
-    at Icon2.connectedCallback (icon.js:299:14)
-    at Icon2.connectedCallback (index.js:3935:35)
-    at _ZoneDelegate.invoke (zone.js:398:28)
-    at ZoneImpl.runGuarded (zone.js:123:47)
-debug.service.ts:53 [Ionicons Warning]: Could not load icon with name "chatbox-ellipses-outline". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. <ion-icon _ngcontent-ng-c2420038699 name=​"chatbox-ellipses-outline" slot=​"start" role=​"img" class=​"md hydrated">​…​</ion-icon>​slot
-console.warn @ debug.service.ts:53
-getNamedUrl @ icon.js:58
-getUrl @ icon.js:27
-loadIcon @ icon.js:363
-(anonymous) @ icon.js:301
-waitUntilVisible @ icon.js:346
-connectedCallback @ icon.js:299
-connectedCallback @ index.js:3935
-invoke @ zone.js:398
-runGuarded @ zone.js:123
-(anonymous) @ zone.js:107
-insertBefore @ dom_renderer.mjs:599
-nativeInsertBefore @ debug_node.mjs:6781
-applyToElementOrContainer @ debug_node.mjs:7241
-applyNodes @ debug_node.mjs:7779
-applyView @ debug_node.mjs:7786
-addViewToDOM @ debug_node.mjs:7286
-addLViewToLContainer @ debug_node.mjs:9335
-insertImpl @ debug_node.mjs:13890
-createEmbeddedView @ debug_node.mjs:13780
-_updateView @ common_module.mjs:3065
-set ngIf @ common_module.mjs:3037
-applyValueToInputField @ debug_node.mjs:528
-writeToDirectiveInput @ debug_node.mjs:7160
-setAllInputsForProperty @ debug_node.mjs:8428
-setPropertyAndInputs @ debug_node.mjs:8062
-ɵɵproperty @ debug_node.mjs:22389
-FailCardComponent_Template @ fail-card.component.html:1
-executeTemplate @ debug_node.mjs:7935
-refreshView @ debug_node.mjs:8965
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewWhileDirty @ debug_node.mjs:8874
-detectChangesInternal @ debug_node.mjs:8862
-synchronizeOnce @ debug_node.mjs:20313
-synchronize @ debug_node.mjs:20272
-tickImpl @ debug_node.mjs:20245
-_tick @ debug_node.mjs:20234
-(anonymous) @ debug_node.mjs:29768
-invoke @ zone.js:398
-onInvoke @ debug_node.mjs:16666
-invoke @ zone.js:397
-run @ zone.js:113
-run @ debug_node.mjs:16512
-next @ debug_node.mjs:29765
-ConsumerObserver2.next @ Subscriber.js:96
-Subscriber2._next @ Subscriber.js:63
-Subscriber2.next @ Subscriber.js:34
-(anonymous) @ Subject.js:41
-errorContext @ errorContext.js:19
-Subject2.next @ Subject.js:31
-emit @ debug_node.mjs:16200
-checkStable @ debug_node.mjs:16580
-onHasTask @ debug_node.mjs:16694
-hasTask @ zone.js:451
-_updateTaskCount @ zone.js:471
-_updateTaskCount @ zone.js:266
-runTask @ zone.js:179
-drainMicroTaskQueue @ zone.js:612
-Promise.then
-nativeScheduleMicroTask @ zone.js:588
-scheduleMicroTask @ zone.js:599
-scheduleTask @ zone.js:420
-onScheduleTask @ debug_node.mjs:16325
-scheduleTask @ zone.js:411
-onScheduleTask @ zone.js:273
-scheduleTask @ zone.js:411
-scheduleTask @ zone.js:207
-scheduleMicroTask @ zone.js:227
-scheduleResolveOrReject @ zone.js:2527
-resolvePromise @ zone.js:2461
-(anonymous) @ zone.js:2369
-(anonymous) @ zone.js:2385
-onFinishCallback @ animation.js:705
-(anonymous) @ animation.js:486
-afterAnimation @ animation.js:485
-animationFinish @ animation.js:501
-animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
-debug.service.ts:65 FailService: getUserReactionsForFail called for fail: 965883d5-c51b-4ccb-a7e4-e90aecc49016
-debug.service.ts:65 e TypeError: Failed to construct 'URL': Invalid base URL
-    at getAssetPath (index.js:330:20)
-    at getNamedUrl (icon.js:47:16)
-    at getUrl (icon.js:27:16)
-    at Icon2.loadIcon (icon.js:363:25)
-    at icon.js:301:18
-    at Icon2.waitUntilVisible (icon.js:346:20)
-    at Icon2.connectedCallback (icon.js:299:14)
-    at Icon2.connectedCallback (index.js:3935:35)
-    at _ZoneDelegate.invoke (zone.js:398:28)
-    at ZoneImpl.runGuarded (zone.js:123:47)
-debug.service.ts:53 [Ionicons Warning]: Could not load icon with name "chatbox-ellipses-outline". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. <ion-icon _ngcontent-ng-c2420038699 name=​"chatbox-ellipses-outline" slot=​"start" role=​"img" class=​"md hydrated">​…​</ion-icon>​slot
-console.warn @ debug.service.ts:53
-getNamedUrl @ icon.js:58
-getUrl @ icon.js:27
-loadIcon @ icon.js:363
-(anonymous) @ icon.js:301
-waitUntilVisible @ icon.js:346
-connectedCallback @ icon.js:299
-connectedCallback @ index.js:3935
-invoke @ zone.js:398
-runGuarded @ zone.js:123
-(anonymous) @ zone.js:107
-insertBefore @ dom_renderer.mjs:599
-nativeInsertBefore @ debug_node.mjs:6781
-applyToElementOrContainer @ debug_node.mjs:7241
-applyNodes @ debug_node.mjs:7779
-applyView @ debug_node.mjs:7786
-addViewToDOM @ debug_node.mjs:7286
-addLViewToLContainer @ debug_node.mjs:9335
-insertImpl @ debug_node.mjs:13890
-createEmbeddedView @ debug_node.mjs:13780
-_updateView @ common_module.mjs:3065
-set ngIf @ common_module.mjs:3037
-applyValueToInputField @ debug_node.mjs:528
-writeToDirectiveInput @ debug_node.mjs:7160
-setAllInputsForProperty @ debug_node.mjs:8428
-setPropertyAndInputs @ debug_node.mjs:8062
-ɵɵproperty @ debug_node.mjs:22389
-FailCardComponent_Template @ fail-card.component.html:1
-executeTemplate @ debug_node.mjs:7935
-refreshView @ debug_node.mjs:8965
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewWhileDirty @ debug_node.mjs:8874
-detectChangesInternal @ debug_node.mjs:8862
-synchronizeOnce @ debug_node.mjs:20313
-synchronize @ debug_node.mjs:20272
-tickImpl @ debug_node.mjs:20245
-_tick @ debug_node.mjs:20234
-(anonymous) @ debug_node.mjs:29768
-invoke @ zone.js:398
-onInvoke @ debug_node.mjs:16666
-invoke @ zone.js:397
-run @ zone.js:113
-run @ debug_node.mjs:16512
-next @ debug_node.mjs:29765
-ConsumerObserver2.next @ Subscriber.js:96
-Subscriber2._next @ Subscriber.js:63
-Subscriber2.next @ Subscriber.js:34
-(anonymous) @ Subject.js:41
-errorContext @ errorContext.js:19
-Subject2.next @ Subject.js:31
-emit @ debug_node.mjs:16200
-checkStable @ debug_node.mjs:16580
-onHasTask @ debug_node.mjs:16694
-hasTask @ zone.js:451
-_updateTaskCount @ zone.js:471
-_updateTaskCount @ zone.js:266
-runTask @ zone.js:179
-drainMicroTaskQueue @ zone.js:612
-Promise.then
-nativeScheduleMicroTask @ zone.js:588
-scheduleMicroTask @ zone.js:599
-scheduleTask @ zone.js:420
-onScheduleTask @ debug_node.mjs:16325
-scheduleTask @ zone.js:411
-onScheduleTask @ zone.js:273
-scheduleTask @ zone.js:411
-scheduleTask @ zone.js:207
-scheduleMicroTask @ zone.js:227
-scheduleResolveOrReject @ zone.js:2527
-resolvePromise @ zone.js:2461
-(anonymous) @ zone.js:2369
-(anonymous) @ zone.js:2385
-onFinishCallback @ animation.js:705
-(anonymous) @ animation.js:486
-afterAnimation @ animation.js:485
-animationFinish @ animation.js:501
-animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
-debug.service.ts:65 FailService: getUserReactionsForFail called for fail: 0f29dcc0-0b48-47cd-b0c5-dd1adc225198
-debug.service.ts:65 e TypeError: Failed to construct 'URL': Invalid base URL
-    at getAssetPath (index.js:330:20)
-    at getNamedUrl (icon.js:47:16)
-    at getUrl (icon.js:27:16)
-    at Icon2.loadIcon (icon.js:363:25)
-    at icon.js:301:18
-    at Icon2.waitUntilVisible (icon.js:346:20)
-    at Icon2.connectedCallback (icon.js:299:14)
-    at Icon2.connectedCallback (index.js:3935:35)
-    at _ZoneDelegate.invoke (zone.js:398:28)
-    at ZoneImpl.runGuarded (zone.js:123:47)
-debug.service.ts:53 [Ionicons Warning]: Could not load icon with name "chatbox-ellipses-outline". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. <ion-icon _ngcontent-ng-c2420038699 name=​"chatbox-ellipses-outline" slot=​"start" role=​"img" class=​"md hydrated">​…​</ion-icon>​slot
-console.warn @ debug.service.ts:53
-getNamedUrl @ icon.js:58
-getUrl @ icon.js:27
-loadIcon @ icon.js:363
-(anonymous) @ icon.js:301
-waitUntilVisible @ icon.js:346
-connectedCallback @ icon.js:299
-connectedCallback @ index.js:3935
-invoke @ zone.js:398
-runGuarded @ zone.js:123
-(anonymous) @ zone.js:107
-insertBefore @ dom_renderer.mjs:599
-nativeInsertBefore @ debug_node.mjs:6781
-applyToElementOrContainer @ debug_node.mjs:7241
-applyNodes @ debug_node.mjs:7779
-applyView @ debug_node.mjs:7786
-addViewToDOM @ debug_node.mjs:7286
-addLViewToLContainer @ debug_node.mjs:9335
-insertImpl @ debug_node.mjs:13890
-createEmbeddedView @ debug_node.mjs:13780
-_updateView @ common_module.mjs:3065
-set ngIf @ common_module.mjs:3037
-applyValueToInputField @ debug_node.mjs:528
-writeToDirectiveInput @ debug_node.mjs:7160
-setAllInputsForProperty @ debug_node.mjs:8428
-setPropertyAndInputs @ debug_node.mjs:8062
-ɵɵproperty @ debug_node.mjs:22389
-FailCardComponent_Template @ fail-card.component.html:1
-executeTemplate @ debug_node.mjs:7935
-refreshView @ debug_node.mjs:8965
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInEmbeddedViews @ debug_node.mjs:9102
-refreshView @ debug_node.mjs:8994
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewIfAttached @ debug_node.mjs:9145
-detectChangesInComponent @ debug_node.mjs:9133
-detectChangesInChildComponents @ debug_node.mjs:9211
-refreshView @ debug_node.mjs:9020
-detectChangesInView @ debug_node.mjs:9185
-detectChangesInViewWhileDirty @ debug_node.mjs:8874
-detectChangesInternal @ debug_node.mjs:8862
-synchronizeOnce @ debug_node.mjs:20313
-synchronize @ debug_node.mjs:20272
-tickImpl @ debug_node.mjs:20245
-_tick @ debug_node.mjs:20234
-(anonymous) @ debug_node.mjs:29768
-invoke @ zone.js:398
-onInvoke @ debug_node.mjs:16666
-invoke @ zone.js:397
-run @ zone.js:113
-run @ debug_node.mjs:16512
-next @ debug_node.mjs:29765
-ConsumerObserver2.next @ Subscriber.js:96
-Subscriber2._next @ Subscriber.js:63
-Subscriber2.next @ Subscriber.js:34
-(anonymous) @ Subject.js:41
-errorContext @ errorContext.js:19
-Subject2.next @ Subject.js:31
-emit @ debug_node.mjs:16200
-checkStable @ debug_node.mjs:16580
-onHasTask @ debug_node.mjs:16694
-hasTask @ zone.js:451
-_updateTaskCount @ zone.js:471
-_updateTaskCount @ zone.js:266
-runTask @ zone.js:179
-drainMicroTaskQueue @ zone.js:612
-Promise.then
-nativeScheduleMicroTask @ zone.js:588
-scheduleMicroTask @ zone.js:599
-scheduleTask @ zone.js:420
-onScheduleTask @ debug_node.mjs:16325
-scheduleTask @ zone.js:411
-onScheduleTask @ zone.js:273
-scheduleTask @ zone.js:411
-scheduleTask @ zone.js:207
-scheduleMicroTask @ zone.js:227
-scheduleResolveOrReject @ zone.js:2527
-resolvePromise @ zone.js:2461
-(anonymous) @ zone.js:2369
-(anonymous) @ zone.js:2385
-onFinishCallback @ animation.js:705
-(anonymous) @ animation.js:486
-afterAnimation @ animation.js:485
-animationFinish @ animation.js:501
-animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
-debug.service.ts:65 e TypeError: Failed to construct 'URL': Invalid base URL
-    at getAssetPath (index.js:330:20)
-    at getNamedUrl (icon.js:47:16)
-    at getUrl (icon.js:27:16)
-    at Icon2.loadIcon (icon.js:363:25)
-    at Icon2.componentDidLoad (icon.js:315:18)
-    at safeCall (index.js:3359:29)
-    at postUpdateComponent (index.js:3292:5)
-    at postUpdate (index.js:3220:30)
-    at index.js:3222:7
-    at Generator.next (<anonymous>)
-debug.service.ts:53 [Ionicons Warning]: Could not load icon with name "chatbox-ellipses-outline". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. <ion-icon _ngcontent-ng-c2420038699 name=​"chatbox-ellipses-outline" slot=​"start" role=​"img" class=​"md hydrated">​…​</ion-icon>​slot
-console.warn @ debug.service.ts:53
-getNamedUrl @ icon.js:58
-getUrl @ icon.js:27
-loadIcon @ icon.js:363
-componentDidLoad @ icon.js:315
-safeCall @ index.js:3359
-postUpdateComponent @ index.js:3292
-postUpdate @ index.js:3220
-(anonymous) @ index.js:3222
-(anonymous) @ chunk-QHQP2P2Z.js:54
-ZoneAwarePromise @ zone.js:2701
-__async @ chunk-QHQP2P2Z.js:38
-updateComponent @ index.js:3177
-(anonymous) @ index.js:3170
-enqueue @ index.js:3175
-dispatchHooks @ index.js:3170
-dispatch @ index.js:3134
-(anonymous) @ index.js:3137
-invokeTask @ zone.js:431
-runTask @ zone.js:161
-drainMicroTaskQueue @ zone.js:612
-Promise.then
-nativeScheduleMicroTask @ zone.js:588
-scheduleMicroTask @ zone.js:599
-scheduleTask @ zone.js:420
-onScheduleTask @ debug_node.mjs:16325
-scheduleTask @ zone.js:411
-onScheduleTask @ zone.js:273
-scheduleTask @ zone.js:411
-scheduleTask @ zone.js:207
-scheduleMicroTask @ zone.js:227
-scheduleResolveOrReject @ zone.js:2527
-resolvePromise @ zone.js:2461
-(anonymous) @ zone.js:2369
-(anonymous) @ zone.js:2385
-onFinishCallback @ animation.js:705
-(anonymous) @ animation.js:486
-afterAnimation @ animation.js:485
-animationFinish @ animation.js:501
-animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
-debug.service.ts:65 e TypeError: Failed to construct 'URL': Invalid base URL
-    at getAssetPath (index.js:330:20)
-    at getNamedUrl (icon.js:47:16)
-    at getUrl (icon.js:27:16)
-    at Icon2.loadIcon (icon.js:363:25)
-    at Icon2.componentDidLoad (icon.js:315:18)
-    at safeCall (index.js:3359:29)
-    at postUpdateComponent (index.js:3292:5)
-    at postUpdate (index.js:3220:30)
-    at index.js:3222:7
-    at Generator.next (<anonymous>)
-debug.service.ts:53 [Ionicons Warning]: Could not load icon with name "chatbox-ellipses-outline". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. <ion-icon _ngcontent-ng-c2420038699 name=​"chatbox-ellipses-outline" slot=​"start" role=​"img" class=​"md hydrated">​…​</ion-icon>​slot
-console.warn @ debug.service.ts:53
-getNamedUrl @ icon.js:58
-getUrl @ icon.js:27
-loadIcon @ icon.js:363
-componentDidLoad @ icon.js:315
-safeCall @ index.js:3359
-postUpdateComponent @ index.js:3292
-postUpdate @ index.js:3220
-(anonymous) @ index.js:3222
-(anonymous) @ chunk-QHQP2P2Z.js:54
-ZoneAwarePromise @ zone.js:2701
-__async @ chunk-QHQP2P2Z.js:38
-updateComponent @ index.js:3177
-(anonymous) @ index.js:3170
-enqueue @ index.js:3175
-dispatchHooks @ index.js:3170
-dispatch @ index.js:3134
-(anonymous) @ index.js:3137
-invokeTask @ zone.js:431
-runTask @ zone.js:161
-drainMicroTaskQueue @ zone.js:612
-Promise.then
-nativeScheduleMicroTask @ zone.js:588
-scheduleMicroTask @ zone.js:599
-scheduleTask @ zone.js:420
-onScheduleTask @ debug_node.mjs:16325
-scheduleTask @ zone.js:411
-onScheduleTask @ zone.js:273
-scheduleTask @ zone.js:411
-scheduleTask @ zone.js:207
-scheduleMicroTask @ zone.js:227
-scheduleResolveOrReject @ zone.js:2527
-resolvePromise @ zone.js:2461
-(anonymous) @ zone.js:2369
-(anonymous) @ zone.js:2385
-onFinishCallback @ animation.js:705
-(anonymous) @ animation.js:486
-afterAnimation @ animation.js:485
-animationFinish @ animation.js:501
-animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
-debug.service.ts:65 e TypeError: Failed to construct 'URL': Invalid base URL
-    at getAssetPath (index.js:330:20)
-    at getNamedUrl (icon.js:47:16)
-    at getUrl (icon.js:27:16)
-    at Icon2.loadIcon (icon.js:363:25)
-    at Icon2.componentDidLoad (icon.js:315:18)
-    at safeCall (index.js:3359:29)
-    at postUpdateComponent (index.js:3292:5)
-    at postUpdate (index.js:3220:30)
-    at index.js:3222:7
-    at Generator.next (<anonymous>)
-debug.service.ts:53 [Ionicons Warning]: Could not load icon with name "chatbox-ellipses-outline". Ensure that the icon is registered using addIcons or that the icon SVG data is passed directly to the icon component. <ion-icon _ngcontent-ng-c2420038699 name=​"chatbox-ellipses-outline" slot=​"start" role=​"img" class=​"md hydrated">​…​</ion-icon>​slot
-console.warn @ debug.service.ts:53
-getNamedUrl @ icon.js:58
-getUrl @ icon.js:27
-loadIcon @ icon.js:363
-componentDidLoad @ icon.js:315
-safeCall @ index.js:3359
-postUpdateComponent @ index.js:3292
-postUpdate @ index.js:3220
-(anonymous) @ index.js:3222
-(anonymous) @ chunk-QHQP2P2Z.js:54
-ZoneAwarePromise @ zone.js:2701
-__async @ chunk-QHQP2P2Z.js:38
-updateComponent @ index.js:3177
-(anonymous) @ index.js:3170
-enqueue @ index.js:3175
-dispatchHooks @ index.js:3170
-dispatch @ index.js:3134
-(anonymous) @ index.js:3137
-invokeTask @ zone.js:431
-runTask @ zone.js:161
-drainMicroTaskQueue @ zone.js:612
-Promise.then
-nativeScheduleMicroTask @ zone.js:588
-scheduleMicroTask @ zone.js:599
-scheduleTask @ zone.js:420
-onScheduleTask @ debug_node.mjs:16325
-scheduleTask @ zone.js:411
-onScheduleTask @ zone.js:273
-scheduleTask @ zone.js:411
-scheduleTask @ zone.js:207
-scheduleMicroTask @ zone.js:227
-scheduleResolveOrReject @ zone.js:2527
-resolvePromise @ zone.js:2461
-(anonymous) @ zone.js:2369
-(anonymous) @ zone.js:2385
-onFinishCallback @ animation.js:705
-(anonymous) @ animation.js:486
-afterAnimation @ animation.js:485
-animationFinish @ animation.js:501
-animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
+FailService: getUserReactionsForFail result: ['support']
 debug.service.ts:65 FailService: getUserReactionsForFail result: ['courage']
-debug.service.ts:65 FailService: getUserReactionsForFail result: ['courage']
-debug.service.ts:65 FailService: getUserReactionsForFail result: ['courage']
-debug.service.ts:65 FailService: addReaction called for fail: 85efade8-0857-40a9-a790-8253c270157f type: laugh
+debug.service.ts:65 FailService: getUserReactionsForFail result: (2) ['empathy', 'courage']
+debug.service.ts:65 FailService: addReaction called for fail: 85efade8-0857-40a9-a790-8253c270157f type: courage
 debug.service.ts:65 FailService: User found for reaction: 9f92d99e-5f70-427e-aebd-68ca8b727bd4
-debug.service.ts:65 👍 Ajout réaction laugh au fail 85efade8-0857-40a9-a790-8253c270157f
-debug.service.ts:65 ✅ Réaction laugh ajoutée avec succès
+debug.service.ts:65 👍 Ajout réaction courage au fail 85efade8-0857-40a9-a790-8253c270157f
+debug.service.ts:65 ✅ Réaction courage ajoutée avec succès
 mysql.service.ts:701  GET http://localhost:3000/api/fails/85efade8-0857-40a9-a790-8253c270157f 500 (Internal Server Error)
 scheduleTask @ zone.js:2182
 scheduleTask @ zone.js:417
@@ -763,12 +73,12 @@ Observable2.toPromise @ Observable.js:81
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 getFailById @ mysql.service.ts:697
-(anonymous) @ mysql.service.ts:918
+(anonymous) @ mysql.service.ts:922
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-updateCouragePoints @ mysql.service.ts:915
-(anonymous) @ mysql.service.ts:773
+updateCouragePoints @ mysql.service.ts:919
+(anonymous) @ mysql.service.ts:775
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -886,7 +196,7 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:767
+(anonymous) @ mysql.service.ts:769
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -1034,12 +344,12 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:818
+(anonymous) @ mysql.service.ts:822
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-getUserReactionForFail @ mysql.service.ts:810
-(anonymous) @ mysql.service.ts:758
+getUserReactionForFail @ mysql.service.ts:814
+(anonymous) @ mysql.service.ts:760
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
@@ -1073,7 +383,7 @@ step @ chunk-EVSPGG2W.js:40
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 addReaction @ fail.service.ts:240
-(anonymous) @ fail-card.component.ts:100
+(anonymous) @ fail-card.component.ts:71
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -1173,12 +483,12 @@ ZoneAwarePromise @ zone.js:2701
 __async @ chunk-QHQP2P2Z.js:38
 loadPluginImplementation @ index.js:73
 impact @ index.js:114
-(anonymous) @ fail-card.component.ts:93
+(anonymous) @ fail-card.component.ts:64
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-onLaugh @ fail-card.component.ts:87
-FailCardComponent_div_0_Template_ion_button_click_25_listener @ fail-card.component.html:39
+onCourage @ fail-card.component.ts:58
+FailCardComponent_div_0_Template_ion_button_click_21_listener @ fail-card.component.html:33
 executeListenerWithErrorHandling @ debug_node.mjs:12978
 wrapListenerIn_markDirtyAndPreventDefault @ debug_node.mjs:12961
 (anonymous) @ dom_renderer.mjs:707
@@ -1207,7 +517,7 @@ listen @ dom_renderer.mjs:689
 listenToDomEvent @ debug_node.mjs:13045
 listenerInternal @ debug_node.mjs:24687
 ɵɵlistener @ debug_node.mjs:24625
-FailCardComponent_div_0_Template @ fail-card.component.html:39
+FailCardComponent_div_0_Template @ fail-card.component.html:33
 executeTemplate @ debug_node.mjs:7935
 renderView @ debug_node.mjs:8551
 createAndRenderEmbeddedLView @ debug_node.mjs:8621
@@ -1337,7 +647,7 @@ onFinishCallback @ animation.js:705
 afterAnimation @ animation.js:485
 animationFinish @ animation.js:501
 animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
+webAnimations.<computed>.onfinish @ animation.js:523Understand this error
 debug.service.ts:48 ❌ Erreur récupération fail: HttpErrorResponse {headers: _HttpHeaders, status: 500, statusText: 'Internal Server Error', url: 'http://localhost:3000/api/fails/85efade8-0857-40a9-a790-8253c270157f', ok: false, …}
 console.error @ debug.service.ts:48
 (anonymous) @ mysql.service.ts:709
@@ -1458,12 +768,12 @@ Observable2.toPromise @ Observable.js:81
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 getFailById @ mysql.service.ts:697
-(anonymous) @ mysql.service.ts:918
+(anonymous) @ mysql.service.ts:922
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-updateCouragePoints @ mysql.service.ts:915
-(anonymous) @ mysql.service.ts:773
+updateCouragePoints @ mysql.service.ts:919
+(anonymous) @ mysql.service.ts:775
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -1581,7 +891,7 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:767
+(anonymous) @ mysql.service.ts:769
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -1729,12 +1039,12 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:818
+(anonymous) @ mysql.service.ts:822
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-getUserReactionForFail @ mysql.service.ts:810
-(anonymous) @ mysql.service.ts:758
+getUserReactionForFail @ mysql.service.ts:814
+(anonymous) @ mysql.service.ts:760
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
@@ -1768,7 +1078,7 @@ step @ chunk-EVSPGG2W.js:40
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 addReaction @ fail.service.ts:240
-(anonymous) @ fail-card.component.ts:100
+(anonymous) @ fail-card.component.ts:71
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -1868,12 +1178,12 @@ ZoneAwarePromise @ zone.js:2701
 __async @ chunk-QHQP2P2Z.js:38
 loadPluginImplementation @ index.js:73
 impact @ index.js:114
-(anonymous) @ fail-card.component.ts:93
+(anonymous) @ fail-card.component.ts:64
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-onLaugh @ fail-card.component.ts:87
-FailCardComponent_div_0_Template_ion_button_click_25_listener @ fail-card.component.html:39
+onCourage @ fail-card.component.ts:58
+FailCardComponent_div_0_Template_ion_button_click_21_listener @ fail-card.component.html:33
 executeListenerWithErrorHandling @ debug_node.mjs:12978
 wrapListenerIn_markDirtyAndPreventDefault @ debug_node.mjs:12961
 (anonymous) @ dom_renderer.mjs:707
@@ -1902,7 +1212,7 @@ listen @ dom_renderer.mjs:689
 listenToDomEvent @ debug_node.mjs:13045
 listenerInternal @ debug_node.mjs:24687
 ɵɵlistener @ debug_node.mjs:24625
-FailCardComponent_div_0_Template @ fail-card.component.html:39
+FailCardComponent_div_0_Template @ fail-card.component.html:33
 executeTemplate @ debug_node.mjs:7935
 renderView @ debug_node.mjs:8551
 createAndRenderEmbeddedLView @ debug_node.mjs:8621
@@ -2032,7 +1342,7 @@ onFinishCallback @ animation.js:705
 afterAnimation @ animation.js:485
 animationFinish @ animation.js:501
 animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
+webAnimations.<computed>.onfinish @ animation.js:523Understand this error
 debug.service.ts:65 FailService: mysqlService.addReaction completed successfully
 debug.service.ts:65 FailService: Emitting REACTION_GIVEN event
 debug.service.ts:65 FailService: REACTION_GIVEN event emitted successfully
@@ -2110,7 +1420,7 @@ getFailById @ mysql.service.ts:697
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 getFailById @ fail.service.ts:291
-(anonymous) @ fail-card.component.ts:103
+(anonymous) @ fail-card.component.ts:74
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -2348,12 +1658,12 @@ Observable2.toPromise @ Observable.js:81
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 getFailById @ mysql.service.ts:697
-(anonymous) @ mysql.service.ts:918
+(anonymous) @ mysql.service.ts:922
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-updateCouragePoints @ mysql.service.ts:915
-(anonymous) @ mysql.service.ts:773
+updateCouragePoints @ mysql.service.ts:919
+(anonymous) @ mysql.service.ts:775
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -2471,7 +1781,7 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:767
+(anonymous) @ mysql.service.ts:769
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -2619,12 +1929,12 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:818
+(anonymous) @ mysql.service.ts:822
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-getUserReactionForFail @ mysql.service.ts:810
-(anonymous) @ mysql.service.ts:758
+getUserReactionForFail @ mysql.service.ts:814
+(anonymous) @ mysql.service.ts:760
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
@@ -2658,7 +1968,7 @@ step @ chunk-EVSPGG2W.js:40
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 addReaction @ fail.service.ts:240
-(anonymous) @ fail-card.component.ts:100
+(anonymous) @ fail-card.component.ts:71
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -2758,12 +2068,12 @@ ZoneAwarePromise @ zone.js:2701
 __async @ chunk-QHQP2P2Z.js:38
 loadPluginImplementation @ index.js:73
 impact @ index.js:114
-(anonymous) @ fail-card.component.ts:93
+(anonymous) @ fail-card.component.ts:64
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-onLaugh @ fail-card.component.ts:87
-FailCardComponent_div_0_Template_ion_button_click_25_listener @ fail-card.component.html:39
+onCourage @ fail-card.component.ts:58
+FailCardComponent_div_0_Template_ion_button_click_21_listener @ fail-card.component.html:33
 executeListenerWithErrorHandling @ debug_node.mjs:12978
 wrapListenerIn_markDirtyAndPreventDefault @ debug_node.mjs:12961
 (anonymous) @ dom_renderer.mjs:707
@@ -2792,7 +2102,7 @@ listen @ dom_renderer.mjs:689
 listenToDomEvent @ debug_node.mjs:13045
 listenerInternal @ debug_node.mjs:24687
 ɵɵlistener @ debug_node.mjs:24625
-FailCardComponent_div_0_Template @ fail-card.component.html:39
+FailCardComponent_div_0_Template @ fail-card.component.html:33
 executeTemplate @ debug_node.mjs:7935
 renderView @ debug_node.mjs:8551
 createAndRenderEmbeddedLView @ debug_node.mjs:8621
@@ -2922,7 +2232,7 @@ onFinishCallback @ animation.js:705
 afterAnimation @ animation.js:485
 animationFinish @ animation.js:501
 animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
+webAnimations.<computed>.onfinish @ animation.js:523Understand this error
 debug.service.ts:48 ❌ Erreur récupération fail: HttpErrorResponse {headers: _HttpHeaders, status: 500, statusText: 'Internal Server Error', url: 'http://localhost:3000/api/fails/85efade8-0857-40a9-a790-8253c270157f', ok: false, …}
 console.error @ debug.service.ts:48
 (anonymous) @ mysql.service.ts:709
@@ -3048,7 +2358,7 @@ getFailById @ mysql.service.ts:697
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 getFailById @ fail.service.ts:291
-(anonymous) @ fail-card.component.ts:103
+(anonymous) @ fail-card.component.ts:74
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -3286,12 +2596,12 @@ Observable2.toPromise @ Observable.js:81
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 getFailById @ mysql.service.ts:697
-(anonymous) @ mysql.service.ts:918
+(anonymous) @ mysql.service.ts:922
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-updateCouragePoints @ mysql.service.ts:915
-(anonymous) @ mysql.service.ts:773
+updateCouragePoints @ mysql.service.ts:919
+(anonymous) @ mysql.service.ts:775
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -3409,7 +2719,7 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:767
+(anonymous) @ mysql.service.ts:769
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -3557,12 +2867,12 @@ Observable2.subscribe @ Observable.js:23
 (anonymous) @ Observable.js:83
 ZoneAwarePromise @ zone.js:2701
 Observable2.toPromise @ Observable.js:81
-(anonymous) @ mysql.service.ts:818
+(anonymous) @ mysql.service.ts:822
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-getUserReactionForFail @ mysql.service.ts:810
-(anonymous) @ mysql.service.ts:758
+getUserReactionForFail @ mysql.service.ts:814
+(anonymous) @ mysql.service.ts:760
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
@@ -3596,7 +2906,7 @@ step @ chunk-EVSPGG2W.js:40
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
 addReaction @ fail.service.ts:240
-(anonymous) @ fail-card.component.ts:100
+(anonymous) @ fail-card.component.ts:71
 fulfilled @ chunk-EVSPGG2W.js:28
 invoke @ zone.js:398
 onInvoke @ debug_node.mjs:16666
@@ -3696,12 +3006,12 @@ ZoneAwarePromise @ zone.js:2701
 __async @ chunk-QHQP2P2Z.js:38
 loadPluginImplementation @ index.js:73
 impact @ index.js:114
-(anonymous) @ fail-card.component.ts:93
+(anonymous) @ fail-card.component.ts:64
 (anonymous) @ chunk-EVSPGG2W.js:41
 ZoneAwarePromise @ zone.js:2701
 __async @ chunk-EVSPGG2W.js:25
-onLaugh @ fail-card.component.ts:87
-FailCardComponent_div_0_Template_ion_button_click_25_listener @ fail-card.component.html:39
+onCourage @ fail-card.component.ts:58
+FailCardComponent_div_0_Template_ion_button_click_21_listener @ fail-card.component.html:33
 executeListenerWithErrorHandling @ debug_node.mjs:12978
 wrapListenerIn_markDirtyAndPreventDefault @ debug_node.mjs:12961
 (anonymous) @ dom_renderer.mjs:707
@@ -3730,7 +3040,7 @@ listen @ dom_renderer.mjs:689
 listenToDomEvent @ debug_node.mjs:13045
 listenerInternal @ debug_node.mjs:24687
 ɵɵlistener @ debug_node.mjs:24625
-FailCardComponent_div_0_Template @ fail-card.component.html:39
+FailCardComponent_div_0_Template @ fail-card.component.html:33
 executeTemplate @ debug_node.mjs:7935
 renderView @ debug_node.mjs:8551
 createAndRenderEmbeddedLView @ debug_node.mjs:8621
@@ -3860,7 +3170,7 @@ onFinishCallback @ animation.js:705
 afterAnimation @ animation.js:485
 animationFinish @ animation.js:501
 animationFinish @ animation.js:503
-webAnimations.<computed>.onfinish @ animation.js:523
+webAnimations.<computed>.onfinish @ animation.js:523Understand this error
 debug.service.ts:65 FailService: No fail data found for ID: 85efade8-0857-40a9-a790-8253c270157f
 debug.service.ts:65 FailService: getUserReactionsForFail called for fail: 85efade8-0857-40a9-a790-8253c270157f
-debug.service.ts:65 FailService: getUserReactionsForFail result: ['laugh']
+debug.service.ts:65 FailService: getUserReactionsForFail result: ['courage']

@@ -57,6 +57,8 @@ class ReactionsController {
         
         // Si c'est la même réaction, la supprimer (toggle)
         if (existingReaction.reaction_type === reactionType) {
+          // Retrancher les points liés à cette réaction
+          const revoked = await awardReactionPoints(req, { fail, reactionType, reactorUserId: userId, revoke: true });
           await executeQuery(`
             DELETE FROM reactions 
             WHERE id = ?
@@ -66,7 +68,7 @@ class ReactionsController {
             userId,
             fail,
             reactionType,
-            points: 0
+            points: -Math.abs(revoked || 0)
           });
 
           return res.json({
@@ -84,12 +86,14 @@ class ReactionsController {
             SET reaction_type = ?, created_at = NOW() 
             WHERE id = ?
           `, [reactionType, existingReaction.id]);
+          // Calcul points pour l'auteur (update considéré comme un nouvel apport)
+          const awarded = await awardReactionPoints(req, { fail, reactionType, reactorUserId: userId });
           // Log modification (comme ajout du nouveau type)
           await logReaction(req, {
             userId,
             fail,
             reactionType,
-            points: 0
+            points: awarded
           });
 
           return res.json({
@@ -109,12 +113,14 @@ class ReactionsController {
           INSERT INTO reactions (id, fail_id, user_id, reaction_type, created_at) 
           VALUES (?, ?, ?, ?, NOW())
         `, [reactionId, failId, userId, reactionType]);
+        // Calcul points pour l'auteur
+        const awarded = await awardReactionPoints(req, { fail, reactionType, reactorUserId: userId });
         // Log ajout
         await logReaction(req, {
           userId,
           fail,
           reactionType,
-          points: 0
+          points: awarded
         });
 
         return res.json({
@@ -146,15 +152,7 @@ class ReactionsController {
       const { id: failId, reactionType } = req.params;
       const userId = req.user.id;
 
-      // Optionnel: restreindre par type si fourni
-      let deleteQuery = 'DELETE FROM reactions WHERE fail_id = ? AND user_id = ?';
-      const params = [failId, userId];
-      if (reactionType) {
-        deleteQuery += ' AND reaction_type = ?';
-        params.push(reactionType);
-      }
-
-      // Préparer log
+      // Préparer log et lecture du fail
       const fails = await executeQuery(`
         SELECT f.id, f.user_id, f.title, f.is_anonyme, p.display_name
         FROM fails f
@@ -163,7 +161,17 @@ class ReactionsController {
       `, [failId]);
       const fail = fails[0] || null;
 
-      const result = await executeQuery(deleteQuery, params);
+      // Lire les réactions existantes à supprimer (pour connaître leur type)
+      const existing = await executeQuery(
+        `SELECT id, reaction_type FROM reactions WHERE fail_id = ? AND user_id = ? ${reactionType ? 'AND reaction_type = ?' : ''}`,
+        reactionType ? [failId, userId, reactionType] : [failId, userId]
+      );
+
+      // Supprimer la/les réactions
+      const result = await executeQuery(
+        `DELETE FROM reactions WHERE fail_id = ? AND user_id = ? ${reactionType ? 'AND reaction_type = ?' : ''}`,
+        reactionType ? [failId, userId, reactionType] : [failId, userId]
+      );
 
       if (result.affectedRows === 0) {
         return res.status(404).json({
@@ -173,13 +181,16 @@ class ReactionsController {
         });
       }
 
-      // Log suppression (sans type si non fourni)
-      await logReaction(req, {
-        userId,
-        fail,
-        reactionType: reactionType || 'unknown',
-        points: 0
-      });
+      // Décrémenter points pour chaque type supprimé et logger
+      for (const r of existing) {
+        const revoked = await awardReactionPoints(req, { fail, reactionType: r.reaction_type, reactorUserId: userId, revoke: true });
+        await logReaction(req, {
+          userId,
+          fail,
+          reactionType: r.reaction_type,
+          points: -Math.abs(revoked || 0)
+        });
+      }
 
       res.json({
         success: true,
@@ -412,5 +423,54 @@ async function logReaction(req, { userId, fail, reactionType, points }) {
     );
   } catch (e) {
     console.warn('⚠️ logReaction: impossible de journaliser la réaction:', e?.message);
+  }
+}
+
+/**
+ * Attribue des points au propriétaire du fail selon la config.
+ * - Lit app_config.reaction_points (ou valeurs par défaut)
+ * - Ignore si l'auteur réagit à son propre fail
+ * - Met à jour user_points et trace user_point_events
+ * Retourne le nombre de points attribués
+ */
+async function awardReactionPoints(req, { fail, reactionType, reactorUserId, revoke = false }) {
+  try {
+    if (!fail || !fail.user_id) return 0;
+    const authorId = fail.user_id;
+    // Ne pas attribuer si réaction de l'auteur à son propre fail
+    if (authorId === reactorUserId) return 0;
+
+    // Charger la config
+    const rows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']);
+    let cfg = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    if (rows && rows[0] && rows[0].value) {
+      try { cfg = { ...cfg, ...JSON.parse(rows[0].value) }; } catch {}
+    }
+
+    const base = Number(cfg[reactionType]) || 0;
+    if (base === 0) return 0;
+    const amount = revoke ? -Math.abs(base) : Math.abs(base);
+
+    const { v4: uuidv4 } = require('uuid');
+
+    // Upsert total
+    await executeQuery(
+      `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+       VALUES (?, ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+      [authorId, amount]
+    );
+
+    // Trace event
+    await executeQuery(
+      `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [uuidv4(), authorId, amount, revoke ? 'reaction_remove' : 'reaction', fail.id, reactionType, JSON.stringify({ fromUser: reactorUserId })]
+    );
+
+    return amount;
+  } catch (e) {
+    console.warn('⚠️ awardReactionPoints error:', e?.message);
+    return 0;
   }
 }

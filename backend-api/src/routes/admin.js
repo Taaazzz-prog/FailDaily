@@ -310,6 +310,168 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
 });
 
 module.exports = router;
+/**
+ * ======================== REACTIONS/POINTS CONFIG =========================
+ */
+// GET /api/admin/reactions/config
+router.get('/reactions/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']);
+    let cfg = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    if (row && row[0] && row[0].value) {
+      try { cfg = { ...cfg, ...JSON.parse(row[0].value) }; } catch {}
+    }
+    res.json({ success: true, config: cfg });
+  } catch (e) {
+    console.error('❌ /admin/reactions/config error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture config réactions/points' });
+  }
+});
+
+// PUT /api/admin/reactions/config
+router.put('/reactions/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const input = req.body || {};
+    let currentCfg = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    try {
+      const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']);
+      if (row && row[0] && row[0].value) currentCfg = { ...currentCfg, ...JSON.parse(row[0].value) };
+    } catch {}
+
+    const nextCfg = {
+      courage: Number.isFinite(Number(input.courage)) ? Number(input.courage) : currentCfg.courage,
+      laugh: Number.isFinite(Number(input.laugh)) ? Number(input.laugh) : currentCfg.laugh,
+      empathy: Number.isFinite(Number(input.empathy)) ? Number(input.empathy) : currentCfg.empathy,
+      support: Number.isFinite(Number(input.support)) ? Number(input.support) : currentCfg.support
+    };
+
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'reaction_points', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(nextCfg)]
+    );
+    res.json({ success: true, config: nextCfg });
+  } catch (e) {
+    console.error('❌ /admin/reactions/config update error:', e);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour config réactions/points' });
+  }
+});
+
+/**
+ * ============================= USER POINTS API ============================
+ */
+// GET /api/admin/users/:userId/points
+router.get('/users/:userId/points', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const rows = await executeQuery('SELECT points_total, updated_at, created_at FROM user_points WHERE user_id = ? LIMIT 1', [userId]);
+    const points = rows[0] || { points_total: 0, updated_at: null, created_at: null };
+    res.json({ success: true, points });
+  } catch (e) {
+    console.error('❌ /admin/users/:userId/points error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture points utilisateur' });
+  }
+});
+
+// POST /api/admin/users/:userId/points { delta, reason }
+router.post('/users/:userId/points', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { delta = 0, reason = 'manual_adjust' } = req.body || {};
+    const amount = Number(delta) || 0;
+    const { v4: uuidv4 } = require('uuid');
+
+    await executeQuery(
+      `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+       VALUES (?, ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+      [userId, amount]
+    );
+
+    await executeQuery(
+      `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+       VALUES (?, ?, ?, 'admin', NULL, NULL, ?, NOW())`,
+      [uuidv4(), userId, amount, JSON.stringify({ reason })]
+    );
+
+    res.json({ success: true, message: 'Points mis à jour' });
+  } catch (e) {
+    console.error('❌ /admin/users/:userId/points update error:', e);
+    res.status(500).json({ success: false, message: 'Erreur MAJ points utilisateur' });
+  }
+});
+
+/**
+ * ============================ POINTS (GÉNÉRAUX) ===========================
+ */
+// GET /api/admin/points/config
+router.get('/points/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+    let cfg = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
+    if (row && row[0] && row[0].value) {
+      try { cfg = { ...cfg, ...JSON.parse(row[0].value) }; } catch {}
+    }
+    res.json({ success: true, config: cfg });
+  } catch (e) {
+    console.error('❌ /admin/points/config error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture config points' });
+  }
+});
+
+// PUT /api/admin/points/config
+router.put('/points/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const input = req.body || {};
+    let current = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
+    try {
+      const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+      if (row && row[0] && row[0].value) current = { ...current, ...JSON.parse(row[0].value) };
+    } catch {}
+
+    const nextCfg = {
+      failCreate: Number.isFinite(Number(input.failCreate)) ? Number(input.failCreate) : current.failCreate,
+      commentCreate: Number.isFinite(Number(input.commentCreate)) ? Number(input.commentCreate) : current.commentCreate,
+      reactionRemovePenalty: typeof input.reactionRemovePenalty === 'boolean' ? input.reactionRemovePenalty : current.reactionRemovePenalty
+    };
+
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'points', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(nextCfg)]
+    );
+    res.json({ success: true, config: nextCfg });
+  } catch (e) {
+    console.error('❌ /admin/points/config update error:', e);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour config points' });
+  }
+});
+
+/**
+ * =========================== CONFIG CONSOLIDÉE ===========================
+ */
+// GET /api/admin/config
+router.get('/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const [pointsRow, reactRow, modRow] = await Promise.all([
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation'])
+    ]);
+    let points = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
+    let reaction_points = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    let moderation = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
+    try { if (pointsRow[0]?.value) points = { ...points, ...JSON.parse(pointsRow[0].value) }; } catch {}
+    try { if (reactRow[0]?.value) reaction_points = { ...reaction_points, ...JSON.parse(reactRow[0].value) }; } catch {}
+    try { if (modRow[0]?.value) moderation = { ...moderation, ...JSON.parse(modRow[0].value) }; } catch {}
+    res.json({ success: true, config: { points, reaction_points, moderation } });
+  } catch (e) {
+    console.error('❌ /api/admin/config error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture config consolidée' });
+  }
+});
 // PUT /api/admin/fails/:id/moderation { status }
 router.put('/fails/:id/moderation', authenticateToken, requireAdmin, async (req, res) => {
   try {

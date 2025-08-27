@@ -59,18 +59,7 @@ class CommentsController {
     return { commentCreate: 2, commentLikeReward: 1, commentReportThreshold: 10 };
   }
 
-  static async awardCouragePoints(userId, delta) {
-    // Increment couragePoints inside profiles.stats JSON
-    await executeQuery(`
-      UPDATE profiles
-      SET stats = JSON_SET(
-        COALESCE(NULLIF(stats, ''), '{}'),
-        '$.couragePoints',
-        CAST(COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(COALESCE(NULLIF(stats, ''), '{}'), '$.couragePoints')), ''), '0') AS UNSIGNED) + ?
-      ), updated_at = NOW()
-      WHERE user_id = ?
-    `, [Math.max(0, Number(delta) || 0), userId]);
-  }
+  // profiles.stats.couragePoints deprecated — use user_points
 
   /**
    * Ajouter un commentaire à un fail
@@ -131,10 +120,25 @@ class CommentsController {
         UPDATE fails SET comments_count = COALESCE(comments_count, 0) + 1, updated_at = NOW() WHERE id = ?
       `, [failId]);
 
-      // Award courage points for comment creation
+      // Award user_points for comment creation
       const pointsCfg = await CommentsController.getPointsConfig();
       if (pointsCfg.commentCreate > 0) {
-        await CommentsController.awardCouragePoints(userId, pointsCfg.commentCreate);
+        try {
+          const { v4: uuidv4 } = require('uuid');
+          await executeQuery(
+            `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+             VALUES (?, ?, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+            [userId, pointsCfg.commentCreate]
+          );
+          await executeQuery(
+            `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+             VALUES (?, ?, ?, 'comment_create', ?, NULL, NULL, NOW())`,
+            [uuidv4(), userId, pointsCfg.commentCreate, failId]
+          );
+        } catch (e) {
+          console.warn('⚠️ Award user_points on comment create (ignore):', e?.message);
+        }
       }
 
       // Récupérer le commentaire créé avec les infos de l'utilisateur
@@ -436,6 +440,29 @@ class CommentsController {
       await executeQuery(`
         UPDATE fails SET comments_count = GREATEST(COALESCE(comments_count,0) - 1, 0), updated_at = NOW() WHERE id = ?
       `, [failId]);
+
+      // Décrémenter les user_points du commentateur (symétrique à addComment)
+      try {
+        const pointsCfg = await CommentsController.getPointsConfig();
+        const delta = Math.max(0, Number(pointsCfg.commentCreate) || 0);
+        if (delta > 0) {
+          // Décrémenter aussi user_points et tracer l'event
+          const { v4: uuidv4 } = require('uuid');
+          await executeQuery(
+            `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
+             VALUES (?, ?, NOW(), NOW())
+             ON DUPLICATE KEY UPDATE points_total = points_total + VALUES(points_total), updated_at = NOW()`,
+            [userId, -delta]
+          );
+          await executeQuery(
+            `INSERT INTO user_point_events (id, user_id, amount, source, fail_id, reaction_type, meta, created_at)
+             VALUES (?, ?, ?, 'comment_delete_revoke', ?, NULL, NULL, NOW())`,
+            [uuidv4(), userId, -delta, failId]
+          );
+        }
+      } catch (e) {
+        console.warn('⚠️ Décrément points commentaire (ignore):', e?.message);
+      }
 
       res.json({
         success: true,

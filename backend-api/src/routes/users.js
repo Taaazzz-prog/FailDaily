@@ -28,7 +28,7 @@ router.get('/:userId/stats', authenticateToken, async (req, res) => {
     const stats = await executeQuery(`
       SELECT 
         u.id,
-        COALESCE(p.courage_points, 0) as courage_points,
+        COALESCE(up.points_total, 0) as courage_points,
         COALESCE(p.streak, 0) as streak,
         COALESCE(fail_stats.total_fails, 0) as total_fails,
         COALESCE(badge_stats.total_badges, 0) as total_badges,
@@ -37,6 +37,7 @@ router.get('/:userId/stats', authenticateToken, async (req, res) => {
         DATE(u.created_at) as join_date
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
+      LEFT JOIN user_points up ON up.user_id = u.id
       LEFT JOIN (
         SELECT user_id, COUNT(*) as total_fails
         FROM fails 
