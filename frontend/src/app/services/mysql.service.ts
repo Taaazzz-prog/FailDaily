@@ -1638,6 +1638,46 @@ export class MysqlService {
     }
   }
 
+  // ===== ADMIN LOGS (Backed by /api/admin/logs/*) =====
+
+  async adminLogsSummary(days: number = 7): Promise<any> {
+    const url = `${this.apiUrl}/admin/logs/summary?days=${days}`;
+    const res: any = await this.http.get(url, { headers: this.getAuthHeaders() }).toPromise();
+    return res?.success ? res : { success: false };
+  }
+
+  async adminLogsByDay(days: number = 7): Promise<any> {
+    const url = `${this.apiUrl}/admin/logs/by-day?days=${days}`;
+    const res: any = await this.http.get(url, { headers: this.getAuthHeaders() }).toPromise();
+    return res?.success ? res : { success: false };
+  }
+
+  async adminLogsByUser(days: number = 7): Promise<any> {
+    const url = `${this.apiUrl}/admin/logs/by-user?days=${days}`;
+    const res: any = await this.http.get(url, { headers: this.getAuthHeaders() }).toPromise();
+    return res?.success ? res : { success: false };
+  }
+
+  async adminLogsActions(days: number = 7): Promise<any> {
+    const url = `${this.apiUrl}/admin/logs/actions?days=${days}`;
+    const res: any = await this.http.get(url, { headers: this.getAuthHeaders() }).toPromise();
+    return res?.success ? res : { success: false };
+  }
+
+  async adminLogsList(params: { limit?: number; offset?: number; level?: string; action?: string; userId?: string; start?: string; end?: string } = {}): Promise<any> {
+    const qp = new URLSearchParams();
+    if (params.limit) qp.set('limit', String(params.limit));
+    if (params.offset) qp.set('offset', String(params.offset));
+    if (params.level) qp.set('level', params.level);
+    if (params.action) qp.set('action', params.action);
+    if (params.userId) qp.set('userId', params.userId);
+    if (params.start) qp.set('start', params.start);
+    if (params.end) qp.set('end', params.end);
+    const url = `${this.apiUrl}/admin/logs/list${qp.toString() ? '?' + qp.toString() : ''}`;
+    const res: any = await this.http.get(url, { headers: this.getAuthHeaders() }).toPromise();
+    return res?.success ? res : { success: false };
+  }
+
   // Harmonisation des types de réactions côté FE -> BE
   private mapReactionType(rt: string): string {
     const t = String(rt || '').toLowerCase();

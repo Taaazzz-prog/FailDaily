@@ -83,6 +83,32 @@ export class AdminService {
         }
     }
 
+    // ===== Admin Logs (new endpoints) =====
+    async getAdminLogsSummary(days: number = 7) {
+        const res = await this.MysqlService.adminLogsSummary(days);
+        return res?.success ? res : { totals: {}, topActions: [] };
+    }
+
+    async getAdminLogsByDay(days: number = 7) {
+        const res = await this.MysqlService.adminLogsByDay(days);
+        return res?.success ? res : { days: [] };
+    }
+
+    async getAdminLogsByUser(days: number = 7) {
+        const res = await this.MysqlService.adminLogsByUser(days);
+        return res?.success ? res : { users: [] };
+    }
+
+    async getAdminLogsActions(days: number = 7) {
+        const res = await this.MysqlService.adminLogsActions(days);
+        return res?.success ? res : { actions: [] };
+    }
+
+    async getAdminLogsList(params: { limit?: number; offset?: number; level?: string; action?: string; userId?: string; start?: string; end?: string } = {}) {
+        const res = await this.MysqlService.adminLogsList(params);
+        return res?.success ? res : { logs: [], pagination: { limit: params.limit || 200, offset: params.offset || 0, count: 0 } };
+    }
+
     // USER MANAGEMENT
     async getAllUsers() {
         try {

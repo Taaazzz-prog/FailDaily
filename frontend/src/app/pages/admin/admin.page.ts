@@ -38,25 +38,16 @@ export class AdminPage implements OnInit, OnDestroy {
         dailyBonusPoints: 10
     };
 
-    // Logs data - NOUVEAU SYSTÈME COMPLET
-    comprehensiveLogs: any[] = [];
-    selectedLogForDetails: any = null;
-    logFilters = {
-        activityType: '',
-        level: '',
-        period: '24h',
-        userId: ''
-    };
-    logsStats = {
-        totalToday: 0,
-        errorsToday: 0,
-        activeUsers: 0,
-        avgResponseTime: 0
-    };
-    isRealTimeLogsEnabled = false;
+    // Logs Admin (nouvelles vues)
     isLoadingLogs = false;
-    logsPage = 0;
-    logsPageSize = 20;
+    logDays = 7;
+    selectedLogTab: 'summary' | 'by-day' | 'by-user' | 'by-action' | 'list' = 'summary';
+    logsSummary: any = { totals: {}, topActions: [] };
+    logsByDay: any[] = [];
+    logsByUser: any[] = [];
+    logsActions: any[] = [];
+    logsList: any[] = [];
+    logsListPagination = { limit: 200, offset: 0, count: 0 };
 
     // User management
     allUsers: any[] = [];
@@ -142,8 +133,7 @@ export class AdminPage implements OnInit, OnDestroy {
                 await this.loadAllUsers();
                 break;
             case 'logs':
-                await this.loadComprehensiveLogs();
-                await this.loadLogsStatistics();
+                await this.loadAdminLogsAll();
                 break;
             case 'realtime':
                 await this.loadRealTimeData();
@@ -156,8 +146,7 @@ export class AdminPage implements OnInit, OnDestroy {
         await this.loadPointsConfiguration();
         await this.loadAllUsers();
         if (this.selectedSegment === 'logs') {
-            await this.loadComprehensiveLogs();
-            await this.loadLogsStatistics();
+            await this.loadAdminLogsAll();
         }
         if (this.selectedSegment === 'realtime') {
             await this.loadRealTimeData();
@@ -414,62 +403,66 @@ export class AdminPage implements OnInit, OnDestroy {
         await alert.present();
     }
 
-    // ===== NOUVEAU SYSTÈME DE LOGS COMPLET =====
-    
-    /**
-     * Charge les logs via le nouveau système complet
-     */
-    async loadComprehensiveLogs() {
+    // ===== LOGS ADMIN (nouvel affichage par onglets) =====
+    async loadAdminLogsAll() {
         this.isLoadingLogs = true;
         try {
-            const filters = this.buildLogFilters();
-            console.log('🔍 Chargement des logs avec filtres:', filters);
-            
-            // Utilisation de la vraie méthode avec 3 paramètres
-            const activityType = filters.activity_type || 'all';
-            const periodHours = this.getPeriodInHours(this.logFilters.period);
-            
-            this.comprehensiveLogs = await this.MysqlService.getActivityLogsByType(
-                activityType,
-                periodHours,
-                this.logsPageSize
-            );
-            
-            console.log(`📊 ${this.comprehensiveLogs.length} logs chargés`);
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement des logs complets:', error);
-            this.comprehensiveLogs = [];
-            this.showErrorToast('Erreur lors du chargement des logs');
+            const [summary, byDay, byUser, actions, list] = await Promise.all([
+                this.adminService.getAdminLogsSummary(this.logDays),
+                this.adminService.getAdminLogsByDay(this.logDays),
+                this.adminService.getAdminLogsByUser(this.logDays),
+                this.adminService.getAdminLogsActions(this.logDays),
+                this.adminService.getAdminLogsList({ limit: this.logsListPagination.limit, offset: this.logsListPagination.offset })
+            ]);
+            this.logsSummary = { totals: summary?.totals || {}, topActions: summary?.topActions || [] };
+            this.logsByDay = byDay?.days || [];
+            this.logsByUser = byUser?.users || [];
+            this.logsActions = actions?.actions || [];
+            this.logsList = list?.logs || [];
+            this.logsListPagination = list?.pagination || this.logsListPagination;
+            // Map vers les anciennes variables pour compat UI existante sans refonte massive
+            // comprehensiveLogs (liste) et logsStats (cartes)
+            (this as any).comprehensiveLogs = this.logsList;
+            (this as any).logsStats = {
+                totalToday: this.logsSummary?.totals?.total || 0,
+                errorsToday: this.logsSummary?.totals?.errors || 0,
+                activeUsers: this.logsByUser?.length || 0,
+                avgResponseTime: 0
+            };
+        } catch (e) {
+            console.error('❌ loadAdminLogsAll error:', e);
+            this.logsSummary = { totals: {}, topActions: [] };
+            this.logsByDay = [];
+            this.logsByUser = [];
+            this.logsActions = [];
+            this.logsList = [];
         }
         this.isLoadingLogs = false;
     }
 
-    /**
-     * Charge les statistiques des logs (version simplifiée)
-     */
-    async loadLogsStatistics() {
-        try {
-            // Chargement des statistiques basées sur les logs actuels
-            const todayLogs = await this.MysqlService.getActivityLogsByType('all', 24, 1000);
-            
-            this.logsStats = {
-                totalToday: todayLogs.length,
-                errorsToday: todayLogs.filter((log: any) => log.level === 'error').length,
-                activeUsers: new Set(todayLogs.map((log: any) => log.user_id)).size,
-                avgResponseTime: todayLogs.reduce((acc: number, log: any) => 
-                    acc + (log.duration_ms || 0), 0) / Math.max(todayLogs.length, 1)
-            };
-            
-            console.log('📈 Stats logs chargées:', this.logsStats);
-        } catch (error) {
-            console.error('❌ Erreur stats logs:', error);
-            // Valeurs par défaut
-            this.logsStats = {
-                totalToday: 0,
-                errorsToday: 0,
-                activeUsers: 0,
-                avgResponseTime: 0
-            };
+    async onLogTabChanged(ev?: any) {
+        // Switch tabs without reloading unless needed
+        if (ev && ev.detail && ev.detail.value) {
+            this.selectedLogTab = ev.detail.value;
+        }
+        // Optionally could lazy-load specific tabs here
+    }
+
+    async onLogDaysChanged(days: number) {
+        this.logDays = Math.max(1, days || 7);
+        this.logsListPagination.offset = 0;
+        await this.loadAdminLogsAll();
+    }
+
+    async loadMoreLogs() {
+        this.logsListPagination.offset += this.logsListPagination.limit;
+        const listRes = await this.adminService.getAdminLogsList({ limit: this.logsListPagination.limit, offset: this.logsListPagination.offset });
+        if (listRes?.success) {
+            const newLogs = listRes.logs || [];
+            this.logsList = [...this.logsList, ...newLogs];
+            this.logsListPagination = listRes.pagination || this.logsListPagination;
+            // keep compat list
+            (this as any).comprehensiveLogs = this.logsList;
         }
     }
 

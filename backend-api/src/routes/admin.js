@@ -4,10 +4,18 @@ const router = express.Router();
 const { executeQuery, testConnection } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
 
-// Require admin role helper
+// Require admin role helper (moderators allowed for legacy endpoints)
 function requireAdmin(req, res, next) {
   if (!req.user || !['admin','super_admin','moderator'].includes(String(req.user.role || '').toLowerCase())) {
     return res.status(403).json({ success: false, message: 'Accès administrateur requis' });
+  }
+  next();
+}
+
+// Strict admin-only helper (no moderators)
+function requireStrictAdmin(req, res, next) {
+  if (!req.user || !['admin','super_admin'].includes(String(req.user.role || '').toLowerCase())) {
+    return res.status(403).json({ success: false, message: 'Accès strictement réservé aux administrateurs' });
   }
   next();
 }
@@ -470,6 +478,226 @@ router.get('/config', authenticateToken, requireAdmin, async (req, res) => {
   } catch (e) {
     console.error('❌ /api/admin/config error:', e);
     res.status(500).json({ success: false, message: 'Erreur lecture config consolidée' });
+  }
+});
+
+// PUT /api/admin/config
+// Met à jour en une fois: points, reaction_points, moderation
+router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+
+    // Lire existants
+    const [pointsRow, reactRow, modRow] = await Promise.all([
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation'])
+    ]);
+
+    let points = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
+    let reaction_points = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    let moderation = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
+
+    try { if (pointsRow[0]?.value) points = { ...points, ...JSON.parse(pointsRow[0].value) }; } catch {}
+    try { if (reactRow[0]?.value) reaction_points = { ...reaction_points, ...JSON.parse(reactRow[0].value) }; } catch {}
+    try { if (modRow[0]?.value) moderation = { ...moderation, ...JSON.parse(modRow[0].value) }; } catch {}
+
+    // Merge with payload
+    if (body.points && typeof body.points === 'object') {
+      const p = body.points;
+      points = {
+        ...points,
+        ...(p.failCreate !== undefined ? { failCreate: Number(p.failCreate) || 0 } : {}),
+        ...(p.commentCreate !== undefined ? { commentCreate: Number(p.commentCreate) || 0 } : {}),
+        ...(p.reactionRemovePenalty !== undefined ? { reactionRemovePenalty: !!p.reactionRemovePenalty } : {})
+      };
+    }
+    if (body.reaction_points && typeof body.reaction_points === 'object') {
+      const rp = body.reaction_points;
+      reaction_points = {
+        ...reaction_points,
+        ...(rp.courage !== undefined ? { courage: Number(rp.courage) || 0 } : {}),
+        ...(rp.laugh !== undefined ? { laugh: Number(rp.laugh) || 0 } : {}),
+        ...(rp.empathy !== undefined ? { empathy: Number(rp.empathy) || 0 } : {}),
+        ...(rp.support !== undefined ? { support: Number(rp.support) || 0 } : {})
+      };
+    }
+    if (body.moderation && typeof body.moderation === 'object') {
+      const m = body.moderation;
+      moderation = {
+        ...moderation,
+        ...(m.failReportThreshold !== undefined ? { failReportThreshold: Math.max(1, Number(m.failReportThreshold) || 1) } : {}),
+        ...(m.commentReportThreshold !== undefined ? { commentReportThreshold: Math.max(1, Number(m.commentReportThreshold) || 1) } : {}),
+        ...(m.panelAutoRefreshSec !== undefined ? { panelAutoRefreshSec: Math.max(5, Number(m.panelAutoRefreshSec) || 20) } : {})
+      };
+    }
+
+    // Upserts
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'points', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(points)]
+    );
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'reaction_points', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(reaction_points)]
+    );
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'moderation', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(moderation)]
+    );
+
+    res.json({ success: true, config: { points, reaction_points, moderation } });
+  } catch (e) {
+    console.error('❌ /api/admin/config PUT error:', e);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour config' });
+  }
+});
+
+/**
+ * ============================== ADMIN LOGS ================================
+ * Vue claire des logs: par jour, par utilisateur, actions, et liste filtrée
+ * Réservé strictement aux admins (hors modérateurs)
+ */
+// GET /api/admin/logs/summary?days=7
+router.get('/logs/summary', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const days = Math.max(1, parseInt(req.query.days || '7'));
+    const [totals, actions] = await Promise.all([
+      executeQuery(
+        `SELECT 
+            COUNT(*) AS total,
+            SUM(level='error')   AS errors,
+            SUM(level='warning') AS warnings,
+            SUM(level='info')    AS infos,
+            SUM(level='debug')   AS debugs
+         FROM system_logs
+         WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)`,
+        [days]
+      ),
+      executeQuery(
+        `SELECT action, COUNT(*) AS count
+           FROM system_logs
+          WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+          GROUP BY action
+          ORDER BY count DESC
+          LIMIT 50`,
+        [days]
+      )
+    ]);
+    res.json({ success: true, periodDays: days, totals: totals[0] || {}, topActions: actions });
+  } catch (e) {
+    console.error('❌ admin logs summary error:', e);
+    res.status(500).json({ success: false, message: 'Erreur summary logs' });
+  }
+});
+
+// GET /api/admin/logs/by-day?days=7
+router.get('/logs/by-day', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const days = Math.max(1, parseInt(req.query.days || '7'));
+    const rows = await executeQuery(
+      `SELECT DATE(created_at) AS day,
+              COUNT(*) AS total,
+              SUM(level='error')   AS errors,
+              SUM(level='warning') AS warnings,
+              SUM(level='info')    AS infos,
+              SUM(level='debug')   AS debugs
+         FROM system_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        GROUP BY DATE(created_at)
+        ORDER BY day DESC`,
+      [days]
+    );
+    res.json({ success: true, periodDays: days, days: rows });
+  } catch (e) {
+    console.error('❌ admin logs by-day error:', e);
+    res.status(500).json({ success: false, message: 'Erreur logs par jour' });
+  }
+});
+
+// GET /api/admin/logs/by-user?days=7
+router.get('/logs/by-user', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const days = Math.max(1, parseInt(req.query.days || '7'));
+    const rows = await executeQuery(
+      `SELECT sl.user_id, p.display_name, u.email,
+              COUNT(*) AS total,
+              SUM(sl.level='error')   AS errors,
+              SUM(sl.level='warning') AS warnings,
+              SUM(sl.level='info')    AS infos,
+              SUM(sl.level='debug')   AS debugs
+         FROM system_logs sl
+         LEFT JOIN users u ON u.id = sl.user_id
+         LEFT JOIN profiles p ON p.user_id = sl.user_id
+        WHERE sl.created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        GROUP BY sl.user_id, p.display_name, u.email
+        ORDER BY total DESC
+        LIMIT 200`,
+      [days]
+    );
+    res.json({ success: true, periodDays: days, users: rows });
+  } catch (e) {
+    console.error('❌ admin logs by-user error:', e);
+    res.status(500).json({ success: false, message: 'Erreur logs par utilisateur' });
+  }
+});
+
+// GET /api/admin/logs/actions?days=7
+router.get('/logs/actions', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const days = Math.max(1, parseInt(req.query.days || '7'));
+    const rows = await executeQuery(
+      `SELECT action, COUNT(*) AS count
+         FROM system_logs
+        WHERE created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)
+        GROUP BY action
+        ORDER BY count DESC
+        LIMIT 200`,
+      [days]
+    );
+    res.json({ success: true, periodDays: days, actions: rows });
+  } catch (e) {
+    console.error('❌ admin logs actions error:', e);
+    res.status(500).json({ success: false, message: 'Erreur logs par action' });
+  }
+});
+
+// GET /api/admin/logs/list?limit=200&offset=0&level=&action=&userId=&start=&end=
+router.get('/logs/list', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit || '200')));
+    const offset = Math.max(0, parseInt(req.query.offset || '0'));
+    const level = req.query.level || null;
+    const action = req.query.action || null;
+    const userId = req.query.userId || null;
+    const start = req.query.start || null;
+    const end = req.query.end || null;
+
+    let sql = `SELECT sl.*, p.display_name, u.email
+                 FROM system_logs sl
+                 LEFT JOIN users u ON u.id = sl.user_id
+                 LEFT JOIN profiles p ON p.user_id = sl.user_id
+                WHERE 1=1`;
+    const params = [];
+    if (level) { sql += ' AND sl.level = ?'; params.push(level); }
+    if (action) { sql += ' AND sl.action = ?'; params.push(action); }
+    if (userId) { sql += ' AND sl.user_id = ?'; params.push(userId); }
+    if (start) { sql += ' AND sl.created_at >= ?'; params.push(start); }
+    if (end) { sql += ' AND sl.created_at <= ?'; params.push(end); }
+    sql += ' ORDER BY sl.created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit, offset);
+
+    const rows = await executeQuery(sql, params);
+    res.json({ success: true, logs: rows, pagination: { limit, offset, count: rows.length } });
+  } catch (e) {
+    console.error('❌ admin logs list error:', e);
+    res.status(500).json({ success: false, message: 'Erreur liste des logs' });
   }
 });
 // PUT /api/admin/fails/:id/moderation { status }

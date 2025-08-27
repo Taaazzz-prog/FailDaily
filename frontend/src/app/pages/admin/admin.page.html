@@ -541,6 +541,75 @@
             </ion-card-subtitle>
         </ion-card-header>
         <ion-card-content>
+            <!-- Sous-onglets Logs Admin -->
+            <ion-segment [(ngModel)]="selectedLogTab" (ionChange)="onLogTabChanged($event)" mode="md" class="ion-margin-bottom">
+                <ion-segment-button value="summary"><ion-label>Résumé</ion-label></ion-segment-button>
+                <ion-segment-button value="by-day"><ion-label>Par jour</ion-label></ion-segment-button>
+                <ion-segment-button value="by-user"><ion-label>Par utilisateur</ion-label></ion-segment-button>
+                <ion-segment-button value="by-action"><ion-label>Par action</ion-label></ion-segment-button>
+                <ion-segment-button value="list"><ion-label>Liste</ion-label></ion-segment-button>
+            </ion-segment>
+
+            <!-- Résumé -->
+            @if (selectedLogTab === 'summary') {
+            <ion-grid class="ion-margin-bottom">
+                <ion-row>
+                    <ion-col size="6" size-md="3"><ion-card class="stats-card"><ion-card-content class="ion-text-center"><h2>{{ logsSummary?.totals?.total || 0 }}</h2><p>Total</p></ion-card-content></ion-card></ion-col>
+                    <ion-col size="6" size-md="3"><ion-card class="stats-card"><ion-card-content class="ion-text-center"><h2>{{ logsSummary?.totals?.errors || 0 }}</h2><p>Erreurs</p></ion-card-content></ion-card></ion-col>
+                    <ion-col size="6" size-md="3"><ion-card class="stats-card"><ion-card-content class="ion-text-center"><h2>{{ logsSummary?.totals?.warnings || 0 }}</h2><p>Warnings</p></ion-card-content></ion-card></ion-col>
+                    <ion-col size="6" size-md="3"><ion-card class="stats-card"><ion-card-content class="ion-text-center"><h2>{{ logsSummary?.totals?.infos || 0 }}</h2><p>Infos</p></ion-card-content></ion-card></ion-col>
+                </ion-row>
+            </ion-grid>
+            <ion-list>
+                <ion-list-header><ion-label>Top actions ({{ logDays }} jours)</ion-label>
+                    <ion-buttons slot="end">
+                        <ion-button size="small" (click)="onLogDaysChanged(1)" [color]="logDays===1 ? 'primary' : 'medium'">1j</ion-button>
+                        <ion-button size="small" (click)="onLogDaysChanged(7)" [color]="logDays===7 ? 'primary' : 'medium'">7j</ion-button>
+                        <ion-button size="small" (click)="onLogDaysChanged(30)" [color]="logDays===30 ? 'primary' : 'medium'">30j</ion-button>
+                    </ion-buttons>
+                </ion-list-header>
+                <ion-item *ngFor="let a of logsSummary?.topActions">
+                    <ion-label>{{ a.action || '—' }}</ion-label>
+                    <ion-badge slot="end">{{ a.count }}</ion-badge>
+                </ion-item>
+            </ion-list>
+            }
+
+            <!-- Par jour -->
+            @if (selectedLogTab === 'by-day') {
+            <ion-list>
+                <ion-item *ngFor="let d of logsByDay">
+                    <ion-label>
+                        <h3>{{ d.day | date:'mediumDate' }}</h3>
+                        <p>Total: {{ d.total }} — Err: {{ d.errors }} — Warn: {{ d.warnings }} — Info: {{ d.infos }} — Debug: {{ d.debugs }}</p>
+                    </ion-label>
+                </ion-item>
+            </ion-list>
+            }
+
+            <!-- Par utilisateur -->
+            @if (selectedLogTab === 'by-user') {
+            <ion-list>
+                <ion-item *ngFor="let u of logsByUser">
+                    <ion-avatar slot="start"><ion-icon name="person-outline"></ion-icon></ion-avatar>
+                    <ion-label>
+                        <h3>{{ u.display_name || u.email || u.user_id }}</h3>
+                        <p>Total: {{ u.total }} — Err: {{ u.errors }} — Warn: {{ u.warnings }} — Info: {{ u.infos }} — Debug: {{ u.debugs }}</p>
+                    </ion-label>
+                </ion-item>
+            </ion-list>
+            }
+
+            <!-- Par action -->
+            @if (selectedLogTab === 'by-action') {
+            <ion-list>
+                <ion-item *ngFor="let ac of logsActions">
+                    <ion-label>{{ ac.action || '—' }}</ion-label>
+                    <ion-badge slot="end">{{ ac.count }}</ion-badge>
+                </ion-item>
+            </ion-list>
+            }
+
             <!-- Filtres Avancés -->
             <ion-grid class="ion-margin-bottom">
                 <ion-row>
