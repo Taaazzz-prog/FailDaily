@@ -11,7 +11,6 @@ const database = require('./src/config/database');
 
 // Routes (obligatoires)
 const authRoutes = require('./src/routes/auth');
-const failRoutes = require('./src/routes/fails');
 const registrationRoutes = require('./src/routes/registration');
 const ageVerificationRoutes = require('./src/routes/ageVerification');
 const uploadRoutes = require('./src/routes/upload');
@@ -89,7 +88,6 @@ app.use('/api/auth', authRoutes);
 
 // Montre en priorité les nouvelles routes Fails (JSON body) avant l'ancienne version multer
 if (failsPublicRoutes) app.use('/api/fails', failsPublicRoutes);
-app.use('/api/fails', failRoutes);
 app.use('/api/fails', reactionsRoutes);
 app.use('/api/fails', commentsRoutes);
 
