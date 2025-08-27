@@ -11,6 +11,7 @@ import { HttpAuthService } from './app/services/http-auth.service';
 import { MysqlService } from './app/services/mysql.service';
 import { FollowService } from './app/services/follow.service';
 import { LoggingSetupService } from './app/services/logging-setup.service';
+import { FocusManagementService } from './app/services/focus-management.service';
 import { initializeIcons } from './app/utils/icons';
 
 // Initialiser toutes les icônes au démarrage de l'application
@@ -27,6 +28,7 @@ bootstrapApplication(AppComponent, {
     MysqlService,
     FollowService,
     LoggingSetupService, // Service pour configurer le logging
+    FocusManagementService, // Service pour gérer l'accessibilité et le focus
   ],
 }).then(() => {
   console.log('FailDaily application started with MySQL backend and comprehensive logging system');

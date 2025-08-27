@@ -538,6 +538,8 @@ export class AdminPage implements OnInit, OnDestroy {
     getTimeAgo(ts: any): string {
         try { const d = new Date(ts).getTime(); const diff = Math.max(0, Date.now() - d); const m = Math.floor(diff/60000); if (m<60) return `${m} min`; const h = Math.floor(m/60); if (h<24) return `${h} h`; const days = Math.floor(h/24); return `${days} j`; } catch {} return '';
     }
+    // Color for legacy template usage
+    getLogLevelColor(level: string): string { return this.getLevelColor(level); }
 
     // Toast helpers
     async showToast(message: string, color: 'success' | 'warning' | 'danger' | 'primary' = 'primary') {
@@ -654,6 +656,29 @@ export class AdminPage implements OnInit, OnDestroy {
         }
     }
 
+    private startRealTimeLogs() {
+        console.log('🔴 Activation logs temps réel');
+        
+        // Rafraîchissement toutes les 10 secondes
+        this.realTimeLogsSubscription = interval(10000).subscribe(async () => {
+            await this.loadComprehensiveLogs();
+            await this.loadLogsStatistics();
+        });
+        
+        this.showSuccessToast('Logs temps réel activés');
+    }
+
+    private stopRealTimeLogs() {
+        console.log('⏹️ Arrêt des logs temps réel');
+        
+        if (this.realTimeLogsSubscription) {
+            this.realTimeLogsSubscription.unsubscribe();
+            this.realTimeLogsSubscription = undefined;
+        }
+        
+        this.showSuccessToast('Logs temps réel désactivés');
+    }
+
     private realTimeLogsSubscription?: Subscription;
 
     private startRealTimeLogsLegacy() {
@@ -694,6 +719,13 @@ export class AdminPage implements OnInit, OnDestroy {
         if (this.comprehensiveLogs.length === currentCount) {
             this.logsPage = Math.max(0, this.logsPage - 1);
         }
+    }
+
+    /**
+     * Alias pour loadMoreLogsLegacy (compatibilité template)
+     */
+    async loadMoreLogs() {
+        return this.loadMoreLogsLegacy();
     }
 
     /**
@@ -1154,22 +1186,6 @@ export class AdminPage implements OnInit, OnDestroy {
     }
 
     // ====== DATABASE MANAGEMENT METHODS ======
-
-    private async showToast(message: string, color: string = 'primary') {
-        const toast = await this.toastController.create({
-            message: message,
-            duration: 3000,
-            position: 'bottom',
-            color: color,
-            buttons: [
-                {
-                    text: 'OK',
-                    role: 'cancel'
-                }
-            ]
-        });
-        await toast.present();
-    }
 
     async truncateTable(tableName: string) {
         const alert = await this.alertController.create({
