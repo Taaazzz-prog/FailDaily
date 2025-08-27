@@ -122,14 +122,14 @@ class FailsController {
       }
 
       // Récupérer le fail créé avec les informations utilisateur
-      const createdFail = await this.getFailById(failId, userId);
+      const createdFail = await FailsController.getFailById(failId, userId);
       const createdFailMapped = mapFailRow(createdFail);
 
       // Mettre à jour les statistiques utilisateur
-      await this.updateUserStats(userId, 'fail_created');
+      await FailsController.updateUserStats(userId, 'fail_created');
 
       // Vérifier les badges potentiels
-      await this.checkBadgeProgress(userId, 'fail_created');
+      await FailsController.checkBadgeProgress(userId, 'fail_created');
 
       console.log(`✅ Fail créé: ${failId} par utilisateur ${userId}`);
       await logSystem({ level: 'info', action: 'fail_create', message: 'Fail created', details: { failId, title, category, is_anonyme }, userId });
@@ -351,6 +351,8 @@ class FailsController {
    */
   static async getFailById(failId, userId = null) {
     try {
+      console.log('🔍 getFailById called with:', { failId, userId });
+      
       const query = `
         SELECT
           f.*,
@@ -372,6 +374,9 @@ class FailsController {
       `;
 
       const params = userId ? [userId, failId] : [failId];
+      console.log('🔍 Query:', query);
+      console.log('🔍 Params:', params);
+      
       const results = await executeQuery(query, params);
 
       if (results.length === 0) {
@@ -401,7 +406,7 @@ class FailsController {
       const { id } = req.params;
       const userId = req.user ? req.user.id : null;
 
-      const fail = await this.getFailById(id, userId);
+      const fail = await FailsController.getFailById(id, userId);
 
       if (!fail) {
         return res.status(404).json({
@@ -415,7 +420,7 @@ class FailsController {
 
       // Incrémenter le compteur de vues si ce n'est pas l'auteur
       if (userId && fail.user_id !== userId) {
-        await this.incrementViewCount(id, userId);
+        await FailsController.incrementViewCount(id, userId);
       }
 
       const mappedFail = mapFailRow(fail);
@@ -446,7 +451,7 @@ class FailsController {
       const updateData = req.body;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFail = await this.getFailById(id, userId);
+      const existingFail = await FailsController.getFailById(id, userId);
       
       if (!existingFail) {
         return res.status(404).json({
@@ -501,7 +506,7 @@ class FailsController {
       await executeQuery(updateQuery, updateValues);
 
       // Récupérer le fail mis à jour
-      const updatedFail = await this.getFailById(id, userId);
+      const updatedFail = await FailsController.getFailById(id, userId);
       const mappedFail = mapFailRow(updatedFail);
 
       console.log(`✅ Fail mis à jour: ${id}`);
@@ -533,7 +538,7 @@ class FailsController {
       const userId = req.user.id;
 
       // Vérifier que le fail existe et appartient à l'utilisateur
-      const existingFail = await this.getFailById(id, userId);
+      const existingFail = await FailsController.getFailById(id, userId);
       
       if (!existingFail) {
         return res.status(404).json({
@@ -668,7 +673,7 @@ class FailsController {
       }
 
       // Vérifier que le fail existe
-      const fail = await this.getFailById(id, userId);
+      const fail = await FailsController.getFailById(id, userId);
       if (!fail) {
         return res.status(404).json({
           success: false,
@@ -694,9 +699,9 @@ class FailsController {
       }
 
       // Mettre à jour les stats utilisateur
-      await this.updateUserStats(userId, 'reaction_given');
+      await FailsController.updateUserStats(userId, 'reaction_given');
       if (fail.user_id !== userId) {
-        await this.updateUserStats(fail.user_id, 'reaction_received');
+        await FailsController.updateUserStats(fail.user_id, 'reaction_received');
       }
 
       console.log(`👍 Réaction ${reactionType} ajoutée au fail ${id} par ${userId}`);
@@ -1185,7 +1190,7 @@ class FailsController {
 
   static async reportFail(req, res) {
     try {
-      await this.ensureModerationTables();
+      await FailsController.ensureModerationTables();
       const { id } = req.params;
       const userId = req.user.id;
       const reason = (req.body && req.body.reason) || null;
