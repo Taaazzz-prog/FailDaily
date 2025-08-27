@@ -48,6 +48,16 @@ export class AdminPage implements OnInit, OnDestroy {
     logsActions: any[] = [];
     logsList: any[] = [];
     logsListPagination = { limit: 200, offset: 0, count: 0 };
+    logsListFilters: { level?: string; action?: string; userId?: string; start?: string; end?: string } = {
+        level: '', action: '', userId: '', start: '', end: ''
+    };
+    // Compat héritée pour le template existant
+    isRealTimeLogsEnabled: boolean = false;
+    logFilters: any = { activityType: '', level: '', period: '24h', userId: '' };
+    logsStats: any = { totalToday: 0, errorsToday: 0, activeUsers: 0, avgResponseTime: 0 };
+    comprehensiveLogs: any[] = [];
+    selectedLogForDetails: any = null;
+    logsPage: number = 0;
 
     // User management
     allUsers: any[] = [];
@@ -412,7 +422,15 @@ export class AdminPage implements OnInit, OnDestroy {
                 this.adminService.getAdminLogsByDay(this.logDays),
                 this.adminService.getAdminLogsByUser(this.logDays),
                 this.adminService.getAdminLogsActions(this.logDays),
-                this.adminService.getAdminLogsList({ limit: this.logsListPagination.limit, offset: this.logsListPagination.offset })
+                this.adminService.getAdminLogsList({
+                    limit: this.logsListPagination.limit,
+                    offset: this.logsListPagination.offset,
+                    level: this.logsListFilters.level || undefined,
+                    action: this.logsListFilters.action || undefined,
+                    userId: this.logsListFilters.userId || undefined,
+                    start: this.logsListFilters.start || undefined,
+                    end: this.logsListFilters.end || undefined
+                })
             ]);
             this.logsSummary = { totals: summary?.totals || {}, topActions: summary?.topActions || [] };
             this.logsByDay = byDay?.days || [];
@@ -454,16 +472,112 @@ export class AdminPage implements OnInit, OnDestroy {
         await this.loadAdminLogsAll();
     }
 
-    async loadMoreLogs() {
-        this.logsListPagination.offset += this.logsListPagination.limit;
-        const listRes = await this.adminService.getAdminLogsList({ limit: this.logsListPagination.limit, offset: this.logsListPagination.offset });
+    // (Note) loadMoreLogs hérité plus bas pour compat (utilise comprehensiveLogs)
+
+    async applyAdminLogListFilters() {
+        this.logsListPagination.offset = 0;
+        const listRes = await this.adminService.getAdminLogsList({
+            limit: this.logsListPagination.limit,
+            offset: 0,
+            level: this.logsListFilters.level || undefined,
+            action: this.logsListFilters.action || undefined,
+            userId: this.logsListFilters.userId || undefined,
+            start: this.logsListFilters.start || undefined,
+            end: this.logsListFilters.end || undefined
+        });
         if (listRes?.success) {
-            const newLogs = listRes.logs || [];
-            this.logsList = [...this.logsList, ...newLogs];
+            this.logsList = listRes.logs || [];
             this.logsListPagination = listRes.pagination || this.logsListPagination;
-            // keep compat list
             (this as any).comprehensiveLogs = this.logsList;
         }
+    }
+
+    getLevelColor(level: string): string {
+        const l = String(level || '').toLowerCase();
+        if (l === 'error') return 'danger';
+        if (l === 'warning') return 'warning';
+        if (l === 'debug') return 'medium';
+        return 'primary';
+    }
+
+    getActionIcon(action?: string): string {
+        const a = String(action || '').toLowerCase();
+        if (a.startsWith('user_')) return 'key-outline'; // register/login/logout/password
+        if (a.startsWith('fail_')) return 'document-text-outline';
+        if (a.startsWith('comment_')) return 'chatbubbles-outline';
+        if (a.startsWith('reaction_')) return 'happy-outline';
+        if (a.startsWith('moderation')) return 'shield-checkmark-outline';
+        if (a.includes('security') || a.includes('token')) return 'alert-circle-outline';
+        return 'information-circle-outline';
+    }
+
+    getActionColor(action?: string): string {
+        const a = String(action || '').toLowerCase();
+        if (a.startsWith('user_')) return 'primary';
+        if (a.startsWith('fail_')) return 'tertiary';
+        if (a.startsWith('comment_')) return 'success';
+        if (a.startsWith('reaction_')) return 'warning';
+        if (a.startsWith('moderation')) return 'medium';
+        if (a.includes('security') || a.includes('token')) return 'danger';
+        return 'medium';
+    }
+
+    // Helpers requis par le template (compat)
+    toggleRealTimeLogsLegacy() {
+        this.isRealTimeLogsEnabled = !this.isRealTimeLogsEnabled;
+    }
+    getLogIcon(level: string): string {
+        const l = String(level || '').toLowerCase();
+        if (l === 'error') return 'close-circle-outline';
+        if (l === 'warning') return 'warning-outline';
+        if (l === 'debug') return 'bug-outline';
+        return 'information-circle-outline';
+    }
+    getLogColor(level: string): string { return this.getLevelColor(level); }
+    formatTimestamp(ts: any): string { try { return new Date(ts).toLocaleString(); } catch { return String(ts || ''); } }
+    getTimeAgo(ts: any): string {
+        try { const d = new Date(ts).getTime(); const diff = Math.max(0, Date.now() - d); const m = Math.floor(diff/60000); if (m<60) return `${m} min`; const h = Math.floor(m/60); if (h<24) return `${h} h`; const days = Math.floor(h/24); return `${days} j`; } catch {} return '';
+    }
+
+    // Toast helpers
+    async showToast(message: string, color: 'success' | 'warning' | 'danger' | 'primary' = 'primary') {
+        try {
+            const toast = await this.toastController.create({ message, duration: 2500, color });
+            await toast.present();
+        } catch {}
+    }
+    showErrorToast(msg: string) { this.showToast(msg, 'danger'); }
+    showSuccessToast(msg: string) { this.showToast(msg, 'success'); }
+    showInfoToast(msg: string) { this.showToast(msg, 'primary'); }
+
+    // Actions UI héritées (no-op ou ponts)
+    viewLogDetails(log: any) {
+        this.selectedLogForDetails = log;
+    }
+    viewUserLogs(userId: string) {
+        this.logsListFilters.userId = userId;
+        this.applyAdminLogListFilters();
+    }
+    async exportComprehensiveLogs() {
+        try {
+            const rows = this.comprehensiveLogs || [];
+            const header = ['id','level','action','message','user','created_at'];
+            const lines = [header.join(',')].concat(rows.map((r: any) => [
+                r.id,
+                r.level || '',
+                r.action || '',
+                (r.message || r.description || '').toString().replace(/[\n\r,]/g,' '),
+                r.display_name || r.user_name || r.user_email || '',
+                (r.created_at || r.timestamp || '')
+            ].join(',')));
+            const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'logs.csv'; a.click(); URL.revokeObjectURL(url);
+        } catch {}
+    }
+    async refreshComprehensiveLogs() {
+        await this.loadAdminLogsAll();
     }
 
     /**
@@ -542,7 +656,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
     private realTimeLogsSubscription?: Subscription;
 
-    private startRealTimeLogs() {
+    private startRealTimeLogsLegacy() {
         console.log('🔴 Activation logs temps réel');
         
         // Rafraîchissement toutes les 10 secondes
@@ -554,7 +668,7 @@ export class AdminPage implements OnInit, OnDestroy {
         this.showSuccessToast('Logs temps réel activés');
     }
 
-    private stopRealTimeLogs() {
+    private stopRealTimeLogsLegacy() {
         console.log('⏹️ Arrêt logs temps réel');
         
         if (this.realTimeLogsSubscription) {
@@ -568,7 +682,7 @@ export class AdminPage implements OnInit, OnDestroy {
     /**
      * Charge plus de logs (pagination)
      */
-    async loadMoreLogs() {
+    async loadMoreLogsLegacy() {
         if (this.isLoadingLogs) return;
         
         this.logsPage++;
@@ -585,7 +699,7 @@ export class AdminPage implements OnInit, OnDestroy {
     /**
      * Rafraîchit les logs
      */
-    async refreshComprehensiveLogs() {
+    async refreshComprehensiveLogsLegacy() {
         this.logsPage = 0;
         await this.loadComprehensiveLogs();
         await this.loadLogsStatistics();
@@ -595,7 +709,7 @@ export class AdminPage implements OnInit, OnDestroy {
     /**
      * Exporte les logs complets
      */
-    async exportComprehensiveLogs() {
+    async exportComprehensiveLogsLegacy() {
         try {
             // Utilisation de la vraie signature (3 paramètres)
             const allLogs = await this.MysqlService.getActivityLogsByType(
@@ -626,7 +740,7 @@ export class AdminPage implements OnInit, OnDestroy {
     /**
      * Affiche les détails d'un log
      */
-    async viewLogDetails(log: any) {
+    async viewLogDetailsLegacy(log: any) {
         this.selectedLogForDetails = log;
     }
 
@@ -673,7 +787,7 @@ export class AdminPage implements OnInit, OnDestroy {
     /**
      * Affiche l'historique complet d'un utilisateur
      */
-    async viewUserLogs(userId: string) {
+    async viewUserLogsLegacy(userId: string) {
         try {
             // Pour l'instant, utilisons les logs généraux filtrés par utilisateur
             const userLogs = await this.MysqlService.getActivityLogsByType('all', 24 * 7, 100);
@@ -704,7 +818,7 @@ export class AdminPage implements OnInit, OnDestroy {
     /**
      * Retourne la couleur selon le niveau de log
      */
-    getLogLevelColor(level: string): string {
+    getLogLevelColorLegacy(level: string): string {
         switch (level?.toLowerCase()) {
             case 'critical':
             case 'error':
@@ -719,7 +833,7 @@ export class AdminPage implements OnInit, OnDestroy {
     }
 
     // Méthodes utilitaires pour les toasts
-    private async showSuccessToast(message: string) {
+    private async showSuccessToastLegacy(message: string) {
         const toast = await this.toastController.create({
             message,
             duration: 2000,
@@ -728,7 +842,7 @@ export class AdminPage implements OnInit, OnDestroy {
         toast.present();
     }
 
-    private async showErrorToast(message: string) {
+    private async showErrorToastLegacy(message: string) {
         const toast = await this.toastController.create({
             message,
             duration: 3000,
@@ -737,7 +851,7 @@ export class AdminPage implements OnInit, OnDestroy {
         toast.present();
     }
 
-    private async showInfoToast(message: string) {
+    private async showInfoToastLegacy(message: string) {
         const toast = await this.toastController.create({
             message,
             duration: 2000,
@@ -952,6 +1066,19 @@ export class AdminPage implements OnInit, OnDestroy {
         }
     }
 
+    async loadComprehensiveLogs() {
+        await this.loadAdminLogsAll();
+    }
+    async loadLogsStatistics() {
+        // derive from summary
+        this.logsStats = {
+            totalToday: this.logsSummary?.totals?.total || 0,
+            errorsToday: this.logsSummary?.totals?.errors || 0,
+            activeUsers: (this.logsByUser || []).length,
+            avgResponseTime: 0
+        };
+    }
+
     toggleAutoRefresh() {
         if (this.autoRefreshEnabled) {
             this.startAutoRefresh();
@@ -975,13 +1102,13 @@ export class AdminPage implements OnInit, OnDestroy {
     }
 
     // ===== UTILITY METHODS =====
-    formatTimestamp(timestamp: string | Date): string {
+    formatTimestampLegacy(timestamp: string | Date): string {
         if (!timestamp) return 'Date inconnue';
         const date = new Date(timestamp);
         return date.toLocaleString('fr-FR');
     }
 
-    getTimeAgo(timestamp: string | Date): string {
+    getTimeAgoLegacy(timestamp: string | Date): string {
         if (!timestamp) return '';
         const now = new Date();
         const past = new Date(timestamp);

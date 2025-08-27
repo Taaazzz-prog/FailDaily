@@ -569,8 +569,9 @@
                     </ion-buttons>
                 </ion-list-header>
                 <ion-item *ngFor="let a of logsSummary?.topActions">
+                    <ion-icon [name]="getActionIcon(a.action)" [color]="getActionColor(a.action)" slot="start"></ion-icon>
                     <ion-label>{{ a.action || '—' }}</ion-label>
-                    <ion-badge slot="end">{{ a.count }}</ion-badge>
+                    <ion-chip [color]="getActionColor(a.action)" slot="end">{{ a.count }}</ion-chip>
                 </ion-item>
             </ion-list>
             }
@@ -581,8 +582,11 @@
                 <ion-item *ngFor="let d of logsByDay">
                     <ion-label>
                         <h3>{{ d.day | date:'mediumDate' }}</h3>
-                        <p>Total: {{ d.total }} — Err: {{ d.errors }} — Warn: {{ d.warnings }} — Info: {{ d.infos }} — Debug: {{ d.debugs }}</p>
+                        <p>Total: {{ d.total }}</p>
                     </ion-label>
+                    <ion-badge color="danger" slot="end">Err {{ d.errors }}</ion-badge>
+                    <ion-badge color="warning" slot="end" class="ion-margin-start">Warn {{ d.warnings }}</ion-badge>
+                    <ion-badge color="primary" slot="end" class="ion-margin-start">Info {{ d.infos }}</ion-badge>
                 </ion-item>
             </ion-list>
             }
@@ -594,8 +598,11 @@
                     <ion-avatar slot="start"><ion-icon name="person-outline"></ion-icon></ion-avatar>
                     <ion-label>
                         <h3>{{ u.display_name || u.email || u.user_id }}</h3>
-                        <p>Total: {{ u.total }} — Err: {{ u.errors }} — Warn: {{ u.warnings }} — Info: {{ u.infos }} — Debug: {{ u.debugs }}</p>
+                        <p>Total: {{ u.total }}</p>
                     </ion-label>
+                    <ion-badge color="danger" slot="end">Err {{ u.errors }}</ion-badge>
+                    <ion-badge color="warning" slot="end" class="ion-margin-start">Warn {{ u.warnings }}</ion-badge>
+                    <ion-badge color="primary" slot="end" class="ion-margin-start">Info {{ u.infos }}</ion-badge>
                 </ion-item>
             </ion-list>
             }
@@ -604,13 +611,15 @@
             @if (selectedLogTab === 'by-action') {
             <ion-list>
                 <ion-item *ngFor="let ac of logsActions">
+                    <ion-icon [name]="getActionIcon(ac.action)" [color]="getActionColor(ac.action)" slot="start"></ion-icon>
                     <ion-label>{{ ac.action || '—' }}</ion-label>
-                    <ion-badge slot="end">{{ ac.count }}</ion-badge>
+                    <ion-chip [color]="getActionColor(ac.action)" slot="end">{{ ac.count }}</ion-chip>
                 </ion-item>
             </ion-list>
             }
 
-            <!-- Filtres Avancés -->
+            <!-- Filtres Avancés (ancien) - cachés par défaut -->
+            @if (false) {
             <ion-grid class="ion-margin-bottom">
                 <ion-row>
                     <ion-col size="12" size-md="3">
@@ -659,6 +668,7 @@
                     </ion-col>
                 </ion-row>
             </ion-grid>
+            }
 
             <!-- Statistiques en Temps Réel -->
             <ion-grid class="ion-margin-bottom">

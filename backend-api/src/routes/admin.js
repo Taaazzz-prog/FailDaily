@@ -700,6 +700,60 @@ router.get('/logs/list', authenticateToken, requireStrictAdmin, async (req, res)
     res.status(500).json({ success: false, message: 'Erreur liste des logs' });
   }
 });
+
+// GET /api/admin/logs/by-type?type=all|auth|user_action|admin|security|error&limit=20&periodHours=24
+// Compat avec ancien frontend: renvoie une liste homogène avec activity_type/description/user_name/email/created_at/level
+router.get('/logs/by-type', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const type = String(req.query.type || 'all').toLowerCase();
+    const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit || '20')));
+    const hours = Math.max(1, parseInt(req.query.periodHours || '24'));
+
+    // Récupérer un lot, filtrer ensuite côté serveur pour catégoriser
+    const rows = await executeQuery(
+      `SELECT sl.*, p.display_name, u.email
+         FROM system_logs sl
+         LEFT JOIN users u ON u.id = sl.user_id
+         LEFT JOIN profiles p ON p.user_id = sl.user_id
+        WHERE sl.created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+        ORDER BY sl.created_at DESC
+        LIMIT ?`,
+      [hours, Math.min(limit * 5, 1000)]
+    );
+
+    function categorize(row) {
+      const action = String(row.action || '').toLowerCase();
+      const level = String(row.level || '').toLowerCase();
+      if (level === 'error') return 'error';
+      if (/^user_(register|login|logout|password|password_reset)/.test(action)) return 'auth';
+      if (/^(fail_|comment_|reaction_)/.test(action)) return 'user_action';
+      if (/^moderation|^admin|config/.test(action)) return 'admin';
+      if (/security|token|permission/.test(action)) return 'security';
+      return 'general';
+    }
+
+    const mapped = rows.map((r) => ({
+      id: r.id,
+      activity_type: categorize(r),
+      description: r.message,
+      user_id: r.user_id,
+      user_name: r.display_name || null,
+      user_email: r.email || null,
+      ip_address: null,
+      user_agent: null,
+      created_at: r.created_at,
+      level: r.level,
+      action: r.action || null,
+      details: r.details ? (() => { try { return JSON.parse(r.details); } catch { return null; } })() : null
+    }));
+
+    const filtered = type === 'all' ? mapped : mapped.filter(m => m.activity_type === type || (type === 'error' && m.level === 'error'));
+    res.json({ success: true, logs: filtered.slice(0, limit), count: Math.min(filtered.length, limit) });
+  } catch (e) {
+    console.error('❌ admin logs by-type error:', e);
+    res.status(500).json({ success: false, message: 'Erreur logs by-type' });
+  }
+});
 // PUT /api/admin/fails/:id/moderation { status }
 router.put('/fails/:id/moderation', authenticateToken, requireAdmin, async (req, res) => {
   try {
