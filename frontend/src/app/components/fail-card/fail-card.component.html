@@ -31,27 +31,27 @@
   <!-- Actions de réaction -->
   <div class="card-actions">
     <ion-button fill="clear" size="small" (click)="onCourage()" class="reaction-button courage"
-      [class.active]="isReactionActive('courage')" [class.pulse]="pulseFlags.courage">
+      [class.active]="isReactionActive('courage')" [class.pulse]="pulseFlags['courage']">
       <ion-icon name="heart" slot="start"></ion-icon>
-      <span class="reaction-count" [class.pulse]="pulseFlags.courage">{{ fail.reactions.courage }}</span>
+      <span class="reaction-count" [class.pulse]="pulseFlags['courage']">{{ fail.reactions['courage'] }}</span>
     </ion-button>
 
     <ion-button fill="clear" size="small" (click)="onLaugh()" class="reaction-button laugh"
-      [class.active]="isReactionActive('laugh')" [class.pulse]="pulseFlags.laugh">
+      [class.active]="isReactionActive('laugh')" [class.pulse]="pulseFlags['laugh']">
       <ion-icon name="happy" slot="start"></ion-icon>
-      <span class="reaction-count" [class.pulse]="pulseFlags.laugh">{{ fail.reactions.laugh }}</span>
+      <span class="reaction-count" [class.pulse]="pulseFlags['laugh']">{{ fail.reactions['laugh'] }}</span>
     </ion-button>
 
     <ion-button fill="clear" size="small" (click)="onEmpathy()" class="reaction-button empathy"
-      [class.active]="isReactionActive('empathy')" [class.pulse]="pulseFlags.empathy">
+      [class.active]="isReactionActive('empathy')" [class.pulse]="pulseFlags['empathy']">
       <ion-icon name="people" slot="start"></ion-icon>
-      <span class="reaction-count" [class.pulse]="pulseFlags.empathy">{{ fail.reactions.empathy }}</span>
+      <span class="reaction-count" [class.pulse]="pulseFlags['empathy']">{{ fail.reactions['empathy'] }}</span>
     </ion-button>
 
     <ion-button fill="clear" size="small" (click)="onSupport()" class="reaction-button support"
-      [class.active]="isReactionActive('support')" [class.pulse]="pulseFlags.support">
+      [class.active]="isReactionActive('support')" [class.pulse]="pulseFlags['support']">
       <ion-icon name="trophy-outline" slot="start"></ion-icon>
-      <span class="reaction-count" [class.pulse]="pulseFlags.support">{{ fail.reactions.support }}</span>
+      <span class="reaction-count" [class.pulse]="pulseFlags['support']">{{ fail.reactions['support'] }}</span>
     </ion-button>
     <!-- Action discrète pour signaler (seulement si non validé) -->
     <ion-button *ngIf="fail.moderationStatus !== 'approved'" fill="clear" size="small" (click)="onReportFail()">

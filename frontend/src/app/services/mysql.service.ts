@@ -761,7 +761,7 @@ export class MysqlService {
       
       if (existingReaction === reactionType) {
         console.log('✅ Réaction identique, pas de changement');
-        return;
+        return { action: 'unchanged', reactionType, summary: { counts: {}, totalCount: 0, userReaction: reactionType } };
       }
 
       const response: any = await this.http.post(`${this.apiUrl}/fails/${failId}/reactions`, {

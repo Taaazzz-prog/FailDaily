@@ -1,6 +1,6 @@
 import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonButton, IonIcon, IonChip, IonLabel, ViewWillEnter, ToastController, PopoverController } from '@ionic/angular/standalone';
+import { IonicModule } from '@ionic/angular';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
@@ -8,12 +8,18 @@ import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MysqlService } from '../../services/mysql.service';
 import { CommentsThreadComponent } from '../comments-thread/comments-thread.component';
+import { ToastController, PopoverController, ViewWillEnter } from '@ionic/angular';
 
 @Component({
   selector: 'app-fail-card',
   templateUrl: './fail-card.component.html',
   styleUrls: ['./fail-card.component.scss'],
-  imports: [CommonModule, IonButton, IonIcon, IonChip, IonLabel, TimeAgoPipe, CommentsThreadComponent]
+  imports: [
+    CommonModule, 
+    IonicModule,
+    TimeAgoPipe, 
+    CommentsThreadComponent
+  ]
 })
 export class FailCardComponent implements OnInit, ViewWillEnter {
   @Input() fail!: Fail;
