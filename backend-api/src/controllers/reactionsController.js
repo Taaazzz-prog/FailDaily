@@ -72,12 +72,14 @@ class ReactionsController {
           });
           await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_remove', message: 'Reaction removed (toggle)', details: { failId, reactionType }, userId });
 
+          const summary = await getReactionSummary(failId, userId);
           return res.json({
             success: true,
             message: 'Réaction supprimée',
             data: {
               action: 'removed',
-              reactionType: null
+              reactionType: null,
+              summary
             }
           });
         } else {
@@ -98,12 +100,14 @@ class ReactionsController {
           });
           await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_update', message: 'Reaction updated', details: { failId, reactionType }, userId });
 
+          const summary = await getReactionSummary(failId, userId);
           return res.json({
             success: true,
             message: 'Réaction modifiée',
             data: {
               action: 'updated',
-              reactionType: reactionType
+              reactionType: reactionType,
+              summary
             }
           });
         }
@@ -126,12 +130,14 @@ class ReactionsController {
         });
         await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_add', message: 'Reaction added', details: { failId, reactionType }, userId });
 
+        const summary = await getReactionSummary(failId, userId);
         return res.json({
           success: true,
           message: 'Réaction ajoutée',
           data: {
             action: 'added',
-            reactionType: reactionType
+            reactionType: reactionType,
+            summary
           }
         });
       }
@@ -196,9 +202,11 @@ class ReactionsController {
       }
       await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_remove', message: 'Reaction removed', details: { failId, reactionType: reactionType || null }, userId });
 
+      const summary = await getReactionSummary(failId, userId);
       res.json({
         success: true,
-        message: 'Réaction supprimée avec succès'
+        message: 'Réaction supprimée avec succès',
+        data: { summary }
       });
 
     } catch (error) {
@@ -428,6 +436,30 @@ async function logReaction(req, { userId, fail, reactionType, points }) {
   } catch (e) {
     console.warn('⚠️ logReaction: impossible de journaliser la réaction:', e?.message);
   }
+}
+
+/**
+ * Retourne un résumé des réactions d'un fail (counts, total, userReaction)
+ */
+async function getReactionSummary(failId, userId = null) {
+  const rows = await executeQuery(
+    `SELECT reaction_type, COUNT(*) AS c FROM reactions WHERE fail_id = ? GROUP BY reaction_type`,
+    [failId]
+  );
+  const counts = { courage: 0, laugh: 0, empathy: 0, support: 0 };
+  for (const r of rows) {
+    if (counts.hasOwnProperty(r.reaction_type)) counts[r.reaction_type] = Number(r.c) || 0;
+  }
+  let userReaction = null;
+  if (userId) {
+    const ur = await executeQuery(
+      `SELECT reaction_type FROM reactions WHERE fail_id = ? AND user_id = ? LIMIT 1`,
+      [failId, userId]
+    );
+    userReaction = ur[0]?.reaction_type || null;
+  }
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  return { counts, totalCount, userReaction };
 }
 
 /**

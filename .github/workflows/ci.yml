@@ -1,39 +1,114 @@
-name: CI
+name: FailDaily CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
-  build-test:
+  lint_build_smoke:
+    name: Lint + Build (FE) + Smoke (BE)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: 22
           cache: 'npm'
-          cache-dependency-path: package-lock.json
 
-      - name: Install (workspaces via root lockfile)
+      - name: Install dependencies (monorepo)
         run: npm ci --include=dev
 
-      - name: Lint & test backend
-        run: |
-          npm run -w backend-api lint
-          npm run -w backend-api test -- --runInBand
+      - name: Lint backend
+        run: npm run -w backend-api lint
+
+      - name: Lint frontend
+        run: npm run -w frontend lint
 
       - name: Build frontend
         run: npm run -w frontend build
 
-      - name: Smoke backend
+      - name: Backend smoke test (/health)
         env:
           NODE_ENV: test
-          DB_DISABLED: "true"
-        run: node -e "require('./backend-api/server'); console.log('SERVER_BOOT_OK')"
+          DB_DISABLED: 'true'
+        run: npm run -w backend-api test:smoke
+
+  e2e:
+    name: E2E (manual) with MySQL
+    runs-on: ubuntu-latest
+    needs: []
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    services:
+      mysql:
+        image: mysql:9.1
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: faildaily
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install mysql-client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mysql-client
+
+      - name: Install dependencies (monorepo)
+        run: npm ci --include=dev
+
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in $(seq 1 60); do
+            if mysqladmin ping -h 127.0.0.1 -P 3306 -proot --silent; then
+              echo "MySQL is up"; break; fi; echo "Waiting for MySQL..."; sleep 2; done
+
+      - name: Import database schema (faildaily.sql)
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: faildaily
+        run: npm run -w backend-api db:import
+
+      - name: Backend smoke test (/health) with DB
+        env:
+          NODE_ENV: test
+          DB_DISABLED: 'false'
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: faildaily
+          JWT_SECRET: testsecret
+        run: npm run -w backend-api test:smoke
+
+      - name: Backend E2E journey
+        env:
+          NODE_ENV: test
+          DB_DISABLED: 'false'
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: root
+          DB_NAME: faildaily
+          JWT_SECRET: testsecret
+        run: npm run -w backend-api test:e2e
+

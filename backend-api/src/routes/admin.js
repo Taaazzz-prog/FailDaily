@@ -82,15 +82,88 @@ router.get('/dashboard/stats', authenticateToken, requireAdmin, async (req, res)
 // GET /api/admin/users
 router.get('/users', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const users = await executeQuery(`
-      SELECT u.id, u.email, u.role, u.account_status, u.created_at,
-             p.display_name, p.avatar_url
-      FROM users u
-      LEFT JOIN profiles p ON p.user_id = u.id
-      ORDER BY u.created_at DESC
-      LIMIT 200
-    `);
-    res.json({ success: true, users });
+    const status = String(req.query.status || '').toLowerCase();
+    const role = String(req.query.role || '').toLowerCase();
+    const consent = String(req.query.consent || '').toLowerCase();
+    const reg = req.query.reg; // '0' | '1'
+    const q = String(req.query.q || '').trim();
+    const createdFrom = req.query.createdFrom; // ISO date
+    const createdTo = req.query.createdTo;     // ISO date
+
+    const allowedStatus = ['pending', 'active', 'suspended', 'deleted'];
+    const allowedRoles = ['user','admin','super_admin','moderator'];
+
+    const whereClauses = [];
+    const params = [];
+
+    if (allowedStatus.includes(status)) {
+      whereClauses.push('u.account_status = ?');
+      params.push(status);
+    }
+
+    if (allowedRoles.includes(role)) {
+      whereClauses.push('LOWER(u.role) = ?');
+      params.push(role);
+    }
+
+    if (reg === '0' || reg === '1') {
+      whereClauses.push('COALESCE(p.registration_completed, 0) = ?');
+      params.push(parseInt(reg, 10));
+    }
+
+    if (q) {
+      whereClauses.push('(u.email LIKE ? OR p.display_name LIKE ?)');
+      params.push(`%${q}%`, `%${q}%`);
+    }
+
+    if (createdFrom) {
+      whereClauses.push('u.created_at >= ?');
+      params.push(createdFrom);
+    }
+    if (createdTo) {
+      whereClauses.push('u.created_at <= ?');
+      params.push(createdTo);
+    }
+
+    // Consent filters using JSON fields from age_verification
+    if (consent) {
+      if (consent === 'needed') {
+        whereClauses.push("JSON_EXTRACT(p.age_verification, '$.needsParentalConsent') = true");
+      } else if (['approved','revoked','rejected','pending'].includes(consent)) {
+        whereClauses.push("JSON_UNQUOTE(JSON_EXTRACT(p.age_verification, '$.parentalConsentStatus')) = ?");
+        params.push(consent);
+      } else if (consent === 'none') {
+        whereClauses.push("(p.age_verification IS NULL OR JSON_EXTRACT(p.age_verification, '$.needsParentalConsent') IS NULL)");
+      }
+    }
+
+    const where = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+
+    // Infinite scroll: offset + limit (default limit=50, cap 200)
+    const rawLimit = Number(req.query.limit);
+    const rawOffset = Number(req.query.offset);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 200) : 50;
+    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+
+    // Fetch limit+1 rows to determine hasMore
+    const rows = await executeQuery(
+      `SELECT u.id, u.email, u.role, u.account_status, u.created_at,
+              p.display_name, p.avatar_url,
+              p.registration_completed, p.age_verification
+       FROM users u
+       LEFT JOIN profiles p ON p.user_id = u.id
+       ${where}
+       ORDER BY u.created_at DESC, u.id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit + 1, offset],
+      { textProtocol: true }
+    );
+
+    const hasMore = rows.length > limit;
+    const users = hasMore ? rows.slice(0, limit) : rows;
+    const nextOffset = hasMore ? offset + users.length : null;
+
+    res.json({ success: true, users, pagination: { offset, limit, hasMore, nextOffset } });
   } catch (error) {
     console.error('❌ /admin/users error:', error);
     res.status(500).json({ success: false, message: 'Erreur récupération utilisateurs' });
@@ -407,6 +480,133 @@ router.post('/users/:userId/points', authenticateToken, requireAdmin, async (req
   } catch (e) {
     console.error('❌ /admin/users/:userId/points update error:', e);
     res.status(500).json({ success: false, message: 'Erreur MAJ points utilisateur' });
+  }
+});
+
+/**
+ * ====================== PARENTAL APPROVAL (COPPA) =======================
+ */
+// PUT /api/admin/users/:id/parental-approve
+router.put('/users/:id/parental-approve', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || typeof id !== 'string' || id.length < 10) {
+      return res.status(400).json({ success: false, message: 'User ID invalide' });
+    }
+
+    // Fetch user + profile with age_verification
+    const rows = await executeQuery(`
+      SELECT u.id, u.email, u.role, u.account_status,
+             p.registration_completed, p.age_verification
+      FROM users u
+      LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE u.id = ?
+      LIMIT 1
+    `, [id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+    const user = rows[0];
+
+    // If already active and completed, no-op
+    if (String(user.account_status) === 'active' && Number(user.registration_completed) === 1) {
+      return res.json({ success: true, message: 'Utilisateur déjà actif', userId: id });
+    }
+
+    // Merge age_verification JSON
+    let av = {};
+    try { av = user.age_verification ? JSON.parse(user.age_verification) : {}; } catch {}
+    av.needsParentalConsent = false;
+    av.parentalConsentStatus = 'approved';
+    av.parentalApprovedAt = new Date().toISOString();
+
+    // Apply updates
+    await executeQuery('UPDATE users SET account_status = ? WHERE id = ?', ['active', id]);
+    await executeQuery(
+      'UPDATE profiles SET registration_completed = 1, age_verification = ?, updated_at = NOW() WHERE user_id = ?',
+      [JSON.stringify(av), id]
+    );
+
+    // Log action
+    await executeQuery(
+      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
+      ['info', 'Parental approval granted', JSON.stringify({ targetUserId: id }), req.user.id, 'parental_approve']
+    );
+
+    res.json({ success: true, message: 'Compte activé suite à validation parentale', userId: id });
+  } catch (e) {
+    console.error('❌ /admin/users/:id/parental-approve error:', e);
+    res.status(500).json({ success: false, message: 'Erreur validation parentale' });
+  }
+});
+
+// PUT /api/admin/users/:id/parental-revoke
+router.put('/users/:id/parental-revoke', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || typeof id !== 'string' || id.length < 10) {
+      return res.status(400).json({ success: false, message: 'User ID invalide' });
+    }
+
+    const rows = await executeQuery(`
+      SELECT u.id, u.email, u.role, u.account_status, p.registration_completed, p.age_verification
+      FROM users u LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE u.id = ? LIMIT 1
+    `, [id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+
+    let av = {};
+    try { av = rows[0].age_verification ? JSON.parse(rows[0].age_verification) : {}; } catch {}
+    av.needsParentalConsent = true;
+    av.parentalConsentStatus = 'revoked';
+    av.parentalRevokedAt = new Date().toISOString();
+
+    await executeQuery('UPDATE users SET account_status = ? WHERE id = ?', ['pending', id]);
+    await executeQuery('UPDATE profiles SET registration_completed = 0, age_verification = ?, updated_at = NOW() WHERE user_id = ?', [JSON.stringify(av), id]);
+
+    await executeQuery(
+      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
+      ['warning', 'Parental approval revoked', JSON.stringify({ targetUserId: id }), req.user.id, 'parental_revoke']
+    );
+
+    res.json({ success: true, message: 'Validation parentale révoquée: compte repassé en attente', userId: id });
+  } catch (e) {
+    console.error('❌ /admin/users/:id/parental-revoke error:', e);
+    res.status(500).json({ success: false, message: 'Erreur révocation parentale' });
+  }
+});
+
+// PUT /api/admin/users/:id/parental-reject
+router.put('/users/:id/parental-reject', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id || typeof id !== 'string' || id.length < 10) {
+      return res.status(400).json({ success: false, message: 'User ID invalide' });
+    }
+
+    const rows = await executeQuery(`
+      SELECT u.id, u.email, u.role, u.account_status, p.registration_completed, p.age_verification
+      FROM users u LEFT JOIN profiles p ON p.user_id = u.id
+      WHERE u.id = ? LIMIT 1
+    `, [id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Utilisateur introuvable' });
+
+    let av = {};
+    try { av = rows[0].age_verification ? JSON.parse(rows[0].age_verification) : {}; } catch {}
+    av.needsParentalConsent = true;
+    av.parentalConsentStatus = 'rejected';
+    av.parentalRejectedAt = new Date().toISOString();
+
+    await executeQuery('UPDATE users SET account_status = ? WHERE id = ?', ['pending', id]);
+    await executeQuery('UPDATE profiles SET registration_completed = 0, age_verification = ?, updated_at = NOW() WHERE user_id = ?', [JSON.stringify(av), id]);
+
+    await executeQuery(
+      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
+      ['warning', 'Parental approval rejected', JSON.stringify({ targetUserId: id }), req.user.id, 'parental_reject']
+    );
+
+    res.json({ success: true, message: 'Validation parentale refusée: compte en attente', userId: id });
+  } catch (e) {
+    console.error('❌ /admin/users/:id/parental-reject error:', e);
+    res.status(500).json({ success: false, message: 'Erreur refus parentale' });
   }
 });
 

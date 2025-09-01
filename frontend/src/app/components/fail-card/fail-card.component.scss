@@ -191,9 +191,16 @@
       }
     }
 
-    // Animation pour la réaction active
+    // Animation sur clic/MAJ
     &.active {
       animation: pulse 0.6s ease-in-out;
+    }
+    &.pulse {
+      animation: pulse 0.4s ease-in-out;
+    }
+
+    .reaction-count.pulse {
+      animation: pulseGlow 0.6s ease-in-out;
     }
   }
 }
@@ -210,6 +217,12 @@
   100% {
     transform: scale(1);
   }
+}
+
+@keyframes pulseGlow {
+  0% { filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0)); }
+  50% { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)); }
+  100% { filter: drop-shadow(0 0 0 rgba(255, 255, 255, 0)); }
 }
 
 .encouragement-message {

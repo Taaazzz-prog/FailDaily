@@ -745,7 +745,7 @@ export class MysqlService {
     }
   }
 
-  async addReaction(failId: string, reactionType: string): Promise<void> {
+  async addReaction(failId: string, reactionType: string): Promise<{ action: string; reactionType: string | null; summary: { counts: any; totalCount: number; userReaction: string | null } }> {
     try {
       // Harmoniser avec les types backend
       reactionType = this.mapReactionType(reactionType);
@@ -773,6 +773,7 @@ export class MysqlService {
         
         // Mettre à jour les points de courage
         await this.updateCouragePoints(failId, reactionType, 1);
+        return response.data || { action: 'added', reactionType, summary: { counts: {}, totalCount: 0, userReaction: reactionType } };
       } else {
         throw new Error(response.message || 'Erreur lors de l\'ajout de la réaction');
       }
@@ -782,7 +783,7 @@ export class MysqlService {
     }
   }
 
-  async removeReaction(failId: string, reactionType: string): Promise<void> {
+  async removeReaction(failId: string, reactionType: string): Promise<{ summary?: { counts: any; totalCount: number; userReaction: string | null } }> {
     try {
       // Harmoniser avec les types backend
       reactionType = this.mapReactionType(reactionType);
@@ -802,6 +803,7 @@ export class MysqlService {
         
         // Mettre à jour les points de courage
         await this.updateCouragePoints(failId, reactionType, -1);
+        return response.data || {};
       } else {
         throw new Error(response.message || 'Erreur lors de la suppression de la réaction');
       }

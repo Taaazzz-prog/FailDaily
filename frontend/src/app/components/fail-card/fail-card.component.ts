@@ -20,6 +20,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   userReactions: string[] = []; // Array des réactions de l'utilisateur
   showComments = false;
   hidden = false;
+  pulseFlags: Record<string, boolean> = { courage: false, laugh: false, empathy: false, support: false };
 
   private encouragementMessages = [
     'Chaque échec est un pas vers la réussite ! 💪',
@@ -57,6 +58,23 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
   async onCourage() {
     if (this.userReactions.includes('courage')) {
+      // toggle off
+      try {
+        const res: any = await this.failService.removeReaction(this.fail.id, 'courage');
+        if (res?.summary) {
+          this.fail.reactions = {
+            courage: res.summary.counts.courage || 0,
+            empathy: res.summary.counts.empathy || 0,
+            laugh: res.summary.counts.laugh || 0,
+            support: res.summary.counts.support || 0,
+          } as any;
+          this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+          this.cdr.detectChanges();
+          this.triggerPulse('courage');
+        } else {
+          await this.refreshFailData();
+        }
+      } catch (e) { console.log('toggle courage off error', e); }
       return;
     }
 
@@ -67,18 +85,20 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
-      // 1. Envoyer à la base
-      await this.failService.addReaction(this.fail.id, 'courage');
-
-      // 2. Récupérer la VRAIE valeur de la base
-      const updatedFail = await this.failService.getFailById(this.fail.id);
-      if (updatedFail) {
-        this.fail.reactions = updatedFail.reactions;
+      const res: any = await this.failService.addReaction(this.fail.id, 'courage');
+      if (res?.summary) {
+        this.fail.reactions = {
+          courage: res.summary.counts.courage || 0,
+          empathy: res.summary.counts.empathy || 0,
+          laugh: res.summary.counts.laugh || 0,
+          support: res.summary.counts.support || 0,
+        } as any;
+        this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+        this.cdr.detectChanges();
+        this.triggerPulse('courage');
+      } else {
+        await this.refreshFailData();
       }
-
-      // 3. Recharger les réactions utilisateur
-      await this.loadUserReaction();
-      this.cdr.detectChanges();
     } catch (error) {
       console.log('Erreur lors de la réaction courage:', error);
     }
@@ -86,6 +106,22 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
   async onLaugh() {
     if (this.userReactions.includes('laugh')) {
+      try {
+        const res: any = await this.failService.removeReaction(this.fail.id, 'laugh');
+        if (res?.summary) {
+          this.fail.reactions = {
+            courage: res.summary.counts.courage || 0,
+            empathy: res.summary.counts.empathy || 0,
+            laugh: res.summary.counts.laugh || 0,
+            support: res.summary.counts.support || 0,
+          } as any;
+          this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+          this.cdr.detectChanges();
+          this.triggerPulse('laugh');
+        } else {
+          await this.refreshFailData();
+        }
+      } catch (e) { console.log('toggle laugh off error', e); }
       return;
     }
 
@@ -96,18 +132,20 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
-      // 1. Envoyer à la base
-      await this.failService.addReaction(this.fail.id, 'laugh');
-
-      // 2. Récupérer la VRAIE valeur de la base
-      const updatedFail = await this.failService.getFailById(this.fail.id);
-      if (updatedFail) {
-        this.fail.reactions = updatedFail.reactions;
+      const res: any = await this.failService.addReaction(this.fail.id, 'laugh');
+      if (res?.summary) {
+        this.fail.reactions = {
+          courage: res.summary.counts.courage || 0,
+          empathy: res.summary.counts.empathy || 0,
+          laugh: res.summary.counts.laugh || 0,
+          support: res.summary.counts.support || 0,
+        } as any;
+        this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+        this.cdr.detectChanges();
+        this.triggerPulse('laugh');
+      } else {
+        await this.refreshFailData();
       }
-
-      // 3. Recharger les réactions utilisateur
-      await this.loadUserReaction();
-      this.cdr.detectChanges();
     } catch (error) {
       console.log('Erreur lors de la réaction laugh:', error);
     }
@@ -115,6 +153,22 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
   async onEmpathy() {
     if (this.userReactions.includes('empathy')) {
+      try {
+        const res: any = await this.failService.removeReaction(this.fail.id, 'empathy');
+        if (res?.summary) {
+          this.fail.reactions = {
+            courage: res.summary.counts.courage || 0,
+            empathy: res.summary.counts.empathy || 0,
+            laugh: res.summary.counts.laugh || 0,
+            support: res.summary.counts.support || 0,
+          } as any;
+          this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+          this.cdr.detectChanges();
+          this.triggerPulse('empathy');
+        } else {
+          await this.refreshFailData();
+        }
+      } catch (e) { console.log('toggle empathy off error', e); }
       return;
     }
 
@@ -125,18 +179,20 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
-      // 1. Envoyer à la base
-      await this.failService.addReaction(this.fail.id, 'empathy');
-
-      // 2. Récupérer la VRAIE valeur de la base
-      const updatedFail = await this.failService.getFailById(this.fail.id);
-      if (updatedFail) {
-        this.fail.reactions = updatedFail.reactions;
+      const res: any = await this.failService.addReaction(this.fail.id, 'empathy');
+      if (res?.summary) {
+        this.fail.reactions = {
+          courage: res.summary.counts.courage || 0,
+          empathy: res.summary.counts.empathy || 0,
+          laugh: res.summary.counts.laugh || 0,
+          support: res.summary.counts.support || 0,
+        } as any;
+        this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+        this.cdr.detectChanges();
+        this.triggerPulse('empathy');
+      } else {
+        await this.refreshFailData();
       }
-
-      // 3. Recharger les réactions utilisateur
-      await this.loadUserReaction();
-      this.cdr.detectChanges();
     } catch (error) {
       console.log('Erreur lors de la réaction empathy:', error);
     }
@@ -144,6 +200,22 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
   async onSupport() {
     if (this.userReactions.includes('support')) {
+      try {
+        const res: any = await this.failService.removeReaction(this.fail.id, 'support');
+        if (res?.summary) {
+          this.fail.reactions = {
+            courage: res.summary.counts.courage || 0,
+            empathy: res.summary.counts.empathy || 0,
+            laugh: res.summary.counts.laugh || 0,
+            support: res.summary.counts.support || 0,
+          } as any;
+          this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+          this.cdr.detectChanges();
+          this.triggerPulse('support');
+        } else {
+          await this.refreshFailData();
+        }
+      } catch (e) { console.log('toggle support off error', e); }
       return;
     }
 
@@ -154,18 +226,20 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     }
 
     try {
-      // 1. Envoyer à la base
-      await this.failService.addReaction(this.fail.id, 'support');
-
-      // 2. Récupérer la VRAIE valeur de la base
-      const updatedFail = await this.failService.getFailById(this.fail.id);
-      if (updatedFail) {
-        this.fail.reactions = updatedFail.reactions;
+      const res: any = await this.failService.addReaction(this.fail.id, 'support');
+      if (res?.summary) {
+        this.fail.reactions = {
+          courage: res.summary.counts.courage || 0,
+          empathy: res.summary.counts.empathy || 0,
+          laugh: res.summary.counts.laugh || 0,
+          support: res.summary.counts.support || 0,
+        } as any;
+        this.userReactions = res.summary.userReaction ? [res.summary.userReaction] : [];
+        this.cdr.detectChanges();
+        this.triggerPulse('support');
+      } else {
+        await this.refreshFailData();
       }
-
-      // 3. Recharger les réactions utilisateur
-      await this.loadUserReaction();
-      this.cdr.detectChanges();
     } catch (error) {
       console.log('Erreur lors de la réaction support:', error);
     }
@@ -238,5 +312,14 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
         this.cdr.detectChanges();
       }
     } catch {}
+  }
+
+  private triggerPulse(type: 'courage' | 'laugh' | 'empathy' | 'support') {
+    this.pulseFlags[type] = true;
+    this.cdr.detectChanges();
+    setTimeout(() => {
+      this.pulseFlags[type] = false;
+      this.cdr.detectChanges();
+    }, 400);
   }
 }

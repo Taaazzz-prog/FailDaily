@@ -41,6 +41,28 @@ export class FailService {
         this.failsSubject.next([]);
       }
     });
+
+    // Mettre à jour les compteurs de réactions de toutes les cartes lors d'un update
+    this.eventBus.on(AppEvents.REACTION_UPDATED).subscribe((payload: any) => {
+      try {
+        const { failId, summary } = payload || {};
+        if (!failId || !summary) return;
+        const list = this.failsSubject.getValue();
+        const idx = list.findIndex(f => f.id === failId);
+        if (idx >= 0) {
+          const updated = { ...list[idx] } as any;
+          updated.reactions = {
+            courage: summary.counts?.courage || 0,
+            empathy: summary.counts?.empathy || 0,
+            laugh: summary.counts?.laugh || 0,
+            support: summary.counts?.support || 0,
+          };
+          const next = [...list];
+          next[idx] = updated;
+          this.failsSubject.next(next);
+        }
+      } catch {}
+    });
   }
 
   async createFail(failData: CreateFailData): Promise<{ imageUploaded: boolean; failId?: string }> {
@@ -237,7 +259,7 @@ export class FailService {
     };
   }
 
-  async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+  async addReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support') {
     console.log('FailService: addReaction called for fail:', failId, 'type:', reactionType);
 
     const user = await this.mysqlService.getCurrentUser();
@@ -259,6 +281,13 @@ export class FailService {
         failId: failId,
         reactionType: reactionType
       });
+      // Diffuser l'update global avec les compteurs mis à jour
+      if (result?.summary) {
+        this.eventBus.emit(AppEvents.REACTION_UPDATED, {
+          failId,
+          summary: result.summary
+        });
+      }
       console.log('FailService: REACTION_GIVEN event emitted successfully');
 
       return result;
@@ -268,13 +297,17 @@ export class FailService {
     }
   }
 
-  async removeReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support'): Promise<void> {
+  async removeReaction(failId: string, reactionType: 'courage' | 'empathy' | 'laugh' | 'support') {
     const user = await this.mysqlService.getCurrentUser();
     if (!user) {
       throw new Error('Utilisateur non connecté');
     }
 
-    return this.mysqlService.removeReaction(failId, reactionType);
+    const res = await this.mysqlService.removeReaction(failId, reactionType);
+    if ((res as any)?.summary) {
+      this.eventBus.emit(AppEvents.REACTION_UPDATED, { failId, summary: (res as any).summary });
+    }
+    return res;
   }
 
   async getUserReactionForFail(failId: string): Promise<string | null> {

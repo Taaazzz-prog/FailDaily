@@ -44,6 +44,7 @@ export class EventBusService {
 export const AppEvents = {
   FAIL_POSTED: 'fail_posted',
   REACTION_GIVEN: 'reaction_given',
+  REACTION_UPDATED: 'reaction_updated',
   BADGE_UNLOCKED: 'badge_unlocked',
   USER_STATS_UPDATED: 'user_stats_updated',
   USER_PROFILE_UPDATED: 'user_profile_updated'

@@ -53,9 +53,11 @@ const register = async (req, res) => {
       });
     }
 
-    // Validation âge et logique d'autorisation parentale (optionnelle)
+    // Validation âge et logique d'autorisation parentale selon règles COPPA
     let computedAge = null;
-    let registrationCompleted = 1; // Par défaut, considérer l'inscription complète si aucune date fournie
+    let registrationCompleted = 1; // défaut si aucune date fournie (tests hérités)
+    let accountStatus = 'active';
+    let ageVerificationMeta = { birthDate: birthDate || null, verified: !!birthDate };
 
     if (birthDate) {
       const birthDateObj = new Date(birthDate);
@@ -66,7 +68,7 @@ const register = async (req, res) => {
         computedAge--;
       }
 
-      // Bloquer < 13 ans si la date est fournie et calculable
+      // < 13 ans: inscription refusée (aucun profil créé)
       if (computedAge < 13) {
         return res.status(400).json({
           error: 'Âge minimum requis: 13 ans',
@@ -74,9 +76,25 @@ const register = async (req, res) => {
         });
       }
 
-      // 13-16 ans : besoin autorisation parentale (0)
-      // 17+ ans : inscription complète directement (1)
-      registrationCompleted = computedAge >= 17 ? 1 : 0;
+      // 13-16 ans: profil créé mais en attente de validation parentale
+      if (computedAge >= 13 && computedAge <= 16) {
+        registrationCompleted = 0;
+        accountStatus = 'pending';
+        ageVerificationMeta = {
+          birthDate,
+          age: computedAge,
+          verified: true,
+          needsParentalConsent: true,
+          parentalConsentStatus: 'pending'
+        };
+      }
+
+      // >= 17 ans: compte/profil actifs
+      if (computedAge >= 17) {
+        registrationCompleted = 1;
+        accountStatus = 'active';
+        ageVerificationMeta = { birthDate, age: computedAge, verified: true };
+      }
     }
 
     // Vérifier si l'email existe déjà
@@ -116,23 +134,25 @@ const register = async (req, res) => {
   const queries = [
       {
         query: `INSERT INTO users (id, email, password_hash, role, account_status, created_at) 
-                VALUES (?, ?, ?, 'user', 'active', NOW())`,
-        params: [userId, email.toLowerCase(), hashedPassword]
+                VALUES (?, ?, ?, 'user', ?, NOW())`,
+        params: [userId, email.toLowerCase(), hashedPassword, accountStatus]
       },
+      // Crée ou met à jour le profil selon l'âge
       {
-        query: `UPDATE profiles 
-                SET display_name = ?, 
-                    registration_completed = ?,
-                    legal_consent = ?,
-                    age_verification = ?,
-                    updated_at = NOW()
-                WHERE user_id = ?`,
+        query: `INSERT INTO profiles (user_id, display_name, registration_completed, legal_consent, age_verification, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE 
+                  display_name = VALUES(display_name),
+                  registration_completed = VALUES(registration_completed),
+                  legal_consent = VALUES(legal_consent),
+                  age_verification = VALUES(age_verification),
+                  updated_at = NOW()`,
         params: [
+          userId,
           displayName,
-      registrationCompleted,
-      JSON.stringify({ birthDate: birthDate || null, agreeToTerms: agreeToTerms ?? true, acceptedAt: new Date() }),
-      JSON.stringify({ birthDate: birthDate || null, age: computedAge, verified: !!birthDate }),
-          userId
+          registrationCompleted,
+          JSON.stringify({ birthDate: birthDate || null, agreeToTerms: agreeToTerms ?? true, acceptedAt: new Date() }),
+          JSON.stringify(ageVerificationMeta)
         ]
       }
     ];
