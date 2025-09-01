@@ -155,102 +155,66 @@ class FailsController {
    */
   static async getFails(req, res) {
     try {
-      const {
-        page = 1,
-        limit = 20,
-        category = null,
-        search = null,
-        userId = null,
-        // is_anonyme is not a visibility filter; no filter here
-        sortBy = 'created_at',
-        sortOrder = 'DESC'
-      } = req.query;
+      // Version simplifiée copiant getPublicFails qui fonctionne
+      const rawLimit  = Number(req.query.limit);
+      const rawPage   = Number(req.query.page);
+      const rawOffset = Number(req.query.offset);
 
-      const currentUserId = req.user ? req.user.id : null;
-      const offset = (parseInt(page) - 1) * parseInt(limit);
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 20;
 
-      // Construction de la requête
-      let whereConditions = [];
-      let queryParams = [];
+      const useOffset = Number.isFinite(rawOffset) && rawOffset >= 0;
+      const offset = useOffset
+        ? rawOffset
+        : ((Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1) - 1) * limit;
+      const page = useOffset ? Math.floor(offset / limit) + 1
+                             : (Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1);
 
-      // Filtres de base
-      // No filter on anonymity
+      // Requête SANS paramètres préparés pour LIMIT (problème MySQL 9.1.0)
+      const sql = `
+      SELECT f.*, p.display_name, p.avatar_url, fm.status AS moderation_status,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'courage') as courage_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'empathy') as empathy_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'laugh')   as laugh_count,
+             (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'support') as support_count
+      FROM fails f
+      JOIN users u    ON f.user_id = u.id
+      JOIN profiles p ON u.id = p.user_id
+      LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
+      WHERE (fm.status IS NULL OR fm.status = 'approved')
+      ORDER BY f.created_at DESC, f.id DESC
+      LIMIT ${offset}, ${limit}`;
 
-      if (category && category !== 'all') {
-        whereConditions.push('f.category = ?');
-        queryParams.push(category);
-      }
+      const rows = await executeQuery(sql);
 
-      if (userId) {
-        whereConditions.push('f.user_id = ?');
-        queryParams.push(userId);
-      }
+      // Mapping identique à getPublicFails
+      const processed = rows.map((row) => {
+        const mapped = mapFailRow(row);
+        const isAnon = !!row.is_anonyme;
+        mapped.is_anonyme = isAnon;
 
-      if (search) {
-        whereConditions.push('(f.title LIKE ? OR f.description LIKE ?)');
-        const searchTerm = `%${search}%`;
-        queryParams.push(searchTerm, searchTerm);
-      }
+        if (isAnon) {
+          mapped.authorName   = 'Anonyme';
+          mapped.authorAvatar = 'assets/profil/anonymous.png';
+        } else {
+          mapped.authorName   = mapped.authorName   ?? row.display_name;
+          mapped.authorAvatar = mapped.authorAvatar ?? row.avatar_url;
+        }
+        return mapped;
+      });
 
-      // Requête principale
-      const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
-      
-      const query = `
-        SELECT 
-          f.*,
-          p.display_name,
-          p.avatar_url,
-          fm.status AS moderation_status,
-          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
-          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'courage') as courage_count,
-          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'empathy') as empathy_count,
-          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'laugh')   as laugh_count,
-          (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id AND fr.reaction_type = 'support') as support_count,
-          (SELECT COUNT(*) FROM comments fc WHERE fc.fail_id = f.id) as comments_count,
-          ${currentUserId ? `(SELECT reaction_type FROM reactions WHERE fail_id = f.id AND user_id = ?) as user_reaction` : 'NULL as user_reaction'}
-        FROM fails f
-        JOIN users u ON f.user_id = u.id
-        JOIN profiles p ON u.id = p.user_id
-        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-        ${whereClause ? whereClause + ' AND ' : 'WHERE '} (fm.status IS NULL OR fm.status = 'approved')
-        ORDER BY f.${sortBy} ${sortOrder}
-        LIMIT ? OFFSET ?
-      `;
-
-      // Paramètres de la requête
-      const finalParams = currentUserId 
-        ? [currentUserId, ...queryParams, parseInt(limit), offset]
-        : [...queryParams, parseInt(limit), offset];
-
-      const fails = await executeQuery(query, finalParams);
-
-      // Requête pour le total
-      const countQuery = `
-        SELECT COUNT(*) as total
-        FROM fails f
-        JOIN users u ON f.user_id = u.id
-        LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-        ${whereClause ? whereClause + ' AND ' : 'WHERE '} (fm.status IS NULL OR fm.status = 'approved')
-      `;
-
-      const countParams = currentUserId 
-        ? queryParams
-        : queryParams;
-
-      const countResult = await executeQuery(countQuery, countParams);
-      const total = countResult[0].total;
-
-      // Traitement des données selon le contrat API
-      const processedFails = fails.map(mapFailRow);
+      const hasMore   = processed.length === limit;
+      const nextOffset = offset + processed.length;
 
       res.json({
         success: true,
-        fails: processedFails,
+        fails: processed,
         pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          totalPages: Math.ceil(total / parseInt(limit))
+          page,
+          limit,
+          offset,
+          hasMore,
+          nextOffset: hasMore ? nextOffset : null
         }
       });
 

@@ -27,7 +27,7 @@ async function testDatabaseStructure() {
     const expectedTables = {
       users: ['id', 'email', 'password_hash', 'role', 'account_status', 'created_at', 'updated_at', 'email_confirmed', 'last_login', 'login_count', 'registration_step'],
       profiles: ['id', 'user_id', 'display_name', 'username', 'bio', 'avatar_url', 'registration_completed', 'legal_consent', 'age_verification', 'preferences', 'stats', 'created_at', 'updated_at'],
-      fails: ['id', 'user_id', 'title', 'description', 'category', 'is_anonyme', 'image_url', 'reactions', 'comments_count', 'created_at', 'updated_at'],
+      fails: ['id', 'user_id', 'title', 'description', 'category', 'is_anonyme', 'image_url', 'comments_count', 'created_at', 'updated_at'],
       badge_definitions: ['id', 'name', 'description', 'icon', 'category', 'rarity', 'requirement_type', 'requirement_value', 'created_at'],
       user_badges: ['id', 'user_id', 'badge_id', 'unlocked_at', 'created_at'],
       reactions: ['id', 'user_id', 'fail_id', 'reaction_type', 'created_at'],

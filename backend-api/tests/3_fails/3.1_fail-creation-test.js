@@ -5,7 +5,7 @@
  * Teste la création de fails avec différents scénarios
  */
 
-const { API_CONFIG, TEST_FAILS, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_FAILS, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testFailCreation() {
   TEST_UTILS.log('🔍', 'Début test création de fails...');
@@ -283,3 +283,4 @@ if (require.main === module) {
 }
 
 module.exports = testFailCreation;
+

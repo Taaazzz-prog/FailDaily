@@ -1,0 +1,7 @@
+{
+  "email": "test@test.com",
+  "password": "Test123!",
+  "displayName": "TestUser",
+  "birthDate": "1990-01-01",
+  "agreeToTerms": true
+}

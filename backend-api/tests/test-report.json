@@ -1,30 +1,30 @@
 {
-  "timestamp": "2025-08-20T13:59:12.484Z",
-  "duration": 16924,
+  "timestamp": "2025-09-01T11:13:04.231Z",
+  "duration": 28259,
   "summary": {
-    "total": 9,
-    "passed": 9,
-    "failed": 0,
-    "successRate": 100
+    "total": 14,
+    "passed": 7,
+    "failed": 7,
+    "successRate": 50
   },
   "tests": [
     {
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
       "success": true,
-      "duration": 58,
+      "duration": 124,
       "details": {
         "connection": true,
-        "tablesCount": 19,
-        "usersCount": 51,
+        "tablesCount": 27,
+        "usersCount": 26,
         "errors": []
       }
     },
     {
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
-      "success": true,
-      "duration": 185,
+      "success": false,
+      "duration": 215,
       "details": {
         "tables": {
           "users": {
@@ -74,13 +74,14 @@
               "description",
               "category",
               "image_url",
-              "is_public",
-              "reactions",
+              "is_anonyme",
               "comments_count",
               "created_at",
               "updated_at"
             ],
-            "missingColumns": [],
+            "missingColumns": [
+              "reactions"
+            ],
             "extraColumns": []
           },
           "badge_definitions": {
@@ -283,7 +284,7 @@
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 789,
+      "duration": 1220,
       "details": {
         "validRegistrationAdult": true,
         "emailUniqueness": true,
@@ -299,7 +300,7 @@
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
       "success": true,
-      "duration": 2450,
+      "duration": 3522,
       "details": {
         "userCreated": true,
         "validLogin": true,
@@ -314,7 +315,7 @@
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
       "success": true,
-      "duration": 744,
+      "duration": 1210,
       "details": {
         "userCreated": true,
         "tokenReceived": true,
@@ -329,19 +330,19 @@
     {
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
-      "success": true,
-      "duration": 1423,
+      "success": false,
+      "duration": 1542,
       "details": {
         "protectedEndpoints": 11,
-        "blockedEndpoints": 11,
+        "blockedEndpoints": 8,
         "endpointResults": [
           {
             "name": "GET /api/fails",
             "method": "GET",
             "url": "http://localhost:3000/api/fails",
             "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
+            "actualStatus": 500,
+            "blocked": false
           },
           {
             "name": "POST /api/fails",
@@ -356,8 +357,8 @@
             "method": "GET",
             "url": "http://localhost:3000/api/fails/123",
             "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
+            "actualStatus": 404,
+            "blocked": false
           },
           {
             "name": "PUT /api/fails/:id",
@@ -412,8 +413,8 @@
             "method": "GET",
             "url": "http://localhost:3000/api/fails/123/comments",
             "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
+            "actualStatus": 404,
+            "blocked": false
           },
           {
             "name": "POST /api/fails/:id/comments",
@@ -424,57 +425,153 @@
             "blocked": true
           }
         ],
+        "errors": [
+          "GET /api/fails - ÉCHEC: attendu 401, reçu 500",
+          "GET /api/fails/:id - ÉCHEC: attendu 401, reçu 404",
+          "GET /api/fails/:id/comments - ÉCHEC: attendu 401, reçu 404",
+          "Token invalide devrait être rejeté, reçu: 500",
+          "Token expiré devrait être rejeté, reçu: 500",
+          "Header malformé devrait être rejeté, reçu: 500"
+        ]
+      }
+    },
+    {
+      "name": "2.6 - Profil (GET/PUT)",
+      "category": "Authentication",
+      "success": true,
+      "duration": 707,
+      "details": {
+        "userCreated": true,
+        "tokenObtained": true,
+        "getProfileOk": true,
+        "updateProfileOk": true,
+        "getUpdatedProfileOk": true,
+        "errors": []
+      }
+    },
+    {
+      "name": "2.7 - Upload Avatar",
+      "category": "Authentication",
+      "success": true,
+      "duration": 703,
+      "details": {
+        "userCreated": true,
+        "tokenObtained": true,
+        "uploadOk": true,
+        "profileUpdated": true,
+        "errors": []
+      }
+    },
+    {
+      "name": "3.0 - Upload Image (Fail)",
+      "category": "Fails",
+      "success": true,
+      "duration": 611,
+      "details": {
+        "userCreated": true,
+        "tokenObtained": true,
+        "uploadOk": true,
+        "fileServed": true,
         "errors": []
       }
     },
     {
       "name": "3.1 - Création de Fails",
       "category": "Fails",
-      "success": true,
-      "duration": 526,
+      "success": false,
+      "duration": 734,
       "details": {
         "userCreated": true,
         "tokenObtained": true,
-        "validFailCreation": true,
-        "missingTitle": true,
-        "publicFail": true,
-        "privateFail": true,
-        "categoryValidation": true,
-        "responseFormat": true,
-        "errors": []
+        "validFailCreation": false,
+        "missingTitle": false,
+        "publicFail": false,
+        "privateFail": false,
+        "categoryValidation": false,
+        "responseFormat": false,
+        "errors": [
+          "Création fail valide échouée: 500 - Erreur inconnue",
+          "Création fail public échouée: 500",
+          "Création fail privé échouée: 500",
+          "Certaines catégories rejetées: 0/6"
+        ]
       }
     },
     {
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
-      "success": true,
-      "duration": 464,
+      "success": false,
+      "duration": 932,
       "details": {
         "userCreated": true,
-        "failsCreated": 4,
-        "getAllFails": true,
-        "getFailById": true,
-        "publicOnlyFilter": true,
-        "pagination": true,
-        "categoryFilter": true,
-        "unauthorizedAccess": true,
-        "errors": [],
-        "formatValidation": true
+        "failsCreated": 0,
+        "getAllFails": false,
+        "getFailById": false,
+        "publicOnlyFilter": false,
+        "pagination": false,
+        "categoryFilter": false,
+        "unauthorizedAccess": false,
+        "errors": [
+          "Accès sans auth devrait être rejeté: 500",
+          "Récupération fails avec auth échouée: 500",
+          "Test pagination échoué: 500",
+          "Test filtre catégorie échoué: 500",
+          "Accès non autorisé devrait retourner 401, reçu: 500",
+          "Vérification format échouée: 500"
+        ]
+      }
+    },
+    {
+      "name": "3.3 - Commentaires (base)",
+      "category": "Fails",
+      "success": false,
+      "duration": 558,
+      "details": {
+        "userCreated": true,
+        "tokenObtained": true,
+        "failCreated": false,
+        "commentCreated": false,
+        "commentListed": false,
+        "errors": [
+          "Création fail échouée: {\"success\":false,\"message\":\"Erreur lors de la création du fail\"}"
+        ]
+      }
+    },
+    {
+      "name": "3.4 - Commentaires Like/Report",
+      "category": "Fails",
+      "success": false,
+      "duration": 551,
+      "details": {
+        "authorCreated": true,
+        "readerCreated": false,
+        "failCreated": false,
+        "commentCreated": false,
+        "liked": false,
+        "unliked": false,
+        "moderated": false,
+        "errors": [
+          "Création fail auteur échouée"
+        ]
       }
     },
     {
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
-      "success": true,
-      "duration": 1209,
+      "success": false,
+      "duration": 1525,
       "details": {
         "userRegistration": true,
         "userLogin": true,
-        "failCreation": true,
-        "failRetrieval": true,
+        "failCreation": false,
+        "failRetrieval": false,
         "userStats": false,
         "endToEndFlow": true,
-        "errors": []
+        "errors": [
+          "Seulement 0/3 fails créés",
+          "Accès non autorisé devrait retourner 401, reçu: 500",
+          "Récupération des fails échouée: 500"
+        ]
       }
     }
   ]

@@ -64,6 +64,63 @@ router.get('/available', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/badges/definitions - Alias pour /available (compatibilité)
+router.get('/definitions', authenticateToken, async (req, res) => {
+  try {
+    console.log('📋 Récupération des définitions de badges (alias /available)');
+    
+    // Récupérer TOUS les badges depuis la table badge_definitions
+    const badges = await executeQuery(`
+      SELECT 
+        id,
+        name,
+        description,
+        icon,
+        category,
+        rarity,
+        requirement_type,
+        requirement_value,
+        created_at
+      FROM badge_definitions 
+      ORDER BY 
+        CASE rarity 
+          WHEN 'common' THEN 1 
+          WHEN 'rare' THEN 2 
+          WHEN 'epic' THEN 3 
+          WHEN 'legendary' THEN 4 
+          ELSE 5 
+        END,
+        name ASC
+    `);
+    
+    const mappedBadges = badges.map(badge => ({
+      id: badge.id,
+      name: badge.name,
+      description: badge.description,
+      icon: badge.icon,
+      category: badge.category,
+      rarity: badge.rarity,
+      requirements: {
+        type: badge.requirement_type,
+        value: badge.requirement_value
+      },
+      created_at: badge.created_at
+    }));
+    
+    res.json({
+      success: true,
+      badges: mappedBadges,
+      total: mappedBadges.length
+    });
+  } catch (error) {
+    console.error('❌ Erreur récupération définitions badges:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des définitions de badges'
+    });
+  }
+});
+
 // GET /api/badges - Tous les badges (alias pour /available)
 router.get('/', authenticateToken, async (req, res) => {
   try {

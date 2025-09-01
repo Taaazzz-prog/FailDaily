@@ -6,7 +6,7 @@
  * sans authentification (comme health check, info app)
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testPublicVsProtectedEndpoints() {
   TEST_UTILS.log('🔍', 'Test endpoints publics vs protégés...');
@@ -210,3 +210,4 @@ if (require.main === module) {
 }
 
 module.exports = testPublicVsProtectedEndpoints;
+

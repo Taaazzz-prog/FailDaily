@@ -3,7 +3,7 @@
  * ============================================================
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testProfileEndpoints() {
   TEST_UTILS.log('🔍', 'Début test endpoints profil...');
@@ -125,4 +125,5 @@ if (require.main === module) {
 }
 
 module.exports = testProfileEndpoints;
+
 

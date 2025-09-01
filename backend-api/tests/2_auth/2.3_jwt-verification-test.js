@@ -5,7 +5,7 @@
  * Teste la vérification des tokens et le middleware d'authentification
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testJWTVerification() {
   TEST_UTILS.log('🔍', 'Début test vérification JWT...');
@@ -246,3 +246,4 @@ if (require.main === module) {
 }
 
 module.exports = testJWTVerification;
+

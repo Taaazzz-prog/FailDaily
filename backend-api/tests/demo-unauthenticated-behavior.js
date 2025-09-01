@@ -6,7 +6,7 @@
  * non connecté essaie d'accéder à différentes parties de l'application
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function demonstrateUnauthenticatedBehavior() {
   console.log('🎭 DÉMONSTRATION - COMPORTEMENT UTILISATEUR NON CONNECTÉ');
@@ -149,3 +149,4 @@ if (require.main === module) {
 }
 
 module.exports = demonstrateUnauthenticatedBehavior;
+

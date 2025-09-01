@@ -1,4 +1,4 @@
-const { API_CONFIG, DEFAULT_HEADERS, TEST_UTILS } = require('../0_test-config');
+const { API_CONFIG, DEFAULT_HEADERS, TEST_UTILS, fetch } = require('../0_test-config');
 
 async function testRegistration() {
   console.log('\n🔐 === TEST 2.1 - Inscription Utilisateur (Simplifié) ===');

@@ -227,7 +227,7 @@ router.post('/register', async (req, res) => {
     // 17+ ans : inscription complète directement (1)
     const registrationCompleted = age >= 17 ? 1 : 0;
     
-    console.log(`ℹ️ Inscription - Âge: ${age} ans, registrationCompleted: ${registrationCompleted}`)
+    console.log(`ℹ️ Inscription - Âge: ${age} ans, registrationCompleted: ${registrationCompleted}`);
 
     // Vérifier que l'email n'existe pas déjà
     const existingUsers = await executeQuery(

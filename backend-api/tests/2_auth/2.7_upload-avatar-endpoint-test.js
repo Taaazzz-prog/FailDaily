@@ -3,7 +3,7 @@
  * ================================================
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testUploadAvatar() {
   TEST_UTILS.log('🔍', 'Début test upload avatar...');
@@ -97,4 +97,5 @@ if (require.main === module) {
 }
 
 module.exports = testUploadAvatar;
+
 

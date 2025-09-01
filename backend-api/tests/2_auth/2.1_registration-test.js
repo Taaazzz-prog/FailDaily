@@ -8,7 +8,7 @@
  * 3. Acceptation CGU (4 cases obligatoires)
  */
 
-const { API_CONFIG, TEST_USERS, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_USERS, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testUserRegistration() {
   TEST_UTILS.log('🔍', 'Début test inscription utilisateur complète...');
@@ -380,3 +380,4 @@ if (require.main === module) {
 }
 
 module.exports = testUserRegistration;
+

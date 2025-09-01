@@ -5,7 +5,7 @@
  * Teste l'endpoint de connexion avec différents scénarios
  */
 
-const { API_CONFIG, TEST_USERS, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_USERS, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testUserLogin() {
   TEST_UTILS.log('🔍', 'Début test connexion utilisateur...');
@@ -223,3 +223,4 @@ if (require.main === module) {
 }
 
 module.exports = testUserLogin;
+

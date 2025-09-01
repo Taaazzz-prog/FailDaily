@@ -5,7 +5,7 @@
  * Scénarios complets d'utilisation de l'API
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testCompleteIntegration() {
   TEST_UTILS.log('🔍', 'Début tests d\'intégration complets...');
@@ -329,3 +329,4 @@ if (require.main === module) {
 }
 
 module.exports = testCompleteIntegration;
+

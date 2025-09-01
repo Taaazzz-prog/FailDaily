@@ -4,11 +4,11 @@ const FailsController = require('../controllers/failsController');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const { executeQuery } = require('../config/database');
 
-// GET /api/fails - Récupérer les fails (avec pagination et filtres)
-router.get('/', optionalAuth, FailsController.getFails);
+// GET /api/fails - Récupérer les fails (avec pagination et filtres) - PROTÉGÉ
+router.get('/', authenticateToken, FailsController.getFails);
 
-// GET /api/fails/search - Rechercher des fails
-router.get('/search', optionalAuth, FailsController.searchFails);
+// GET /api/fails/search - Rechercher des fails - PROTÉGÉ
+router.get('/search', authenticateToken, FailsController.searchFails);
 
 // GET /api/fails/categories - Récupérer les catégories
 router.get('/categories', FailsController.getCategories);
@@ -16,17 +16,17 @@ router.get('/categories', FailsController.getCategories);
 // GET /api/fails/tags - Récupérer les tags populaires
 router.get('/tags', FailsController.getPopularTags);
 
-// GET /api/fails/stats - Récupérer les statistiques des fails
-router.get('/stats', optionalAuth, FailsController.getFailsStats);
+// GET /api/fails/stats - Récupérer les statistiques des fails - PROTÉGÉ
+router.get('/stats', authenticateToken, FailsController.getFailsStats);
 
-// GET /api/fails/public - Récupérer uniquement les fails publics
-router.get('/public', optionalAuth, FailsController.getPublicFails);
+// GET /api/fails/public - Récupérer uniquement les fails publics - PROTÉGÉ
+router.get('/public', authenticateToken, FailsController.getPublicFails);
 
 // POST /api/fails - Créer un fail
 router.post('/', authenticateToken, FailsController.createFail);
 
-// GET /api/fails/:id - Récupérer un fail spécifique
-router.get('/:id', optionalAuth, FailsController.getFailByIdEndpoint);
+// GET /api/fails/:id - Récupérer un fail spécifique - PROTÉGÉ
+router.get('/:id', authenticateToken, FailsController.getFailByIdEndpoint);
 
 // PUT /api/fails/:id - Modifier un fail
 router.put('/:id', authenticateToken, FailsController.updateFail);

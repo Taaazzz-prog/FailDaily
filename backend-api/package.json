@@ -9,6 +9,7 @@
     "test": "jest --runInBand",
     "test:smoke": "jest --runInBand --testPathPattern=0_smoke.health.test.js",
     "test:e2e": "jest --runInBand --testPathPattern=5_user_journey.test.js",
+    "test:legacy": "node ./tests/run-legacy.js",
     "db:import": "node ./scripts/db-import.js",
     "lint": "eslint . --ext .js,.cjs,.mjs"
   },

@@ -3,7 +3,7 @@
  * ==========================================================
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function registerAdult(label = '') {
   const email = TEST_UTILS.generateTestEmail();
@@ -105,3 +105,4 @@ if (require.main === module) {
 }
 
 module.exports = testCommentsLikeReport;
+

@@ -7,6 +7,7 @@
  */
 
 const path = require('path');
+const fetch = require('node-fetch').default || require('node-fetch');
 // Charger le .env du dossier backend-api (et non celui du dossier parent)
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
@@ -167,5 +168,6 @@ module.exports = {
   TEST_FAILS,
   TEST_UTILS,
   DEFAULT_HEADERS,
-  TEST_DB_CONFIG
+  TEST_DB_CONFIG,
+  fetch
 };

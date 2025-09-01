@@ -33,6 +33,27 @@ const generateToken = (userId, email) => {
   );
 };
 
+async function ensureProfilesTable() {
+  try {
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS profiles (
+        user_id CHAR(36) NOT NULL,
+        display_name VARCHAR(100) DEFAULT NULL,
+        avatar_url VARCHAR(255) DEFAULT NULL,
+        bio TEXT DEFAULT NULL,
+        registration_completed TINYINT(1) DEFAULT 0,
+        legal_consent LONGTEXT DEFAULT NULL,
+        age_verification LONGTEXT DEFAULT NULL,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  } catch (e) {
+    console.warn('⚠️ ensureProfilesTable: impossible de créer la table profiles:', e?.message);
+  }
+}
+
 // Inscription
 const register = async (req, res) => {
   try {
@@ -110,9 +131,12 @@ const register = async (req, res) => {
       });
     }
 
+    // S'assurer que la table profiles existe
+    await ensureProfilesTable();
+
     // Vérifier si le nom d'affichage existe déjà
     const existingProfiles = await executeQuery(
-      'SELECT id FROM profiles WHERE display_name = ?',
+      'SELECT user_id FROM profiles WHERE display_name = ?',
       [displayName]
     );
 

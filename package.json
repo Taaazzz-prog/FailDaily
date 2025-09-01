@@ -19,7 +19,8 @@
     "test:all": "npm run test:backend",
     "dev:full": "concurrently \"npm run dev:backend\" \"npm run start:frontend\"",
     "smoke:backend": "node -e \"require('./backend-api/server'); console.log('SERVER_BOOT_OK')\"",
-    "clean": "rimraf frontend/www frontend/node_modules/.cache backend-api/dist backend-api/node_modules/.cache"
+    "clean": "rimraf frontend/www frontend/node_modules/.cache backend-api/dist backend-api/node_modules/.cache",
+    "test:full": "node scripts/run-full-test.js"
   },
   "devDependencies": {
     "concurrently": "^8.2.0",

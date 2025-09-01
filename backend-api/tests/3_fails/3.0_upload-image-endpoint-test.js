@@ -3,7 +3,7 @@
  * ================================================
  */
 
-const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS } = require('../0_test-config');
+const { API_CONFIG, TEST_UTILS, DEFAULT_HEADERS, fetch } = require('../0_test-config');
 
 async function testUploadFailImage() {
   TEST_UTILS.log('🔍', 'Début test upload image fail...');
@@ -86,4 +86,5 @@ if (require.main === module) {
 }
 
 module.exports = testUploadFailImage;
+
 

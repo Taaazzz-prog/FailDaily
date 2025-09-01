@@ -24,12 +24,12 @@ router.get('/:userId/stats', authenticateToken, async (req, res) => {
       });
     }
     
-    // Récupérer les statistiques de base
+    // Récupérer les statistiques de base (requête corrigée)
     const stats = await executeQuery(`
       SELECT 
         u.id,
         COALESCE(up.points_total, 0) as courage_points,
-        COALESCE(p.streak, 0) as streak,
+        0 as streak,
         COALESCE(fail_stats.total_fails, 0) as total_fails,
         COALESCE(badge_stats.total_badges, 0) as total_badges,
         COALESCE(reactions_given.total_reactions_given, 0) as total_reactions_given,
