@@ -1140,6 +1140,8 @@ class FailsController {
    */
   static async reportFail(req, res) {
     try {
+      // S'assure que les tables de modération existent
+      await FailsController.ensureModerationTables();
       const { id } = req.params; // failId
       const userId = req.user.id;
       const reason = (req.body && req.body.reason) || null;
@@ -1185,50 +1187,6 @@ class FailsController {
     } catch (error) {
       console.error('❌ report fail error:', error);
       res.status(500).json({ success: false, message: 'Erreur signalement fail' });
-    }
-  }
-
-  static async reportFail(req, res) {
-    try {
-      await FailsController.ensureModerationTables();
-      const { id } = req.params;
-      const userId = req.user.id;
-      const reason = (req.body && req.body.reason) || null;
-
-      // Existence
-      const rows = await executeQuery('SELECT id FROM fails WHERE id = ? LIMIT 1', [id]);
-      if (rows.length === 0) return res.status(404).json({ success: false, message: 'Fail non trouvé' });
-
-      // Insert report (ignore duplicate)
-      try {
-        const rid = require('uuid').v4();
-        await executeQuery(
-          'INSERT INTO fail_reports (id, fail_id, user_id, reason, created_at) VALUES (?, ?, ?, ?, NOW())',
-          [rid, id, userId, reason]
-        );
-      } catch (_) { /* duplicate ok */ }
-      // Threshold logic from app_config.moderation (default 1)
-      const [{ reports }] = await executeQuery('SELECT COUNT(*) AS reports FROM fail_reports WHERE fail_id = ?', [id]);
-      let threshold = 1;
-      try {
-        const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']);
-        if (row && row[0]) {
-          const cfg = JSON.parse(row[0].value || '{}');
-          threshold = Number(cfg.failReportThreshold) || 1;
-        }
-      } catch {}
-
-      if (reports >= threshold) {
-        await executeQuery(
-          'INSERT INTO fail_moderation (fail_id, status, created_at, updated_at) VALUES (?, "hidden", NOW(), NOW()) ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()',
-          [id]
-        );
-      }
-
-      return res.json({ success: true, message: 'Fail signalé' });
-    } catch (error) {
-      console.error('❌ reportFail error:', error);
-      return res.status(500).json({ success: false, message: 'Erreur signalement fail' });
     }
   }
 }

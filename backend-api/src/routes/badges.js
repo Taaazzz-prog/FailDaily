@@ -245,11 +245,11 @@ async function checkBadgeRequirement(userId, badgeDefinition) {
         return user[0]?.days >= requirement_value;
         
       default:
-        console.log(`⚠️ Type de critère non supporté: ${requirement_type}`);
+        console.log(`⚠️ Type de critère non supporté: ${badgeDefinition.requirement_type}`);
         return false;
     }
   } catch (error) {
-    console.error(`❌ Erreur vérification critère ${requirement_type}:`, error);
+    console.error(`❌ Erreur vérification critère ${badgeDefinition.requirement_type}:`, error);
     return false;
   }
 }
