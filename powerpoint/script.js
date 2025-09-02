@@ -34,33 +34,15 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             const targetId = this.getAttribute('href');
             const target = document.querySelector(targetId);
-            
-            console.log('Navigation clicked:', targetId, 'Target found:', !!target);
-            
             if (target) {
-                // Calcul robuste de la hauteur de la navbar (70px + marge)
-                const navbar = document.querySelector('.navbar') || document.querySelector('nav') || document.getElementById('navbar');
-                let navbarHeight = 90; // Valeur par défaut sécurisée
-                
-                if (navbar) {
-                    navbarHeight = navbar.offsetHeight + 20; // 20px de marge
-                } else {
-                    // Fallback: utiliser la variable CSS
-                    const rootStyles = getComputedStyle(document.documentElement);
-                    const cssHeight = rootStyles.getPropertyValue('--navbar-height');
-                    if (cssHeight) {
-                        navbarHeight = parseInt(cssHeight) + 20;
-                    }
-                }
-                
-                const targetPosition = target.offsetTop - navbarHeight;
-                
-                console.log('Scrolling to position:', targetPosition, 'Navbar height:', navbarHeight, 'Target offset:', target.offsetTop);
-                
-                window.scrollTo({
-                    top: Math.max(0, targetPosition),
-                    behavior: 'smooth'
-                });
+                // Calcul de position basé sur le layout actuel (gère les transforms/parallax)
+                const navbarEl = document.querySelector('.navbar') || document.querySelector('nav') || document.getElementById('navbar');
+                const navbarHeight = (navbarEl ? navbarEl.offsetHeight : 70) + 20; // marge de confort
+
+                const elementTop = target.getBoundingClientRect().top + window.pageYOffset;
+                const scrollToY = Math.max(0, elementTop - navbarHeight);
+
+                window.scrollTo({ top: scrollToY, behavior: 'smooth' });
                 
                 // Fermer le menu mobile si ouvert
                 const navMenu = document.getElementById('nav-menu');
@@ -76,8 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(() => {
                     updateActiveNav();
                 }, 100);
-            } else {
-                console.error('Target not found for:', targetId);
             }
         });
     });
@@ -136,7 +116,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const activeNavLink = document.querySelector(`.nav-link[href="#${currentSection}"]`);
             if (activeNavLink) {
                 activeNavLink.classList.add('active');
-                console.log('Active section:', currentSection, 'ScrollY:', scrollPos); // Debug
             }
         }
     }
@@ -146,8 +125,50 @@ document.addEventListener('DOMContentLoaded', function() {
     // Attendre que la page soit complètement chargée avant d'initialiser
     setTimeout(() => {
         updateActiveNav(); // Run on page load
-        console.log('Navigation initialized'); // Debug
     }, 500); // Délai pour s'assurer que tout est chargé
+});
+
+// Image modal (ouvrir en taille réelle)
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('image-modal-img');
+    const modalClose = document.querySelector('.image-modal-close');
+    const modalBackdrop = document.querySelector('.image-modal-backdrop');
+
+    function openModal(src, alt) {
+        if (!modal || !modalImg) return;
+        modalImg.src = src;
+        modalImg.alt = alt || 'Aperçu';
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        if (!modal) return;
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+        // Laisser l'image se décharger si nécessaire
+        setTimeout(() => { if (modalImg) modalImg.src = modalImg.src; }, 0);
+    }
+
+    // Clic sur l'image de la maquette (écran de téléphone)
+    const phoneScreen = document.querySelector('.phone-screen') || document.querySelector('.mockup-image');
+    if (phoneScreen) {
+        phoneScreen.addEventListener('click', function() {
+            const src = this.getAttribute('src');
+            const alt = this.getAttribute('alt') || 'Aperçu';
+            openModal(src, alt);
+        });
+    }
+
+    // Fermetures
+    if (modalClose) modalClose.addEventListener('click', closeModal);
+    if (modalBackdrop) modalBackdrop.addEventListener('click', closeModal);
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal && modal.classList.contains('open')) {
+            closeModal();
+        }
+    });
 });
 
 // Tabs functionality
@@ -316,16 +337,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Parallax effect for hero section
+// Parallax effect for hero section (safe: only inner elements)
 document.addEventListener('DOMContentLoaded', function() {
-    const hero = document.querySelector('.hero');
-    
-    if (hero) {
-        window.addEventListener('scroll', function() {
-            const scrollTop = window.pageYOffset;
-            const rate = scrollTop * -0.5;
-            hero.style.transform = `translateY(${rate}px)`;
-        });
+    const heroContent = document.querySelector('.hero-content');
+    const heroImage = document.querySelector('.hero-image');
+
+    function applyParallax() {
+        const isDesktop = window.innerWidth > 768;
+        if (!isDesktop) {
+            if (heroContent) heroContent.style.transform = '';
+            if (heroImage) heroImage.style.transform = '';
+            return;
+        }
+
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+        const rateContent = Math.max(-30, Math.min(30, scrollTop * -0.15));
+        const rateImage = Math.max(-40, Math.min(40, scrollTop * -0.25));
+        if (heroContent) heroContent.style.transform = `translateY(${rateContent}px)`;
+        if (heroImage) heroImage.style.transform = `translateY(${rateImage}px)`;
+    }
+
+    if (heroContent || heroImage) {
+        window.addEventListener('scroll', applyParallax, { passive: true });
+        window.addEventListener('resize', applyParallax);
+        applyParallax();
     }
 });
 
@@ -1505,29 +1540,16 @@ document.addEventListener('DOMContentLoaded', function() {
         exploreBtn.addEventListener('click', function(e) {
             e.preventDefault();
             
-            // Calculer la position avec offset pour le header
-            const navbar = document.querySelector('.navbar');
-            const navbarHeight = navbar ? navbar.offsetHeight : 80;
-            const targetPosition = architectureSection.offsetTop - navbarHeight - 20;
-            
-            // Scroll animé avec logging pour debug
-            console.log('Navigating to architecture section at position:', targetPosition);
-            
-            window.scrollTo({
-                top: targetPosition,
-                behavior: 'smooth'
-            });
-            
-            // Ajouter un effet visuel temporaire
+            // Utiliser le comportement d'ancre standard, le handler global gère l'offset
+            architectureSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // Effet visuel temporaire
             architectureSection.style.transition = 'all 0.3s ease';
             architectureSection.style.backgroundColor = 'rgba(102, 126, 234, 0.1)';
-            
             setTimeout(() => {
                 architectureSection.style.backgroundColor = '';
             }, 2000);
         });
-    } else {
-        console.error('Explorer Architecture button or Architecture section not found');
     }
 });
 

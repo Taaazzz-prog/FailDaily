@@ -93,12 +93,10 @@
                         </div>
                         <div class="mockup-title">FailDaily App</div>
                     </div>
-                    <div class="mockup-content">
-                        <div class="mockup-placeholder">
-                            <i class="fas fa-image"></i>
-                            <p>Screenshot de l'application<br>à ajouter ici</p>
+                        <div class="phone-frame">
+                            <div class="phone-notch" aria-hidden="true"></div>
+                            <img src="images/home.png" alt="Capture d'écran FailDaily" class="phone-screen" />
                         </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1390,66 +1388,18 @@ AI Analysis: ✅ Constructif • Score: 85/100
         </div>
     </footer>
 
+    <!-- Modal aperçu image -->
+    <div id="image-modal" class="image-modal" aria-hidden="true">
+        <div class="image-modal-backdrop"></div>
+        <div class="image-modal-dialog" role="dialog" aria-modal="true" aria-label="Aperçu de l’image">
+            <button class="image-modal-close" aria-label="Fermer l’aperçu">&times;</button>
+            <img id="image-modal-img" src="" alt="Aperçu taille réelle">
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="script.js"></script>
     
-    <!-- Test de navigation (à supprimer après debug) -->
-    <div style="position: fixed; bottom: 20px; right: 20px; background: #667eea; color: white; padding: 10px; border-radius: 8px; z-index: 9999; font-size: 11px; max-width: 250px;" id="nav-debug">
-        <div><strong>Debug Navigation</strong></div>
-        <button onclick="testNavigation()" style="background: white; color: #667eea; border: none; padding: 5px; margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 10px;">Test Sections</button>
-        <button onclick="testScrollPositions()" style="background: white; color: #667eea; border: none; padding: 5px; margin: 5px 0; border-radius: 4px; cursor: pointer; font-size: 10px;">Test Positions</button>
-        <div id="nav-status" style="font-size: 9px; margin-top: 5px; max-height: 100px; overflow-y: auto;"></div>
-    </div>
     
-    <script>
-        function testNavigation() {
-            const status = document.getElementById('nav-status');
-            const sections = ['home', 'tech-stack', 'architecture', 'database', 'backend', 'frontend', 'features', 'tests', 'deployment'];
-            let results = [];
-            
-            sections.forEach(id => {
-                const element = document.getElementById(id);
-                if (element) {
-                    results.push(`✅ ${id}`);
-                } else {
-                    results.push(`❌ ${id}`);
-                }
-            });
-            
-            status.innerHTML = results.join('<br>');
-        }
-        
-        function testScrollPositions() {
-            const status = document.getElementById('nav-status');
-            const sections = document.querySelectorAll('section[id]');
-            const navbar = document.querySelector('.navbar');
-            const navbarHeight = navbar ? navbar.offsetHeight : 70;
-            const currentScroll = window.scrollY;
-            
-            let results = [`📍 Scroll: ${currentScroll}px`, `📏 Navbar: ${navbarHeight}px`, '---'];
-            
-            sections.forEach(section => {
-                const id = section.getAttribute('id');
-                const top = section.offsetTop;
-                const height = section.offsetHeight;
-                const isVisible = (currentScroll + navbarHeight + 50 >= top && currentScroll + navbarHeight + 50 < top + height);
-                
-                results.push(`${isVisible ? '👁️' : '⚫'} ${id}: ${top}px (h:${height}px)`);
-            });
-            
-            status.innerHTML = results.join('<br>');
-        }
-        
-        // Auto-update positions during scroll
-        let debugUpdateTimeout;
-        window.addEventListener('scroll', () => {
-            clearTimeout(debugUpdateTimeout);
-            debugUpdateTimeout = setTimeout(() => {
-                if (document.getElementById('nav-debug').style.display !== 'none') {
-                    testScrollPositions();
-                }
-            }, 100);
-        });
-    </script>
 </body>
 </html>
