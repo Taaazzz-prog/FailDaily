@@ -1256,9 +1256,15 @@ export class AdminPage implements OnInit, OnDestroy {
                     role: 'destructive',
                     handler: () => {
                         const appTables = [
-                            'fails', 'reactions', 'profiles', 'comments', 'badges', 'user_badges',
-                            'system_logs', 'activity_logs', 'reaction_logs', 'user_activities',
-                            'user_management_logs', 'user_preferences', 'app_config'
+                            // Tables principales de l'application (validées par le test)
+                            'fails', 'reactions', 'comments', 'profiles', 
+                            'user_badges', 'user_activities', 'activity_logs', 'system_logs', 
+                            'reaction_logs', 'app_config',
+                            // Tables de modération et signalements (validées par le test)
+                            'fail_moderation', 'fail_reports', 'fail_reactions_archive',
+                            'comment_moderation', 'comment_reactions', 'comment_reports',
+                            // Tables légales (validées par le test)
+                            'legal_documents'
                         ];
                         this.performBulkTruncate(appTables, false);
                     }
@@ -1290,7 +1296,8 @@ export class AdminPage implements OnInit, OnDestroy {
                     role: 'destructive',
                     handler: (data) => {
                         if (data.confirmation === 'DELETE ALL') {
-                            this.performBulkTruncate(['auth.users', 'auth.identities', 'auth.sessions', 'auth.refresh_tokens'], true);
+                            // Tables auth validées par le test
+                            this.performBulkTruncate(['users', 'user_preferences', 'parental_consents'], true);
                         } else {
                             this.showToast('Confirmation incorrecte. Action annulée.', 'warning');
                         }
@@ -1369,42 +1376,63 @@ export class AdminPage implements OnInit, OnDestroy {
 
     private async performBulkTruncate(tables: string[], areAuthTables: boolean) {
         this.loading = true;
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const table of tables) {
-            try {
-                const result = await this.MysqlService.truncateTable(table, areAuthTables);
-                this.truncateResults.unshift({
-                    table: table,
-                    success: result.success,
-                    message: result.message || (result.success ? 'Vidée avec succès' : 'Erreur lors du vidage')
+        
+        try {
+            const result = await this.MysqlService.bulkTruncateTables(tables, areAuthTables);
+            
+            // Traiter les résultats
+            if (result.results && result.results.length > 0) {
+                result.results.forEach(tableResult => {
+                    this.truncateResults.unshift({
+                        table: tableResult.table,
+                        success: tableResult.success,
+                        message: tableResult.error || (tableResult.success ? 'Vidée avec succès' : 'Erreur lors du vidage')
+                    });
                 });
-
-                if (result.success) {
-                    successCount++;
-                } else {
-                    errorCount++;
-                }
-            } catch (error) {
-                console.error(`Erreur lors du truncate de ${table}:`, error);
-                this.truncateResults.unshift({
-                    table: table,
-                    success: false,
-                    message: `Erreur: ${error}`
-                });
-                errorCount++;
             }
-        }
 
-        this.loading = false;
-        await this.showToast(`Opération terminée: ${successCount} réussies, ${errorCount} échouées`,
-            errorCount === 0 ? 'success' : 'warning');
+            const successCount = result.results?.filter(r => r.success).length || 0;
+            const errorCount = result.results?.filter(r => !r.success).length || 0;
 
-        // Recharger les données si on est sur le dashboard
-        if (this.selectedSegment === 'dashboard') {
-            await this.loadDashboardData();
+            await this.showToast(
+                result.message || `Opération terminée: ${successCount} réussies, ${errorCount} échouées`,
+                result.success ? 'success' : 'warning'
+            );
+
+            // Recharger les données si on est sur le dashboard
+            if (this.selectedSegment === 'dashboard') {
+                await this.loadDashboardData();
+            }
+            
+        } catch (error) {
+            console.error('Erreur lors du bulk truncate:', error);
+            await this.showToast(`Erreur lors de l'opération en masse: ${error}`, 'danger');
+        } finally {
+            this.loading = false;
         }
+    }
+
+    async quickTruncateLogs() {
+        const alert = await this.alertController.create({
+            header: '🗑️ Vider tous les logs',
+            message: 'Voulez-vous vider toutes les tables de logs ? (system_logs, activity_logs, reaction_logs)',
+            buttons: [
+                {
+                    text: 'Annuler',
+                    role: 'cancel'
+                },
+                {
+                    text: 'Vider les logs',
+                    role: 'destructive',
+                    handler: () => {
+                        const logTables = ['system_logs', 'activity_logs', 'reaction_logs'];
+                        this.performBulkTruncate(logTables, false);
+                    }
+                }
+            ]
+        });
+
+        await alert.present();
     }
 
     private async performCompleteReset() {

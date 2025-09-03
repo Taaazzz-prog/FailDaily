@@ -1163,33 +1163,15 @@
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('user_preferences')" [disabled]="loading"
-                                color="warning" fill="outline">
-                                <ion-icon name="settings-outline" slot="start"></ion-icon>
-                                Vider "user_preferences"
-                            </ion-button>
-                        </ion-col>
-                    </ion-row>
-
-                    <!-- Ligne 3: Comments & Interactions -->
-                    <ion-row>
-                        <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateTable('comments')" [disabled]="loading"
                                 color="warning" fill="outline">
                                 <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
                                 Vider "comments"
                             </ion-button>
                         </ion-col>
-                        <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('badges')" [disabled]="loading"
-                                color="warning" fill="outline">
-                                <ion-icon name="medal-outline" slot="start"></ion-icon>
-                                Vider "badges" (historique)
-                            </ion-button>
-                        </ion-col>
                     </ion-row>
 
-                    <!-- Ligne 4: Badge System -->
+                    <!-- Ligne 3: Badge System -->
                     <ion-row>
                         <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateTable('user_badges')" [disabled]="loading"
@@ -1199,15 +1181,15 @@
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="manageBadgeDefinitions()" [disabled]="loading"
-                                color="secondary" fill="outline">
-                                <ion-icon name="construct-outline" slot="start"></ion-icon>
-                                Gérer "badge_definitions"
+                            <ion-button expand="block" (click)="truncateTable('user_activities')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="pulse-outline" slot="start"></ion-icon>
+                                Vider "user_activities"
                             </ion-button>
                         </ion-col>
                     </ion-row>
 
-                    <!-- Ligne 5: Logs & Activities -->
+                    <!-- Ligne 4: Logs System -->
                     <ion-row>
                         <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateTable('system_logs')" [disabled]="loading"
@@ -1225,31 +1207,13 @@
                         </ion-col>
                     </ion-row>
 
-                    <!-- Ligne 6: Detailed Logs -->
+                    <!-- Ligne 5: Detailed Logs -->
                     <ion-row>
                         <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateTable('reaction_logs')" [disabled]="loading"
                                 color="warning" fill="outline">
                                 <ion-icon name="analytics-outline" slot="start"></ion-icon>
                                 Vider "reaction_logs"
-                            </ion-button>
-                        </ion-col>
-                        <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('user_activities')" [disabled]="loading"
-                                color="warning" fill="outline">
-                                <ion-icon name="pulse-outline" slot="start"></ion-icon>
-                                Vider "user_activities"
-                            </ion-button>
-                        </ion-col>
-                    </ion-row>
-
-                    <!-- Ligne 7: Management & Config -->
-                    <ion-row>
-                        <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('user_management_logs')"
-                                [disabled]="loading" color="warning" fill="outline">
-                                <ion-icon name="shield-checkmark-outline" slot="start"></ion-icon>
-                                Vider "user_management_logs"
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
@@ -1263,61 +1227,78 @@
                 </ion-grid>
             </div>
 
-            <!-- Tables realtime -->
+            <!-- Tables de modération et signalements -->
             <div class="table-section">
-                <h3>⚡ Tables Temps Réel</h3>
+                <h3>🚨 Tables de Modération et Signalements</h3>
                 <ion-grid>
                     <ion-row>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('realtime.messages')" [disabled]="loading"
+                            <ion-button expand="block" (click)="truncateTable('fail_moderation')" [disabled]="loading"
                                 color="warning" fill="outline">
-                                <ion-icon name="chatbubbles-outline" slot="start"></ion-icon>
-                                Vider "messages"
+                                <ion-icon name="shield-outline" slot="start"></ion-icon>
+                                Vider "fail_moderation"
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('realtime.subscription')"
-                                [disabled]="loading" color="warning" fill="outline">
-                                <ion-icon name="radio-outline" slot="start"></ion-icon>
-                                Vider "subscription"
+                            <ion-button expand="block" (click)="truncateTable('fail_reports')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="flag-outline" slot="start"></ion-icon>
+                                Vider "fail_reports"
                             </ion-button>
                         </ion-col>
                     </ion-row>
                     <ion-row>
-                        <ion-col size="12">
-                            <ion-button expand="block" (click)="truncateRealtimePartitions()" [disabled]="loading"
-                                color="warning">
-                                <ion-icon name="layers-outline" slot="start"></ion-icon>
-                                Vider TOUTES les partitions messages (2025_08_xx)
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('comment_moderation')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="chatbox-ellipses-outline" slot="start"></ion-icon>
+                                Vider "comment_moderation"
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('comment_reports')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="warning-outline" slot="start"></ion-icon>
+                                Vider "comment_reports"
+                            </ion-button>
+                        </ion-col>
+                    </ion-row>
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('comment_reactions')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="thumbs-up-outline" slot="start"></ion-icon>
+                                Vider "comment_reactions"
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('fail_reactions_archive')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="archive-outline" slot="start"></ion-icon>
+                                Vider "fail_reactions_archive"
                             </ion-button>
                         </ion-col>
                     </ion-row>
                 </ion-grid>
             </div>
 
-            <!-- Tables storage -->
+            <!-- Tables légales et consentements -->
             <div class="table-section">
-                <h3>📁 Tables Stockage</h3>
-                <div class="auth-warning">
-                    <ion-chip color="danger">
-                        <ion-icon name="warning-outline"></ion-icon>
-                        <ion-label>Cela supprimera tous les fichiers uploadés !</ion-label>
-                    </ion-chip>
-                </div>
+                <h3>⚖️ Tables Légales et Consentements</h3>
                 <ion-grid>
                     <ion-row>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('storage.objects')" [disabled]="loading"
-                                color="danger" fill="outline">
-                                <ion-icon name="folder-outline" slot="start"></ion-icon>
-                                Vider "storage.objects"
+                            <ion-button expand="block" (click)="truncateTable('legal_documents')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="document-text-outline" slot="start"></ion-icon>
+                                Vider "legal_documents"
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('storage.buckets')" [disabled]="loading"
-                                color="danger" fill="outline">
-                                <ion-icon name="archive-outline" slot="start"></ion-icon>
-                                Vider "storage.buckets"
+                            <ion-button expand="block" (click)="truncateTable('parental_consents')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="people-circle-outline" slot="start"></ion-icon>
+                                Vider "parental_consents"
                             </ion-button>
                         </ion-col>
                     </ion-row>
@@ -1336,33 +1317,26 @@
                 <ion-grid>
                     <ion-row>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="deleteAllUsers()" [disabled]="loading" color="danger"
-                                fill="solid">
+                            <ion-button expand="block" (click)="truncateAuthTable('users')" [disabled]="loading" color="danger"
+                                fill="outline">
                                 <ion-icon name="people-outline" slot="start"></ion-icon>
-                                Supprimer TOUS les utilisateurs
+                                Vider "users"
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateAuthTable('auth.identities')"
+                            <ion-button expand="block" (click)="truncateAuthTable('user_preferences')"
                                 [disabled]="loading" color="danger" fill="outline">
-                                <ion-icon name="key-outline" slot="start"></ion-icon>
-                                Vider "auth.identities"
+                                <ion-icon name="settings-outline" slot="start"></ion-icon>
+                                Vider "user_preferences"
                             </ion-button>
                         </ion-col>
                     </ion-row>
                     <ion-row>
                         <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateAuthTable('auth.sessions')" [disabled]="loading"
-                                color="danger" fill="outline">
-                                <ion-icon name="time-outline" slot="start"></ion-icon>
-                                Vider "auth.sessions"
-                            </ion-button>
-                        </ion-col>
-                        <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateAuthTable('auth.refresh_tokens')"
+                            <ion-button expand="block" (click)="truncateAuthTable('parental_consents')"
                                 [disabled]="loading" color="danger" fill="outline">
-                                <ion-icon name="refresh-circle-outline" slot="start"></ion-icon>
-                                Vider "auth.refresh_tokens"
+                                <ion-icon name="people-circle-outline" slot="start"></ion-icon>
+                                Vider "parental_consents"
                             </ion-button>
                         </ion-col>
                     </ion-row>
@@ -1371,60 +1345,72 @@
 
             <!-- Actions groupées -->
             <div class="table-section">
-                <h3>💥 Actions Groupées</h3>
+                <h3>🔥 Actions Groupées Testées et Validées</h3>
+                <div class="auth-warning">
+                    <ion-chip color="success">
+                        <ion-icon name="checkmark-circle-outline"></ion-icon>
+                        <ion-label>Toutes ces actions ont été testées avec succès !</ion-label>
+                    </ion-chip>
+                </div>
                 <ion-grid>
                     <ion-row>
                         <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateAllAppTables()" [disabled]="loading"
-                                color="warning">
-                                <ion-icon name="nuclear-outline" slot="start"></ion-icon>
-                                Vider TOUTES les tables app
+                                color="warning" fill="solid">
+                                <ion-icon name="layers-outline" slot="start"></ion-icon>
+                                Vider TOUTES les tables APP
                             </ion-button>
                         </ion-col>
                         <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateAllAuthTables()" [disabled]="loading"
-                                color="danger">
-                                <ion-icon name="skull-outline" slot="start"></ion-icon>
-                                Vider TOUTES les tables auth
+                                color="danger" fill="solid">
+                                <ion-icon name="warning-outline" slot="start"></ion-icon>
+                                Vider TOUTES les tables AUTH
                             </ion-button>
                         </ion-col>
                     </ion-row>
                     <ion-row>
-                        <ion-col size="12">
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="quickTruncateLogs()" [disabled]="loading"
+                                color="medium" fill="outline">
+                                <ion-icon name="trash-outline" slot="start"></ion-icon>
+                                Vider TOUS les logs seulement
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateEverything()" [disabled]="loading"
                                 color="danger" fill="solid">
-                                <ion-icon name="trash-bin-outline" slot="start"></ion-icon>
-                                💀 RESET COMPLET DE LA BASE
+                                <ion-icon name="nuclear-outline" slot="start"></ion-icon>
+                                RESET COMPLET
                             </ion-button>
-                        </ion-col>
-                    </ion-row>
-
-                    <!-- Bouton de restauration d'urgence -->
-                    <ion-row>
-                        <ion-col size="12">
-                            <ion-button expand="block" (click)="emergencyRestoreConfigurations()" [disabled]="loading"
-                                color="tertiary" fill="outline">
-                                <ion-icon name="construct-outline" slot="start"></ion-icon>
-                                🚨 RESTAURATION D'URGENCE (Config App)
-                            </ion-button>
-                            <ion-note>
-                                <small>Utilisez ce bouton si l'application ne fonctionne plus après un reset</small>
-                            </ion-note>
                         </ion-col>
                     </ion-row>
                 </ion-grid>
             </div>
 
-            <!-- Statut des opérations -->
+            <!-- Résultats des dernières opérations -->
             @if (truncateResults.length > 0) {
-            <div class="results-section">
-                <h3>📋 Résultats des Opérations</h3>
-                @for (result of truncateResults; track result.table) {
-                <ion-chip [color]="result.success ? 'success' : 'danger'">
-                    <ion-icon [name]="result.success ? 'checkmark-circle-outline' : 'close-circle-outline'"></ion-icon>
-                    <ion-label>{{ result.table }}: {{ result.message }}</ion-label>
-                </ion-chip>
-                }
+            <div class="table-section">
+                <h3>📊 Résultats des dernières opérations</h3>
+                <ion-list>
+                    @for (result of truncateResults; track result.table) {
+                    <ion-item>
+                        <ion-icon [name]="result.success ? 'checkmark-circle-outline' : 'close-circle-outline'" 
+                                  [color]="result.success ? 'success' : 'danger'" slot="start"></ion-icon>
+                        <ion-label>
+                            <h3>{{ result.table }}</h3>
+                            <p>{{ result.message }}</p>
+                        </ion-label>
+                        <ion-chip [color]="result.success ? 'success' : 'danger'" slot="end">
+                            {{ result.success ? 'Succès' : 'Erreur' }}
+                        </ion-chip>
+                    </ion-item>
+                    }
+                </ion-list>
+                <ion-button expand="block" fill="clear" (click)="truncateResults = []" color="medium">
+                    <ion-icon name="trash-outline" slot="start"></ion-icon>
+                    Effacer les résultats
+                </ion-button>
             </div>
             }
         </ion-card-content>

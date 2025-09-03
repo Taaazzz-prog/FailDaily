@@ -1404,6 +1404,27 @@ export class MysqlService {
     }
   }
 
+  async bulkTruncateTables(tables: string[], isAuthTables: boolean = false): Promise<{ success: boolean, message: string, results?: any[] }> {
+    try {
+      const response: any = await this.http.post(`${this.apiUrl}/admin/tables/bulk-truncate`, {
+        tables,
+        isAuthTables
+      }, { headers: this.getAuthHeaders() }).toPromise();
+
+      return {
+        success: response.success,
+        message: response.message || 'Opération terminée',
+        results: response.results || []
+      };
+    } catch (error: any) {
+      console.error('❌ Erreur vidage en masse:', error);
+      return {
+        success: false,
+        message: error.error?.message || error.message || 'Erreur lors du vidage en masse'
+      };
+    }
+  }
+
   async deleteAllAuthUsers(): Promise<{ success: boolean, message: string }> {
     try {
       const response: any = await this.http.post(`${this.apiUrl}/admin/users/delete-all`, {}, {

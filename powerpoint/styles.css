@@ -100,6 +100,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: var(--font-weight-semibold);
     line-height: 1.2;
     margin-bottom: var(--spacing-md);
+    color: #1a1a1a !important;
 }
 
 h1 { font-size: var(--font-size-5xl); }
@@ -767,7 +768,7 @@ a:hover {
 
 .metric-label {
     font-size: var(--font-size-sm);
-    color: var(--text-muted);
+    color: #1a1a1a !important;
 }
 
 /* Diagrammes */
@@ -1210,13 +1211,13 @@ a:hover {
 .metric-value {
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-bold);
-    color: var(--text-primary);
+    color: #1a1a1a !important;
     line-height: 1;
 }
 
 .metric-label {
     font-size: var(--font-size-sm);
-    color: var(--text-secondary);
+    color: #1a1a1a !important;
     margin: var(--spacing-xs) 0;
 }
 
@@ -1229,12 +1230,17 @@ a:hover {
 
 .metric-change.positive {
     background: rgba(16, 185, 129, 0.1);
-    color: var(--success-color);
+    color: #1a1a1a !important;
 }
 
 .metric-change.negative {
     background: rgba(239, 68, 68, 0.1);
-    color: var(--error-color);
+    color: #1a1a1a !important;
+}
+
+.metric-change.neutral {
+    background: rgba(156, 163, 175, 0.1);
+    color: #1a1a1a !important;
 }
 
 .charts-grid {
@@ -1400,7 +1406,7 @@ a:hover {
 }
 
 .legend-text {
-    color: var(--text-secondary);
+    color: #1a1a1a !important;
     font-weight: var(--font-weight-medium);
 }
 
@@ -3399,4 +3405,102 @@ p, span, div {
         break-inside: avoid;
         page-break-inside: avoid;
     }
+}
+
+/* Force tout le texte en noir foncé */
+.chart-container svg text,
+.chart-widget svg text,
+svg text,
+.chart-content text,
+.chart-content span,
+.chart-content div,
+.heatmap-label,
+.axis-label,
+.chart-label,
+.metric-title,
+.period-selector span,
+.period-selector div,
+.chart-btn,
+.heatmap-container .category-label,
+.heatmap-container .day-label {
+    fill: #1a1a1a !important;
+    color: #1a1a1a !important;
+}
+
+/* Force les textes des métriques et titres - SANS affecter les backgrounds */
+.dashboard-analytics-section h1,
+.dashboard-analytics-section h2,
+.dashboard-analytics-section h3,
+.dashboard-analytics-section h4,
+.dashboard-analytics-section h5,
+.dashboard-analytics-section h6,
+.dashboard-analytics-section p,
+.dashboard-analytics-section span,
+.dashboard-analytics-section div:not(.chart-widget):not(.legend-color):not(.level-bar):not(.sentiment-positive):not(.sentiment-neutral):not(.sentiment-negative),
+.analytics-advanced-section h1,
+.analytics-advanced-section h2,
+.analytics-advanced-section h3,
+.analytics-advanced-section h4,
+.analytics-advanced-section h5,
+.analytics-advanced-section h6,
+.analytics-advanced-section p,
+.analytics-advanced-section span,
+.analytics-advanced-section div:not(.chart-widget):not(.legend-color):not(.level-bar):not(.sentiment-positive):not(.sentiment-neutral):not(.sentiment-negative),
+.gamification-section h1,
+.gamification-section h2,
+.gamification-section h3,
+.gamification-section h4,
+.gamification-section h5,
+.gamification-section h6,
+.gamification-section p,
+.gamification-section span,
+.gamification-section div:not(.chart-widget):not(.legend-color):not(.level-bar):not(.sentiment-positive):not(.sentiment-neutral):not(.sentiment-negative),
+.charts-section h1,
+.charts-section h2,
+.charts-section h3,
+.charts-section h4,
+.charts-section h5,
+.charts-section h6,
+.charts-section p,
+.charts-section span,
+.charts-section div:not(.chart-widget):not(.legend-color):not(.level-bar):not(.sentiment-positive):not(.sentiment-neutral):not(.sentiment-negative),
+.metrics-section h1,
+.metrics-section h2,
+.metrics-section h3,
+.metrics-section h4,
+.metrics-section h5,
+.metrics-section h6,
+.metrics-section p,
+.metrics-section span,
+.metrics-section div:not(.chart-widget):not(.legend-color):not(.level-bar):not(.sentiment-positive):not(.sentiment-neutral):not(.sentiment-negative),
+.heatmap-container h1,
+.heatmap-container h2,
+.heatmap-container h3,
+.heatmap-container h4,
+.heatmap-container h5,
+.heatmap-container h6,
+.heatmap-container p,
+.heatmap-container span,
+.heatmap-container div:not(.chart-widget):not(.legend-color):not(.level-bar):not(.sentiment-positive):not(.sentiment-neutral):not(.sentiment-negative) {
+    color: #1a1a1a !important;
+}
+
+/* Assurer que les chart-widgets gardent leur background blanc */
+.charts-section .chart-widget {
+    background: white !important;
+}
+
+/* Exception explicite pour les backgrounds et éléments visuels */
+.legend-color,
+.metric-icon,
+.chart-container svg path,
+.chart-container svg rect,
+.chart-container svg circle,
+.level-bar,
+.sentiment-positive,
+.sentiment-neutral,
+.sentiment-negative,
+.chart-widget,
+.donut-segment {
+    background: initial !important;
 }

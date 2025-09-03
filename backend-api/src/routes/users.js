@@ -46,7 +46,7 @@ router.get('/:userId/stats', authenticateToken, async (req, res) => {
       ) fail_stats ON u.id = fail_stats.user_id
       LEFT JOIN (
         SELECT user_id, COUNT(*) as total_badges
-        FROM badges 
+        FROM user_badges 
         WHERE user_id = ?
         GROUP BY user_id
       ) badge_stats ON u.id = badge_stats.user_id
@@ -96,20 +96,21 @@ router.get('/:userId/badges', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     console.log('🏆 Récupération des badges pour l\'utilisateur:', userId);
     
-    // Récupérer les badges de l'utilisateur depuis la table badges
+    // Récupérer les badges de l'utilisateur depuis user_badges + badge_definitions
     const badges = await executeQuery(`
       SELECT 
-        b.id,
-        b.name,
-        b.description,
-        b.icon,
-        b.category,
-        b.rarity,
-        b.badge_type,
-        b.unlocked_at
-      FROM badges b
-      WHERE b.user_id = ?
-      ORDER BY b.unlocked_at DESC
+        bd.id,
+        bd.name,
+        bd.description,
+        bd.icon,
+        bd.category,
+        bd.rarity,
+        bd.requirement_type as badge_type,
+        ub.unlocked_at
+      FROM user_badges ub
+      JOIN badge_definitions bd ON ub.badge_id = bd.id
+      WHERE ub.user_id = ?
+      ORDER BY ub.unlocked_at DESC
     `, [userId]);
     
     console.log(`✅ ${badges.length} badges trouvés pour l'utilisateur ${userId}`);
@@ -133,14 +134,14 @@ router.get('/:userId/badges/ids', authenticateToken, async (req, res) => {
     const { userId } = req.params;
     console.log('🏆 Récupération des IDs badges pour l\'utilisateur:', userId);
     
-    // Récupérer uniquement les IDs des badges de l'utilisateur
+    // Récupérer uniquement les IDs des badges de l'utilisateur depuis user_badges
     const result = await executeQuery(`
-      SELECT id
-      FROM badges 
+      SELECT badge_id
+      FROM user_badges 
       WHERE user_id = ?
     `, [userId]);
     
-    const badgeIds = result.map(row => row.id);
+    const badgeIds = result.map(row => row.badge_id);
     console.log(`✅ ${badgeIds.length} badges IDs trouvés pour l'utilisateur ${userId}`);
     
     res.json({

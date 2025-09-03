@@ -319,7 +319,6 @@ export class ApiTestComponent implements OnInit {
       title: `Test Fail ${Date.now()}`,
       description: 'Ceci est un fail de test',
       category: 'Général',
-      tags: ['test', 'api'],
       is_anonyme: false
     };
 

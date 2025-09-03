@@ -13,9 +13,6 @@ router.get('/search', authenticateToken, FailsController.searchFails);
 // GET /api/fails/categories - Récupérer les catégories
 router.get('/categories', FailsController.getCategories);
 
-// GET /api/fails/tags - Récupérer les tags populaires
-router.get('/tags', FailsController.getPopularTags);
-
 // GET /api/fails/stats - Récupérer les statistiques des fails - PROTÉGÉ
 router.get('/stats', authenticateToken, FailsController.getFailsStats);
 

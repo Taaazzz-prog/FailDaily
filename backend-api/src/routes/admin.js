@@ -999,3 +999,144 @@ router.put('/comments/:id/moderation', authenticateToken, requireAdmin, async (r
     res.status(500).json({ success: false, message: 'Erreur MAJ modération commentaire' });
   }
 });
+
+// POST /api/admin/tables/:tableName/truncate - Vider une table
+router.post('/tables/:tableName/truncate', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    const { isAuthTable } = req.body;
+
+    // Liste des tables autorisées (basée sur faildaily.sql)
+    const allowedTables = [
+      // Tables principales de l'application
+      'fails', 'reactions', 'comments', 'profiles', 
+      'user_badges', 'user_activities', 'activity_logs', 'system_logs', 
+      'reaction_logs', 'app_config',
+      // Tables de modération et signalements
+      'fail_moderation', 'fail_reports', 'fail_reactions_archive',
+      'comment_moderation', 'comment_reactions', 'comment_reports',
+      // Tables auth (nécessitent confirmation spéciale)
+      'users', 'user_preferences', 'parental_consents', 'legal_documents'
+    ];
+
+    // Tables sensibles nécessitant confirmation spéciale
+    const authTables = ['users', 'user_preferences', 'parental_consents'];
+
+    if (!allowedTables.includes(tableName)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Table '${tableName}' non autorisée pour cette opération` 
+      });
+    }
+
+    // Vérification supplémentaire pour les tables auth
+    if (authTables.includes(tableName) && !isAuthTable) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `La table '${tableName}' nécessite une confirmation spéciale` 
+      });
+    }
+
+    // Désactiver les contraintes de clés étrangères temporairement
+    await executeQuery('SET FOREIGN_KEY_CHECKS = 0');
+    
+    try {
+      // Vider la table
+      await executeQuery(`TRUNCATE TABLE ${tableName}`);
+      
+      // Réactiver les contraintes
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+      
+      // Logger l'action (sauf si on vide les tables de logs elles-mêmes)
+      if (!['system_logs', 'activity_logs'].includes(tableName)) {
+        await executeQuery(
+          'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+          [require('crypto').randomUUID(), 'warning', 'table_truncate', `Table ${tableName} vidée par admin`, JSON.stringify({ tableName, isAuthTable }), req.user.id]
+        );
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Table '${tableName}' vidée avec succès` 
+      });
+
+    } catch (truncateError) {
+      // Réactiver les contraintes même en cas d'erreur
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+      throw truncateError;
+    }
+
+  } catch (error) {
+    console.error('❌ Erreur truncate table:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `Erreur lors du vidage de la table: ${error.message}` 
+    });
+  }
+});
+
+// POST /api/admin/tables/bulk-truncate - Vider plusieurs tables
+router.post('/tables/bulk-truncate', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const { tables, isAuthTables } = req.body;
+
+    if (!Array.isArray(tables) || tables.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Liste des tables requise' 
+      });
+    }
+
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
+
+    // Désactiver les contraintes de clés étrangères
+    await executeQuery('SET FOREIGN_KEY_CHECKS = 0');
+
+    try {
+      for (const tableName of tables) {
+        try {
+          await executeQuery(`TRUNCATE TABLE ${tableName}`);
+          results.push({ table: tableName, success: true });
+          successCount++;
+        } catch (error) {
+          results.push({ table: tableName, success: false, error: error.message });
+          errorCount++;
+        }
+      }
+
+      // Réactiver les contraintes
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+
+      // Logger l'action (sauf si on a vidé les tables de logs)
+      const logTablesInvolved = tables.some(table => ['system_logs', 'activity_logs'].includes(table));
+      if (!logTablesInvolved) {
+        await executeQuery(
+          'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+          [require('crypto').randomUUID(), 'warning', 'bulk_truncate', `Vidage en masse de ${successCount}/${tables.length} tables`, JSON.stringify({ tables, results, isAuthTables }), req.user.id]
+        );
+      }
+
+      res.json({ 
+        success: errorCount === 0, 
+        message: `${successCount} tables vidées avec succès, ${errorCount} erreurs`,
+        results 
+      });
+
+    } catch (error) {
+      // Réactiver les contraintes même en cas d'erreur
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+      throw error;
+    }
+
+  } catch (error) {
+    console.error('❌ Erreur bulk truncate:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: `Erreur lors du vidage en masse: ${error.message}` 
+    });
+  }
+});
+
+module.exports = router;

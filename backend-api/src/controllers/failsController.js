@@ -24,10 +24,8 @@ function mapFailRow(fail) {
     is_anonyme: !!fail.is_anonyme,
     createdAt: new Date(fail.created_at).toISOString(),
     updatedAt: new Date(fail.updated_at).toISOString(),
-    tags: fail.tags ? JSON.parse(fail.tags) : [],
-    location: fail.location ? JSON.parse(fail.location) : null,
     userReaction: fail.user_reaction,
-    moderationStatus: fail.moderation_status || 'approved'
+    moderationStatus: fail.moderation_status // null par défaut, approved seulement si validé après signalement
   };
 }
 
@@ -45,10 +43,8 @@ class FailsController {
         title,
         description,
         category = 'Général',
-        tags = [],
         is_anonyme = false,
-        imageUrl = null,
-        location = null
+        imageUrl = null
       } = req.body;
 
       const userId = req.user.id;
@@ -75,27 +71,29 @@ class FailsController {
         });
       }
 
+      // Générer un UUID pour le fail
+      const { v4: uuidv4 } = require('uuid');
+      const failId = uuidv4();
+
       // Créer le fail
       const failQuery = `
         INSERT INTO fails (
-          user_id, title, description, category, tags, 
-          is_anonyme, image_url, location, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+          id, user_id, title, description, category, 
+          is_anonyme, image_url, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
       `;
 
       const failValues = [
+        failId,
         userId,
         title.trim(),
         description ? description.trim() : null,
         category,
-        JSON.stringify(tags),
         is_anonyme,
-        imageUrl,
-        location ? JSON.stringify(location) : null
+        imageUrl
       ];
 
       const result = await executeQuery(failQuery, failValues);
-      const failId = result.insertId || null;
 
       // Award points to author (configurable)
       try {
@@ -104,7 +102,6 @@ class FailsController {
         if (rows && rows[0] && rows[0].value) { try { cfg = { ...cfg, ...JSON.parse(rows[0].value) }; } catch {} }
         const amount = Number(cfg.failCreate) || 0;
         if (amount > 0) {
-          const { v4: uuidv4 } = require('uuid');
           await executeQuery(
             `INSERT INTO user_points (user_id, points_total, created_at, updated_at)
              VALUES (?, ?, NOW(), NOW())
@@ -129,7 +126,9 @@ class FailsController {
       await FailsController.updateUserStats(userId, 'fail_created');
 
       // Vérifier les badges potentiels
+      console.log(`🏆 APPEL checkBadgeProgress pour utilisateur ${userId}`);
       await FailsController.checkBadgeProgress(userId, 'fail_created');
+      console.log(`🏆 FIN checkBadgeProgress pour utilisateur ${userId}`);
 
       console.log(`✅ Fail créé: ${failId} par utilisateur ${userId}`);
       await logSystem({ level: 'info', action: 'fail_create', message: 'Fail created', details: { failId, title, category, is_anonyme }, userId });
@@ -350,8 +349,6 @@ class FailsController {
       const fail = results[0];
       return {
         ...fail,
-        tags: JSON.parse(fail.tags || '[]'),
-        location: fail.location ? JSON.parse(fail.location) : null,
         is_anonyme: !!fail.is_anonyme,
         created_at: new Date(fail.created_at).toISOString(),
         updated_at: new Date(fail.updated_at).toISOString()
@@ -432,7 +429,7 @@ class FailsController {
       }
 
       // Construire la requête de mise à jour
-      const allowedFields = ['title', 'description', 'category', 'tags', 'is_anonyme', 'imageUrl'];
+      const allowedFields = ['title', 'description', 'category', 'is_anonyme', 'imageUrl'];
       const updateFields = [];
       const updateValues = [];
 
@@ -442,12 +439,7 @@ class FailsController {
                          field === 'imageUrl' ? 'image_url' : field;
           
           updateFields.push(`${dbField} = ?`);
-          
-          if (field === 'tags') {
-            updateValues.push(JSON.stringify(updateData[field] || []));
-          } else {
-            updateValues.push(updateData[field]);
-          }
+          updateValues.push(updateData[field]);
         }
       });
 
@@ -740,10 +732,92 @@ class FailsController {
    */
   static async checkBadgeProgress(userId, actionType) {
     try {
-      // Implementation simplifiée - à développer selon les badges
-      console.log(`🏆 Vérification badges pour utilisateur ${userId}, action: ${actionType}`);
+      console.log(`🏆 ========== VERIFICATION BADGES ==========`);
+      console.log(`🏆 Utilisateur: ${userId}, Action: ${actionType}`);
+      
+      if (actionType === 'fail_created') {
+        console.log(`🏆 Traitement action fail_created...`);
+        
+        // Compter le nombre de fails de l'utilisateur
+        const failCount = await executeQuery(
+          'SELECT COUNT(*) as count FROM fails WHERE user_id = ?',
+          [userId]
+        );
+        
+        const totalFails = failCount[0]?.count || 0;
+        console.log(`🏆 📊 Utilisateur ${userId} a ${totalFails} fails au total`);
+        
+        // Vérifier les badges basés sur le nombre de fails
+        const badgestoCheck = [
+          { requirement_type: 'fail_count', requirement_value: 1, name: 'Premier Pas' },
+          { requirement_type: 'fail_count', requirement_value: 5, name: 'Apprenti' },
+          { requirement_type: 'fail_count', requirement_value: 5, name: 'Apprenti Courage' },
+          { requirement_type: 'fail_count', requirement_value: 10, name: 'Collectionneur' },
+          { requirement_type: 'fail_count', requirement_value: 10, name: 'Courageux' },
+          { requirement_type: 'fail_count', requirement_value: 25, name: 'Narrateur' },
+          { requirement_type: 'fail_count', requirement_value: 25, name: 'Maître du Courage' },
+          { requirement_type: 'fail_count', requirement_value: 50, name: 'Grand Collectionneur' },
+          { requirement_type: 'fail_count', requirement_value: 50, name: 'Vétéran du Courage' },
+          { requirement_type: 'fail_count', requirement_value: 100, name: 'Maître des Fails' },
+          { requirement_type: 'fail_count', requirement_value: 100, name: 'Légende du Courage' }
+        ];
+        
+        for (const badgeCheck of badgestoCheck) {
+          if (totalFails >= badgeCheck.requirement_value) {
+            await this.awardBadgeIfNotExists(userId, badgeCheck.requirement_type, badgeCheck.requirement_value);
+          }
+        }
+      }
+      
     } catch (error) {
       console.warn('⚠️ Erreur vérification badges:', error);
+    }
+  }
+
+  /**
+   * Attribuer un badge si l'utilisateur ne l'a pas déjà
+   */
+  static async awardBadgeIfNotExists(userId, requirementType, requirementValue) {
+    try {
+      // Trouver le badge correspondant
+      const badge = await executeQuery(
+        'SELECT id, name FROM badge_definitions WHERE requirement_type = ? AND requirement_value = ?',
+        [requirementType, requirementValue]
+      );
+      
+      if (badge.length === 0) {
+        console.log(`⚠️ Aucun badge trouvé pour ${requirementType}:${requirementValue}`);
+        return;
+      }
+      
+      const badgeId = badge[0].id;
+      const badgeName = badge[0].name;
+      
+      // Vérifier si l'utilisateur a déjà ce badge
+      const existingBadge = await executeQuery(
+        'SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?',
+        [userId, badgeId]
+      );
+      
+      if (existingBadge.length > 0) {
+        console.log(`ℹ️ Badge "${badgeName}" déjà possédé par l'utilisateur ${userId}`);
+        return;
+      }
+      
+      // Générer un UUID pour user_badges
+      const { v4: uuidv4 } = require('uuid');
+      const userBadgeId = uuidv4();
+      
+      // Attribuer le badge
+      await executeQuery(
+        'INSERT INTO user_badges (id, user_id, badge_id, unlocked_at, created_at) VALUES (?, ?, ?, NOW(), NOW())',
+        [userBadgeId, userId, badgeId]
+      );
+      
+      console.log(`🎉 Badge "${badgeName}" attribué à l'utilisateur ${userId}!`);
+      
+    } catch (error) {
+      console.error('❌ Erreur attribution badge:', error);
     }
   }
 
@@ -850,7 +924,7 @@ class FailsController {
         JOIN users u ON f.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-        WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
+        WHERE (f.title LIKE ? OR f.description LIKE ?)
           AND (fm.status IS NULL OR fm.status = 'approved')
       `;
 
@@ -860,7 +934,7 @@ class FailsController {
       }
 
       const searchTerm = `%${searchQuery}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      params.push(searchTerm, searchTerm);
 
       // Aucun filtre de visibilité basé sur l'anonymat (is_anonyme)
 
@@ -868,15 +942,6 @@ class FailsController {
       if (category) {
         query += ' AND f.category = ?';
         params.push(category);
-      }
-
-      // Filtre par tags
-      if (tags) {
-        const tagArray = Array.isArray(tags) ? tags : [tags];
-        tagArray.forEach(tag => {
-          query += ' AND f.tags LIKE ?';
-          params.push(`%"${tag}"%`);
-        });
       }
 
       query += ' ORDER BY f.created_at DESC LIMIT ? OFFSET ?';
@@ -889,24 +954,16 @@ class FailsController {
         SELECT COUNT(*) as total
         FROM fails f
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-        WHERE (f.title LIKE ? OR f.description LIKE ? OR f.tags LIKE ?)
+        WHERE (f.title LIKE ? OR f.description LIKE ?)
           AND (fm.status IS NULL OR fm.status = 'approved')
       `;
-      const countParams = [searchTerm, searchTerm, searchTerm];
+      const countParams = [searchTerm, searchTerm];
 
       // Aucun filtre de visibilité basé sur l'anonymat (is_anonyme)
 
       if (category) {
         countQuery += ' AND f.category = ?';
         countParams.push(category);
-      }
-
-      if (tags) {
-        const tagArray = Array.isArray(tags) ? tags : [tags];
-        tagArray.forEach(tag => {
-          countQuery += ' AND f.tags LIKE ?';
-          countParams.push(`%"${tag}"%`);
-        });
       }
 
       const totalResult = await executeQuery(countQuery, countParams);
@@ -918,8 +975,6 @@ class FailsController {
         data: {
           fails: fails.map(fail => ({
             ...fail,
-            tags: JSON.parse(fail.tags || '[]'),
-            location: fail.location ? JSON.parse(fail.location) : null,
             created_at: new Date(fail.created_at).toISOString(),
             updated_at: new Date(fail.updated_at).toISOString()
           })),
@@ -990,41 +1045,12 @@ class FailsController {
       const { limit = 50 } = req.query;
       const limitNum = parseInt(limit) || 50;
 
-      // Récupérer tous les tags depuis les fails publics
-      const tagsResults = await executeQuery(`
-        SELECT tags 
-        FROM fails 
-        WHERE is_anonyme = 0 AND tags IS NOT NULL AND tags != '[]'
-      `);
-
-      // Compter la fréquence de chaque tag
-      const tagCounts = {};
-
-      tagsResults.forEach(result => {
-        try {
-          const tags = JSON.parse(result.tags);
-          if (Array.isArray(tags)) {
-            tags.forEach(tag => {
-              if (typeof tag === 'string' && tag.trim().length > 0) {
-                const normalizedTag = tag.trim().toLowerCase();
-                tagCounts[normalizedTag] = (tagCounts[normalizedTag] || 0) + 1;
-              }
-            });
-          }
-        } catch (parseError) {
-          console.warn('⚠️ Erreur parsing tags:', parseError);
-        }
-      });
-
-      // Trier par popularité et limiter
-      const sortedTags = Object.entries(tagCounts)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, limitNum)
-        .map(([tag, count]) => ({ name: tag, count }));
-
+      // Temporaire : retourner un tableau vide car le champ tags n'existe pas dans la table fails
+      // TODO: Ajouter le champ tags à la table ou implémenter une table tags séparée
+      
       res.json({
         success: true,
-        data: sortedTags
+        data: []
       });
 
     } catch (error) {

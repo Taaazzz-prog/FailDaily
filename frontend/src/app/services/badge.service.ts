@@ -538,6 +538,8 @@ export class BadgeService {
       const unlockedBadges = allAvailableBadges.filter(badge =>
         !userBadgeIds.includes(badge.id)
       );
+      
+      console.log(`🔍 DEBUG: ${userBadgeIds.length} badges débloqués, ${unlockedBadges.length} badges non débloqués sur ${allAvailableBadges.length} total`);
 
       const challenges: Array<{
         name: string;
@@ -551,9 +553,12 @@ export class BadgeService {
       for (const badge of unlockedBadges) {
         const progress = await this.getBadgeProgressNew(badge, userStats);
 
+        // DEBUG: Afficher tous les badges non débloqués pour le moment
         // SEULEMENT inclure les badges déjà entamés (progress > 0)
         // Les badges non commencés restent "secrets"
-        if (progress.current > 0) {
+        console.log(`🔍 Badge "${badge.name}": current=${progress.current}, required=${progress.required}, progress=${progress.progress}`);
+        
+        if (progress.current >= 0) { // Temporairement changé de > 0 à >= 0 pour debug
           challenges.push({
             name: badge.name,
             description: badge.description,
