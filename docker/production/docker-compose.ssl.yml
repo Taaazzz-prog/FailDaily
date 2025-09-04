@@ -1,0 +1,43 @@
+# =============================================
+# 🔒 DOCKER COMPOSE PRODUCTION SSL FAILDAILY
+# =============================================
+# Extension pour ajouter HTTPS/SSL à la configuration
+
+version: '3.8'
+
+services:
+  # 🔒 Service Certbot pour les certificats SSL
+  certbot:
+    image: certbot/certbot:latest
+    container_name: faildaily-certbot
+    volumes:
+      - ./ssl/certbot/conf:/etc/letsencrypt
+      - ./ssl/certbot/www:/var/www/certbot
+      - ./ssl/certbot/logs:/var/log/letsencrypt
+    command: certonly --webroot -w /var/www/certbot --email bruno@taaazzz.be --agree-tos --no-eff-email -d faildaily.com -d www.faildaily.com -d api.faildaily.com
+    depends_on:
+      - frontend
+    networks:
+      - faildaily-network
+
+  # 🌐 Frontend avec support SSL
+  frontend:
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./ssl/certbot/conf:/etc/letsencrypt:ro
+      - ./ssl/certbot/www:/var/www/certbot:ro
+      - ./nginx.ssl.conf:/etc/nginx/nginx.conf:ro
+    environment:
+      - SSL_ENABLED=true
+
+volumes:
+  ssl-certs:
+    name: faildaily-ssl-certs
+  ssl-dhparam:
+    name: faildaily-ssl-dhparam
+
+networks:
+  faildaily-network:
+    external: true
