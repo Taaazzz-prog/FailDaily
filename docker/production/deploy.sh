@@ -68,7 +68,7 @@ backup_database() {
         
         docker-compose -f $COMPOSE_FILE exec -T database mysqldump \
             -u root -p$(grep DB_ROOT_PASSWORD $ENV_FILE | cut -d '=' -f2) \
-            faildaily_prod > $BACKUP_FILE
+            faildaily > $BACKUP_FILE
         
         log "✅ Sauvegarde créée: $BACKUP_FILE"
     else

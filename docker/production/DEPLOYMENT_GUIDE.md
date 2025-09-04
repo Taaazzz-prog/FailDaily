@@ -148,7 +148,7 @@ sudo crontab -e
 # Logs de la base de données (problème le plus fréquent)
 docker-compose -f docker-compose.prod.yml logs database
 
-# Logs du backend
+# Logs du backend (vérifier les erreurs de connexion)
 docker-compose -f docker-compose.prod.yml logs backend
 
 # Logs du frontend  
@@ -160,6 +160,9 @@ docker-compose -f docker-compose.prod.yml ps
 # Redémarrer un service spécifique
 docker-compose -f docker-compose.prod.yml restart database
 docker-compose -f docker-compose.prod.yml restart backend
+
+# Logs en temps réel pour debugging
+docker-compose -f docker-compose.prod.yml logs -f backend
 ```
 
 ### Nettoyage complet de la base de données (en cas de corruption)

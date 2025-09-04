@@ -12,8 +12,3 @@ SET GLOBAL max_connections = 200;
 
 -- Nettoyage et finalisation
 FLUSH PRIVILEGES;
-
--- Log de l'initialisation
-INSERT INTO system_logs (level, message, created_at) 
-VALUES ('INFO', 'Database initialized for production', NOW())
-ON DUPLICATE KEY UPDATE message = VALUES(message);
