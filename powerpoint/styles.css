@@ -3496,11 +3496,28 @@ svg text,
 .chart-container svg path,
 .chart-container svg rect,
 .chart-container svg circle,
-.level-bar,
 .sentiment-positive,
 .sentiment-neutral,
 .sentiment-negative,
 .chart-widget,
 .donut-segment {
     background: initial !important;
+}
+
+/* Forcer le gradient pour les barres de progression */
+.level-bar {
+    background: var(--bg-gradient) !important;
+}
+
+/* Forcer les gradients pour les barres de sentiment */
+.sentiment-positive {
+    background: linear-gradient(90deg, #10b981, #34d399) !important;
+}
+
+.sentiment-neutral {
+    background: linear-gradient(90deg, #f59e0b, #fbbf24) !important;
+}
+
+.sentiment-negative {
+    background: linear-gradient(90deg, #ef4444, #f87171) !important;
 }
