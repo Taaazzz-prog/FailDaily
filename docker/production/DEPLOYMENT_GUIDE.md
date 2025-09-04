@@ -12,23 +12,19 @@ ssh taaazzz@51.75.55.185
 mkdir -p /home/taaazzz/apps
 cd /home/taaazzz/apps
 
-# Installation automatique (recommandé)
-curl -fsSL https://github.com/Taaazzz-prog/FailDaily/tree/main/docker/production/install.sh | bash
+# Installation automatique (repository public)
+curl -fsSL https://raw.githubusercontent.com/Taaazzz-prog/FailDaily/main/docker/production/install.sh | bash
 
-# OU installation manuelle
-sudo apt update && sudo apt upgrade -y
-sudo apt install -y docker.io docker-compose git curl wget htop nano
-
-# Ajout utilisateur au groupe docker
-sudo usermod -aG docker $USER
+# ⚠️ IMPORTANT: Après l'installation, redémarrez votre session
 logout
-# Reconnectez-vous
+# Reconnectez-vous pour que les permissions Docker soient actives
+ssh taaazzz@51.75.55.185
 ```
 
 ### 2️⃣ Déploiement de l'Application
 
 ```bash
-# Clonage du projet dans le dossier apps
+# Clonage du projet (repository public)
 cd /home/taaazzz/apps
 git clone https://github.com/Taaazzz-prog/FailDaily.git faildaily
 cd faildaily/docker/production
@@ -37,7 +33,11 @@ cd faildaily/docker/production
 cp .env.example .env
 nano .env
 
-# IMPORTANT: Modifiez ces valeurs dans .env :
+# ⚠️ CRITIQUE: Si erreur "permission denied" Docker:
+# Vous DEVEZ redémarrer votre session pour les permissions Docker
+# logout puis reconnectez-vous avec ssh taaazzz@51.75.55.185
+
+# IMPORTANT: Vérifiez ces valeurs dans .env :
 # - JWT_SECRET=@@@JeSuisLeCreateurDeCetteApplication@PrionsEnsemble@@@
 # - DB_PASSWORD=@51008473@Alexia@
 # - DB_ROOT_PASSWORD=@51008473@Alexia@Root@
@@ -142,6 +142,37 @@ sudo crontab -e
 ```
 
 ## 🐛 Dépannage
+
+### Vérification des logs en cas d'erreur
+```bash
+# Logs de la base de données (problème le plus fréquent)
+docker-compose -f docker-compose.prod.yml logs database
+
+# Logs du backend
+docker-compose -f docker-compose.prod.yml logs backend
+
+# Logs du frontend  
+docker-compose -f docker-compose.prod.yml logs frontend
+
+# Vérifier l'état des conteneurs
+docker-compose -f docker-compose.prod.yml ps
+
+# Redémarrer un service spécifique
+docker-compose -f docker-compose.prod.yml restart database
+docker-compose -f docker-compose.prod.yml restart backend
+```
+
+### Nettoyage complet de la base de données (en cas de corruption)
+```bash
+# Arrêter tous les services
+docker-compose -f docker-compose.prod.yml down
+
+# Supprimer les volumes de base de données (⚠️ PERTE DE DONNÉES)
+docker volume rm faildaily_mysql-data
+
+# Relancer le déploiement
+./deploy.sh deploy
+```
 
 ### Problèmes courants
 ```bash

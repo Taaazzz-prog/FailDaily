@@ -25,7 +25,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (optimized for production)
-RUN npm ci --only=production && \
+RUN npm install --omit=dev && \
     npm cache clean --force
 
 # Stage 2: Application
