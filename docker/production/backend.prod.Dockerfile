@@ -1,10 +1,10 @@
 # ============================================
 # 🚀 FAILDAILY PRODUCTION - DOCKERFILE BACKEND
 # ============================================
-# Image optimisée Node.js 22 Alpine pour production
+# Image optimisée Node.js 24.4.1 Alpine pour production (identique au local)
 
 # Stage 1: Dependencies
-FROM node:22-alpine AS dependencies
+FROM node:24.4.1-alpine AS dependencies
 LABEL maintainer="FailDaily Team"
 LABEL description="FailDaily Backend API - Production Build"
 
@@ -29,7 +29,7 @@ RUN npm install --omit=dev && \
     npm cache clean --force
 
 # Stage 2: Application
-FROM node:22-alpine AS application
+FROM node:24.4.1-alpine AS application
 
 # Install security updates
 RUN apk update && apk upgrade && \

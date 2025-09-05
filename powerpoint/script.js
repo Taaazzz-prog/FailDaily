@@ -718,7 +718,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showLayerInfo(element, layerName) {
         const layerData = {
             'client': 'Interface utilisateur - Angular 20 + Ionic 8 + PWA + Mobile',
-            'balancer': 'Équilibreur de charge - NGINX avec SSL/TLS et rate limiting',
+            'balancer': 'Équilibreur de charge - TRAEFIK avec SSL/TLS et rate limiting',
             'api': 'Couche API - Node.js + Express + JWT + OpenAI + 16 endpoints',
             'data': 'Couche données - MySQL + Redis + Storage + Backups automatiques',
             'monitoring': 'Surveillance - Prometheus + Grafana + CI/CD GitHub Actions'
