@@ -39,6 +39,8 @@ services:
       dockerfile: ../docker/production/backend.prod.Dockerfile
     container_name: faildaily-backend-ssl
     restart: unless-stopped
+    depends_on:
+      - db
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -50,8 +52,6 @@ services:
       - CORS_ORIGIN=https://faildaily.com,https://www.faildaily.com
       - RATE_LIMIT_WINDOW=15
       - RATE_LIMIT_MAX_REQUESTS=1000
-    depends_on:
-      - db
     networks:
       - faildaily-ssl-network
     volumes:
@@ -62,6 +62,15 @@ services:
       - "traefik.http.routers.backend.tls=true"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
+      # Route pour PowerPoint sur api.faildaily.com
+      - "traefik.http.routers.powerpoint.rule=Host(`api.faildaily.com`)"
+      - "traefik.http.routers.powerpoint.tls=true"
+      - "traefik.http.routers.powerpoint.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.powerpoint.service=backend"
+      - "traefik.http.routers.powerpoint.middlewares=powerpoint-redirect"
+      # Middleware pour rediriger vers /powerpoint/
+      - "traefik.http.middlewares.powerpoint-redirect.redirectregex.regex=^https://api\\.faildaily\\.com/?$$"
+      - "traefik.http.middlewares.powerpoint-redirect.redirectregex.replacement=https://api.faildaily.com/powerpoint/"
 
   # Frontend avec SSL
   frontend:

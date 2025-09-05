@@ -67,6 +67,9 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Servir les fichiers PowerPoint pour api.faildaily.com
+app.use('/powerpoint', express.static(path.join(__dirname, '../powerpoint'), { index: 'index.html' }));
+
 /* ---------------------------- Health checks ---------------------------- */
 app.get('/health', (req, res) => {
   res.json({
