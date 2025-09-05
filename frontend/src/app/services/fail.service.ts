@@ -255,7 +255,7 @@ export class FailService {
       is_anonyme: failData.is_anonyme,
       commentsCount: (failData.commentsCount ?? failData.comments_count ?? 0),
       reactions: reactions, // ✅ FIX: Réactions récupérées depuis l'API
-      moderationStatus: failData.moderationStatus || failData.moderation_status || undefined
+      moderationStatus: failData.moderationStatus || failData.moderation_status || 'approved'
     };
   }
 

@@ -1,230 +1,176 @@
-# 🏗️ Architecture FailDaily - Production avec Traefik
+# 🏗️ Architecture Docker FailDaily Production
 
-## Vue d'ensemble
+## 🌐 Architecture des Services
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│    FRONTEND     │    │     BACKEND     │    │    DATABASE     │
-│  (Node.js+serve)│    │   (Node.js)     │    │    (MySQL)      │
-│     Port 80     │    │    Port 3000    │    │    Port 3306    │
+│    Frontend     │    │     Backend     │    │    Database     │
+│  (Nginx+Angular)│    │   (Node.js)     │    │    (MySQL)      │
+│                 │    │                 │    │                 │
+│  Port: 80       │◄──►│  Port: 3000     │◄──►│  Port: 3306     │
+│  Container:     │    │  Container:     │    │  Container:     │
+│  faildaily-     │    │  faildaily-     │    │  faildaily-     │
+│  frontend-prod  │    │  backend-prod   │    │  db-prod        │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                ┌─────────────────┴─────────────────┐
-                │          TRAEFIK v3.0             │
-                │      (Reverse Proxy + SSL)        │
-                │       Ports 80/443/8080          │
-                └───────────────────────────────────┘
-                                 │
-                         ┌───────┴───────┐
-                         │   Internet    │
-                         │ faildaily.com │
-                         └───────────────┘
 ```
 
-## Services Docker
+## 🔌 Mapping des Ports
 
-| Service | Image | Port | Description |
-|---------|-------|------|-------------|
-| traefik | traefik:v3.0 | 80,443,8080 | Reverse proxy, SSL, load balancer |
-| frontend | node:20-alpine | 80 | Application Angular/Ionic |
-| backend | node:20-alpine | 3000 | API REST Node.js/Express |
-| db | mysql:8.0.35 | 3306 | Base de données MySQL |
+| Service  | Port Interne | Port Externe | Accès |
+|----------|-------------|-------------|--------|
+| Frontend | 8080        | 80          | Public |
+| Backend  | 3000        | 3001        | Interne |
+| Database | 3306        | 3307        | Interne |
 
-## Volumes persistants
+## 📁 Volumes Docker
 
-| Volume | Type | Chemin | Usage |
-|--------|------|--------|-------|
-| faildaily_mysql-data | Named | /var/lib/mysql | Données MySQL |
-| faildaily_backend-uploads | Named | /app/uploads | Fichiers uploadés |
-| faildaily_traefik-ssl-certs | Named | /letsencrypt | Certificats SSL Let's Encrypt |
+| Volume       | Type  | Montage                   | Usage |
+|-------------|-------|---------------------------|--------|
+| mysql-data  | Named | /var/lib/mysql           | Persistance DB |
+| nginx-cache | Named | /var/cache/nginx         | Cache Nginx |
+| app-logs    | Named | /var/log/nginx, /app/logs| Logs |
+| uploads     | Bind  | ./data/uploads           | Fichiers uploadés |
 
-## Réseau
+## 🌐 Network Configuration
 
-| Service | IP interne | Externe |
-|---------|------------|---------|
-| Traefik | Dynamic | 80,443,8080 |
-| Frontend | Dynamic | Via Traefik |
-| Backend | Dynamic | Via Traefik |
-| Database | Dynamic | Interne seulement |
+**Réseau Docker** : `faildaily-network` (172.20.0.0/16)
 
-## Configuration Traefik
+| Service  | IP Statique |
+|----------|-------------|
+| Database | 172.20.0.10 |
+| Backend  | 172.20.0.20 |
+| Frontend | 172.20.0.30 |
 
-### Points d'entrée
-```yaml
-entrypoints:
-  web:
-    address: ":80"
-    http:
-      redirections:
-        entryPoint:
-          to: websecure
-          scheme: https
-  websecure:
-    address: ":443"
-```
+## 🔒 Variables d'Environnement Critiques
 
-### Certificats SSL
-```yaml
-certificatesResolvers:
-  letsencrypt:
-    acme:
-      email: bruno@taaazzz.be
-      storage: /letsencrypt/acme.json
-      httpChallenge:
-        entryPoint: web
-```
-
-### Routing automatique
-- **Frontend**: PathPrefix(`/`) → service frontend:80
-- **Backend**: PathPrefix(`/api/`) → service backend:3000
-- **Health**: Path(`/health`) → service backend:3000
-
-## Sécurité
-
-### SSL/TLS
-- Certificats automatiques Let's Encrypt
-- Redirection HTTP → HTTPS automatique
-- HSTS activé
-- Protocoles TLS 1.2/1.3 uniquement
-
-### Utilisateurs non-root
-- Frontend : `appuser` (UID 1001)
-- Backend : `appuser` (UID 1001)
-- Database : `mysql` (UID 999)
-
-### Réseau
-- **Port 80/443** : Traefik (Public)
-- **Port 8080** : Dashboard Traefik (Temporaire)
-- **Port 3000/3306** : Services internes uniquement
-
-### Firewall recommandé
+### Backend
 ```bash
-# Autoriser seulement HTTP/HTTPS
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 8080/tcp  # Dashboard (à fermer après config)
+NODE_ENV=production
+DB_HOST=database
+JWT_SECRET=[généré-automatiquement]
+CORS_ORIGIN=http://votre-ip-serveur
 ```
 
-## Monitoring et Health Checks
-
-### Health Checks intégrés
-```yaml
-# Frontend
-healthcheck:
-  test: ["CMD", "wget", "--spider", "http://localhost:80/"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
-
-# Backend  
-healthcheck:
-  test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health')"]
-  interval: 30s
-  timeout: 10s
-  retries: 3
-
-# Database
-healthcheck:
-  test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-  interval: 30s
-  timeout: 10s
-  retries: 5
-```
-
-### Logs centralisés
+### Database
 ```bash
-# Tous les services
-docker-compose logs -f
-
-# Service spécifique
-docker-compose logs -f traefik
-docker-compose logs -f frontend
-docker-compose logs -f backend
-docker-compose logs -f db
+MYSQL_ROOT_PASSWORD=[généré-automatiquement]
+MYSQL_DATABASE=faildaily_prod
+MYSQL_USER=faildaily_user
+MYSQL_PASSWORD=[généré-automatiquement]
 ```
 
-### Métriques Traefik
-```bash
-# API Traefik
-curl http://localhost:8080/api/rawdata
+## 📊 Monitoring & Health Checks
 
-# Services actifs
-curl http://localhost:8080/api/http/services
+### Frontend
+- **Health Check** : `wget http://localhost:8080/health`
+- **Interval** : 30s
+- **Timeout** : 5s
 
-# Certificats SSL
-curl http://localhost:8080/api/http/routers
+### Backend
+- **Health Check** : `curl http://localhost:3000/api/health`
+- **Interval** : 30s
+- **Timeout** : 10s
+
+### Database
+- **Health Check** : `mysqladmin ping`
+- **Interval** : 30s
+- **Timeout** : 10s
+
+## 🚦 Ordre de Démarrage
+
+1. **Database** (MySQL 8.0)
+2. **Backend** (attend database healthy)
+3. **Frontend** (attend backend healthy)
+
+## 📈 Optimisations Performance
+
+### MySQL
+```sql
+innodb_buffer_pool_size = 256M
+max_connections = 200
+query_cache_size = 64M
 ```
 
-## Performance
+### Nginx
+```nginx
+worker_processes auto
+gzip on
+keepalive_timeout 65
+client_max_body_size 10M
+```
 
-### Frontend (serve)
-- Gzip automatique pour les assets statiques
-- Cache des fichiers statiques (1 an)
-- SPA fallback pour Angular routing
-- Health check léger
+### Node.js
+```javascript
+keepAliveTimeout: 65000
+maxConnections: 100
+```
 
-### Backend (Node.js)
-- PM2 pour la gestion des processus
-- Variables d'environnement optimisées
-- Connection pooling MySQL
-- Rate limiting via middleware
+## 🔧 Commandes Docker Utiles
 
-### Database (MySQL)
-- InnoDB buffer pool optimisé
-- Connexions max configurées
-- Slow query log activé
-- Charset UTF8MB4
-
-### Traefik
-- Auto-discovery des services Docker
-- Load balancing automatique
-- Compression GZIP
-- Cache des certificats SSL
-
-## Backup et Restauration
-
-### Données critiques
 ```bash
-# Backup MySQL
-docker-compose exec db mysqldump -u root -p faildaily > backup.sql
+# Voir les conteneurs
+docker ps
 
-# Backup uploads
-docker cp faildaily-backend-prod:/app/uploads ./uploads-backup
+# Voir les volumes
+docker volume ls
 
-# Backup certificats SSL
-docker cp faildaily-traefik-prod:/letsencrypt ./ssl-backup
+# Voir le réseau
+docker network inspect faildaily-network
+
+# Logs d'un service
+docker-compose -f docker-compose.prod.yml logs backend
+
+# Entrer dans un conteneur
+docker exec -it faildaily-backend-prod bash
+
+# Statistiques en temps réel
+docker stats
+
+# Espace disque
+docker system df
+```
+
+## 🛡️ Sécurité
+
+### Utilisateurs Non-Root
+- Frontend : `nginx-app` (UID 1001)
+- Backend : `nodejs` (UID 1001)
+- Database : `mysql` (default)
+
+### Ports Exposés
+- **Port 80** : Nginx (Frontend + Proxy API)
+- **Port 3001** : Backend (localhost seulement)
+- **Port 3307** : MySQL (localhost seulement)
+
+### Isolation Réseau
+- Services communiquent via réseau Docker interne
+- Seul le frontend est exposé publiquement
+- API accessible via proxy Nginx uniquement
+
+## 📝 Logs
+
+```bash
+# Emplacement des logs
+./logs/                 # Logs applicatifs
+docker logs [container] # Logs conteneurs
+
+# Rotation automatique des logs Docker
+# Configurée dans docker-compose.yml
+```
+
+## 🔄 Backup & Restore
+
+### Sauvegarde Automatique
+```bash
+# Script inclus
+./deploy.sh backup
+
+# Fichier créé
+./backups/faildaily_backup_YYYYMMDD_HHMMSS.sql
 ```
 
 ### Restauration
 ```bash
-# Restaurer MySQL
-docker-compose exec -T db mysql -u root -p faildaily < backup.sql
-
-# Restaurer uploads
-docker cp ./uploads-backup/. faildaily-backend-prod:/app/uploads/
-
-# Restaurer SSL (si nécessaire)
-docker cp ./ssl-backup/. faildaily-traefik-prod:/letsencrypt/
+docker-compose -f docker-compose.prod.yml exec -T database \
+  mysql -u root -p[password] faildaily_prod < backup.sql
 ```
-
-## Migration depuis Nginx
-
-### Différences principales
-| Aspect | Nginx (ancien) | Traefik (nouveau) |
-|--------|----------------|-------------------|
-| Configuration | Fichiers .conf statiques | Labels Docker dynamiques |
-| SSL | Certbot manuel | Let's Encrypt automatique |
-| Service Discovery | Manuel | Automatique |
-| Reload | Redémarrage requis | Hot reload |
-| Dashboard | Aucun | Interface web intégrée |
-
-### Avantages Traefik
-- ✅ Configuration automatique via labels Docker
-- ✅ SSL Let's Encrypt sans intervention
-- ✅ Service discovery automatique
-- ✅ Hot reload des configurations
-- ✅ Dashboard de monitoring intégré
-- ✅ Pas de duplication de logique CORS
-- ✅ Scaling automatique des services

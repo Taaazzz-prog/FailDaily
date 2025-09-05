@@ -1,440 +1,279 @@
-# 🚀 Guide de Déploiement FailDaily - Production avec Traefik
+# 🚀 Guide de Déploiement FailDaily sur Serveur OVH
 
-## Prérequis
+## 📋 Guide Complet - Copier/Coller
 
-### Serveur OVH
-- **OS:** Ubuntu 22.04 LTS
-- **RAM:** 4GB minimum
-- **Stockage:** 40GB SSD minimum
-- **Réseau:** IP publique fixe
-
-### Software requis
-```bash
-# Mise à jour système
-sudo apt update && sudo apt upgrade -y
-
-# Docker et Docker Compose
-curl -fsSL https://get.docker.com -o get-docker.sh
-sudo sh get-docker.sh
-sudo usermod -aG docker $USER
-
-# Docker Compose v2
-sudo apt install docker-compose-plugin
-
-# Outils système
-sudo apt install -y git rsync ufw fail2ban
-```
-
-## Configuration DNS
-
-### Enregistrements requis
-```
-Type A: faildaily.com → IP_SERVEUR_OVH
-Type A: www.faildaily.com → IP_SERVEUR_OVH
-Type A: api.faildaily.com → IP_SERVEUR_OVH (optionnel)
-```
-
-### Vérification DNS
-```bash
-# Tester la propagation DNS
-nslookup faildaily.com
-dig faildaily.com A
-```
-
-## Sécurité du Serveur
-
-### Firewall UFW
-```bash
-# Configuration UFW
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
-
-# Autoriser SSH (changez le port si nécessaire)
-sudo ufw allow 22/tcp
-
-# Autoriser HTTP/HTTPS pour Traefik
-sudo ufw allow 80/tcp
-sudo ufw allow 443/tcp
-
-# Dashboard Traefik (temporaire)
-sudo ufw allow 8080/tcp
-
-# Activer le firewall
-sudo ufw enable
-```
-
-### Fail2Ban pour SSH
-```bash
-# Configuration Fail2Ban
-sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-sudo nano /etc/fail2ban/jail.local
-
-# Redémarrer Fail2Ban
-sudo systemctl restart fail2ban
-sudo systemctl enable fail2ban
-```
-
-### Utilisateur non-root
-```bash
-# Créer utilisateur dédié
-sudo adduser taaazzz
-sudo usermod -aG sudo taaazzz
-sudo usermod -aG docker taaazzz
-
-# Configuration SSH pour l'utilisateur
-su - taaazzz
-mkdir ~/.ssh
-chmod 700 ~/.ssh
-# Copier votre clé publique dans ~/.ssh/authorized_keys
-```
-
-## Préparation du Déploiement
-
-### 1. Configuration des variables d'environnement
+### 1️⃣ Préparation du Serveur OVH
 
 ```bash
-# Sur le serveur OVH
-cd /home/taaazzz/apps/faildaily/docker/production
-cp .env.example .env
-nano .env
+# Connexion à votre serveur
+ssh taaazzz@51.75.55.185
+
+# Création du dossier d'installation (recommandé)
+mkdir -p /home/taaazzz/apps
+cd /home/taaazzz/apps
+
+# Installation automatique (repository public)
+curl -fsSL https://raw.githubusercontent.com/Taaazzz-prog/FailDaily/main/docker/production/install.sh | bash
+
+# ⚠️ IMPORTANT: Après l'installation, redémarrez votre session
+logout
+# Reconnectez-vous pour que les permissions Docker soient actives
+ssh taaazzz@51.75.55.185
 ```
 
-**Configuration .env pour production :**
-```bash
-# 🌐 Application
-NODE_ENV=production
-APP_NAME=FailDaily
-APP_VERSION=1.0.0
-
-# 🚀 Backend API
-BACKEND_PORT=3000
-CORS_ORIGIN=https://faildaily.com,https://www.faildaily.com
-API_BASE_URL=https://faildaily.com/api
-
-# 🔐 JWT Security (GÉNÉRER UN NOUVEAU SECRET)
-JWT_SECRET=VOTRE_SECRET_JWT_SUPER_SECURISE_DE_64_CARACTERES_MINIMUM
-JWT_EXPIRES_IN=24h
-
-# 🗄️ MySQL Database
-DB_HOST=db
-DB_PORT=3306
-DB_USER=faildaily_user
-DB_PASSWORD=VOTRE_MOT_DE_PASSE_MYSQL_SECURISE
-DB_NAME=faildaily
-DB_ROOT_PASSWORD=VOTRE_MOT_DE_PASSE_ROOT_MYSQL_SECURISE
-
-# 🚦 Rate Limiting
-RATE_LIMIT_WINDOW=15
-RATE_LIMIT_MAX=100
-```
-
-### 2. Préparation des volumes persistants
+### 2️⃣ Déploiement de l'Application
 
 ```bash
-# Créer les volumes Docker
-docker volume create faildaily_mysql-data
-docker volume create faildaily_backend-uploads
-
-# Vérifier les volumes
-docker volume ls | grep faildaily
-```
-
-## Méthodes de Déploiement
-
-### Méthode 1: Script Automatique (Recommandé)
-
-**Depuis votre machine Windows :**
-```powershell
-cd "d:/Web API/FailDaily/docker/production"
-.\deploy-traefik.ps1
-```
-
-**Depuis Linux/Mac :**
-```bash
-cd "d:/Web API/FailDaily/docker/production"
-chmod +x deploy-traefik.sh
-./deploy-traefik.sh
-```
-
-### Méthode 2: Déploiement Manuel
-
-**1. Synchronisation des fichiers :**
-```bash
-# Depuis votre machine locale
-rsync -avz --delete \
-  --exclude='node_modules' \
-  --exclude='.git' \
-  --exclude='backend-api/uploads' \
-  --exclude='frontend/dist' \
-  ./ taaazzz@51.75.55.185:/home/taaazzz/apps/faildaily/
-```
-
-**2. Build et démarrage sur le serveur :**
-```bash
-# Sur le serveur OVH
-cd /home/taaazzz/apps/faildaily
-docker-compose -f docker/production/docker-compose.traefik.yml down --remove-orphans
-docker-compose -f docker/production/docker-compose.traefik.yml up -d --build
-```
-
-### Méthode 3: Déploiement via Git
-
-**1. Configuration Git sur le serveur :**
-```bash
-# Sur le serveur OVH
+# Clonage du projet (repository public)
 cd /home/taaazzz/apps
 git clone https://github.com/Taaazzz-prog/FailDaily.git faildaily
-cd faildaily
+cd faildaily/docker/production
+
+# Configuration environnement
+cp .env.example .env
+nano .env
+
+# ⚠️ CRITIQUE: Si erreur "permission denied" Docker:
+# Vous DEVEZ redémarrer votre session pour les permissions Docker
+# logout puis reconnectez-vous avec ssh taaazzz@51.75.55.185
+
+# IMPORTANT: Vérifiez ces valeurs dans .env :
+# - JWT_SECRET=@@@JeSuisLeCreateurDeCetteApplication@PrionsEnsemble@@@
+# - DB_PASSWORD=@51008473@Alexia@
+# - DB_ROOT_PASSWORD=@51008473@Alexia@Root@
+# - CORS_ORIGIN=https://faildaily.com
+
+# Rendre le script exécutable
+chmod +x deploy.sh
+
+# Déploiement complet
+./deploy.sh deploy
 ```
 
-**2. Mise à jour et déploiement :**
+### 3️⃣ Vérification du Déploiement
+
 ```bash
-# Mettre à jour le code
-git pull origin main
+# Vérifier l'état des services
+./deploy.sh status
 
-# Déployer
-docker-compose -f docker/production/docker-compose.traefik.yml up -d --build
+# Vérifier la santé
+./deploy.sh health
+
+# Voir les logs
+./deploy.sh logs
 ```
 
-## Configuration SSL Let's Encrypt
+### 4️⃣ Configuration DNS/Domaine
 
-### Automatique via Traefik
-Traefik gère automatiquement les certificats SSL. La configuration est dans `docker-compose.traefik.yml` :
-
-```yaml
-certificatesresolvers:
-  letsencrypt:
-    acme:
-      email: bruno@taaazzz.be
-      storage: /letsencrypt/acme.json
-      httpchallenge:
-        entrypoint: web
-```
-
-### Vérification des certificats
 ```bash
-# Vérifier l'obtention du certificat
-docker-compose logs traefik | grep acme
+# Dans votre DNS OVH, créez un enregistrement A :
+# @ ou www -> IP_DE_VOTRE_SERVEUR
 
-# Tester HTTPS
-curl -I https://faildaily.com
+# Puis mettez à jour le CORS dans .env :
+# CORS_ORIGIN=https://faildaily.com
 
-# Vérifier la redirection HTTP→HTTPS
-curl -I http://faildaily.com
+# Redémarrez après modification
+./deploy.sh restart
 ```
 
-## Monitoring et Maintenance
+## 🔧 Commands Utiles
 
-### Vérification des services
 ```bash
-# Status des containers
-docker-compose -f docker/production/docker-compose.traefik.yml ps
+# Déploiement complet
+./deploy.sh deploy
 
-# Santé des services
-docker-compose -f docker/production/docker-compose.traefik.yml exec frontend wget -q --spider http://localhost:80/ && echo "Frontend OK"
-docker-compose -f docker/production/docker-compose.traefik.yml exec backend curl -f http://localhost:3000/health && echo "Backend OK"
-docker-compose -f docker/production/docker-compose.traefik.yml exec db mysqladmin ping -h localhost && echo "Database OK"
+# Sauvegarde base de données
+./deploy.sh backup
+
+# Voir les logs en temps réel
+./deploy.sh logs
+
+# État des services
+./deploy.sh status
+
+# Arrêter l'application
+./deploy.sh stop
+
+# Redémarrer l'application
+./deploy.sh restart
+
+# Mise à jour depuis Git
+./deploy.sh update
 ```
 
-### Dashboard Traefik
+## 📊 Monitoring
+
 ```bash
-# Accéder au dashboard
-http://IP_SERVEUR:8080
-
-# API Traefik
-curl http://IP_SERVEUR:8080/api/rawdata | jq .
-```
-
-### Logs en temps réel
-```bash
-# Tous les services
-docker-compose -f docker/production/docker-compose.traefik.yml logs -f
-
-# Service spécifique
-docker-compose -f docker/production/docker-compose.traefik.yml logs -f traefik
-docker-compose -f docker/production/docker-compose.traefik.yml logs -f backend
-```
-
-### Surveillance des ressources
-```bash
-# Utilisation ressources par container
+# Utilisation des ressources
 docker stats
+
+# Logs spécifiques
+docker-compose -f docker-compose.prod.yml logs frontend
+docker-compose -f docker-compose.prod.yml logs backend
+docker-compose -f docker-compose.prod.yml logs database
 
 # Espace disque
 df -h
 docker system df
-
-# Volumes Docker
-docker volume ls
-docker volume inspect faildaily_mysql-data
 ```
 
-## Backup et Restauration
+## 🔒 Sécurité
 
-### Script de backup automatique
+### Pare-feu UFW
 ```bash
-#!/bin/bash
-# /home/taaazzz/scripts/backup-faildaily.sh
-
-BACKUP_DIR="/home/taaazzz/backups/$(date +%Y%m%d_%H%M%S)"
-mkdir -p $BACKUP_DIR
-
-# Backup MySQL
-docker-compose -f /home/taaazzz/apps/faildaily/docker/production/docker-compose.traefik.yml exec -T db mysqldump -u root -p$DB_ROOT_PASSWORD faildaily > $BACKUP_DIR/faildaily_db.sql
-
-# Backup uploads
-docker cp faildaily-backend-prod:/app/uploads $BACKUP_DIR/uploads
-
-# Backup certificats SSL
-docker cp faildaily-traefik-prod:/letsencrypt $BACKUP_DIR/ssl
-
-# Compression
-tar -czf $BACKUP_DIR.tar.gz -C $BACKUP_DIR .
-rm -rf $BACKUP_DIR
-
-echo "Backup terminé: $BACKUP_DIR.tar.gz"
+sudo ufw status
+sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP
+sudo ufw allow 443/tcp   # HTTPS
+sudo ufw enable
 ```
 
-### Cron pour backup automatique
+### SSL/HTTPS (avec Let's Encrypt)
 ```bash
-# Ajouter au crontab
-crontab -e
+# Installation Certbot
+sudo apt install -y certbot python3-certbot-nginx
 
-# Backup quotidien à 2h du matin
-0 2 * * * /home/taaazzz/scripts/backup-faildaily.sh
+# Génération certificat
+sudo certbot --nginx -d faildaily.com
+
+# Auto-renouvellement
+sudo crontab -e
+# Ajouter : 0 12 * * * /usr/bin/certbot renew --quiet
 ```
 
-## Mise à jour de l'application
+## 🐛 Dépannage
 
-### Mise à jour avec zéro downtime
+### Vérification des logs en cas d'erreur
 ```bash
-# 1. Mettre à jour le code
-git pull origin main
+# Logs de la base de données (problème le plus fréquent)
+docker-compose -f docker-compose.prod.yml logs database
 
-# 2. Build des nouvelles images
-docker-compose -f docker/production/docker-compose.traefik.yml build
+# Logs du backend (vérifier les erreurs de connexion)
+docker-compose -f docker-compose.prod.yml logs backend
 
-# 3. Mise à jour progressive (rolling update)
-docker-compose -f docker/production/docker-compose.traefik.yml up -d --no-deps frontend
-docker-compose -f docker/production/docker-compose.traefik.yml up -d --no-deps backend
+# Logs du frontend  
+docker-compose -f docker-compose.prod.yml logs frontend
 
-# 4. Vérifier le bon fonctionnement
-curl -f https://faildaily.com/api/health
+# Vérifier l'état des conteneurs
+docker-compose -f docker-compose.prod.yml ps
+
+# Redémarrer un service spécifique
+docker-compose -f docker-compose.prod.yml restart database
+docker-compose -f docker-compose.prod.yml restart backend
+
+# Logs en temps réel pour debugging
+docker-compose -f docker-compose.prod.yml logs -f backend
 ```
 
-## Troubleshooting
+### Nettoyage complet de la base de données (en cas de corruption)
+```bash
+# Arrêter tous les services
+docker-compose -f docker-compose.prod.yml down
+
+# Supprimer les volumes de base de données (⚠️ PERTE DE DONNÉES)
+docker volume rm faildaily_mysql-data
+
+# Relancer le déploiement
+./deploy.sh deploy
+```
 
 ### Problèmes courants
-
-**1. Certificat SSL non obtenu :**
 ```bash
-# Vérifier les logs Traefik
-docker-compose logs traefik | grep acme
+# Ports occupés
+sudo netstat -tulpn | grep :80
+sudo netstat -tulpn | grep :3000
 
-# Vérifier que le domaine pointe vers le serveur
-nslookup faildaily.com
+# Redémarrer Docker
+sudo systemctl restart docker
 
-# Vérifier que les ports 80/443 sont ouverts
-sudo ufw status
+# Nettoyer Docker
+docker system prune -af
+
+# Logs d'erreur
+docker-compose -f docker-compose.prod.yml logs --tail=100
+
+# Reconstruire sans cache
+docker-compose -f docker-compose.prod.yml build --no-cache
 ```
 
-**2. Service inaccessible :**
+### Vérification base de données
 ```bash
-# Vérifier les labels Traefik
-docker inspect faildaily-frontend-prod | grep traefik
+# Connexion à MySQL
+docker-compose -f docker-compose.prod.yml exec database mysql -u root -p
 
-# Vérifier le réseau Docker
-docker network ls
-docker network inspect production_faildaily-network
+# Dans MySQL :
+SHOW DATABASES;
+USE faildaily;
+SHOW TABLES;
+SELECT COUNT(*) FROM users;
 ```
 
-**3. Base de données inaccessible :**
+## 📈 Performance
+
+### Optimisations serveur
 ```bash
-# Vérifier MySQL
-docker-compose exec db mysql -u root -p -e "SHOW DATABASES;"
-
-# Vérifier les variables d'environnement
-docker-compose exec backend env | grep DB_
-```
-
-### Commandes de debug
-```bash
-# Redémarrer un service spécifique
-docker-compose -f docker/production/docker-compose.traefik.yml restart frontend
-
-# Reconstruire complètement
-docker-compose -f docker/production/docker-compose.traefik.yml down
-docker-compose -f docker/production/docker-compose.traefik.yml up -d --build
-
-# Nettoyer les images inutiles
-docker system prune -a
-```
-
-## Performance et Optimisation
-
-### Optimisations recommandées
-
-**1. Système :**
-```bash
-# Limites de fichiers ouverts
-echo "* soft nofile 65536" >> /etc/security/limits.conf
-echo "* hard nofile 65536" >> /etc/security/limits.conf
+# Augmenter les limites de fichiers
+echo "* soft nofile 65536" | sudo tee -a /etc/security/limits.conf
+echo "* hard nofile 65536" | sudo tee -a /etc/security/limits.conf
 
 # Optimisations réseau
-echo "net.core.somaxconn = 65536" >> /etc/sysctl.conf
-sysctl -p
+echo "net.core.somaxconn = 65536" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
 ```
 
-**2. Docker :**
+### Monitoring avancé
 ```bash
-# Configuration Docker daemon
-cat > /etc/docker/daemon.json << EOF
-{
-  "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "10m",
-    "max-file": "3"
-  }
-}
-EOF
+# Installation htop
+sudo apt install -y htop iotop nethogs
 
-sudo systemctl restart docker
+# Surveillance en temps réel
+htop
+iotop
+nethogs
 ```
 
-**3. Monitoring avancé :**
+## 🔄 Maintenance
+
+### Sauvegardes automatiques
 ```bash
-# Installation de ctop pour monitoring containers
-sudo wget https://github.com/bcicen/ctop/releases/download/v0.7.7/ctop-0.7.7-linux-amd64 -O /usr/local/bin/ctop
-sudo chmod +x /usr/local/bin/ctop
+# Créer script de sauvegarde
+nano /home/user/backup-faildaily.sh
+
+#!/bin/bash
+cd /home/user/faildaily/docker/production
+./deploy.sh backup
+# Optionnel : upload vers S3, FTP, etc.
+
+# Rendre exécutable
+chmod +x /home/user/backup-faildaily.sh
+
+# Programmer dans crontab
+crontab -e
+# Ajouter : 0 2 * * * /home/user/backup-faildaily.sh
 ```
 
-## Sécurité Avancée
-
-### Durcissement Docker
+### Mises à jour
 ```bash
-# Utilisateur non-root pour Docker daemon
-sudo nano /etc/docker/daemon.json
-{
-  "userns-remap": "default"
-}
+# Mise à jour automatique
+./deploy.sh update
+
+# Mise à jour manuelle
+git pull
+docker-compose -f docker-compose.prod.yml down
+docker-compose -f docker-compose.prod.yml build --no-cache
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Audit et Logs
-```bash
-# Configuration rsyslog pour Docker
-echo "docker logs to syslog" >> /etc/rsyslog.conf
+## 🎯 URLs d'accès
 
-# Rotation des logs
-cat > /etc/logrotate.d/docker << EOF
-/var/log/docker/*.log {
-    daily
-    missingok
-    rotate 7
-    compress
-    notifempty
-    create 0644 root root
-}
-EOF
-```
+- **Application Frontend** : https://faildaily.com/
+- **API Backend** : https://faildaily.com/api/
+- **Health Check** : https://faildaily.com/health
 
-Cette documentation complète vous guide à travers tous les aspects du déploiement de FailDaily avec Traefik, de la configuration initiale à la maintenance avancée.
+## 📞 Support
+
+En cas de problème :
+1. Vérifiez les logs : `./deploy.sh logs`
+2. Vérifiez l'état : `./deploy.sh status`
+3. Consultez la documentation Docker
+4. Redémarrez en dernier recours : `./deploy.sh restart`
