@@ -8,6 +8,7 @@ const path = require('path');
 require('dotenv').config();
 
 const database = require('./src/config/database');
+const rateLimitMonitor = require('./src/middleware/rateLimitMonitor');
 
 // Routes (obligatoires)
 const authRoutes = require('./src/routes/auth');
@@ -18,6 +19,7 @@ const reactionsRoutes = require('./src/routes/reactions');
 const commentsRoutes = require('./src/routes/comments');
 const logsRoutes = require('./src/routes/logs');
 const adminRoutes = require('./src/routes/admin');
+const monitoringRoutes = require('./src/routes/monitoring');
 
 // Routes (optionnelles)
 let failsPublicRoutes = null;
@@ -51,14 +53,101 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'X-Requested-With', 'Accept']
 }));
 
-const limiter = rateLimit({
+/* ------------------------ Rate Limiting Multi-Niveaux ------------------------ */
+
+// 🛡️ Protection DDoS - Rate limiting strict par IP
+const ddosProtection = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: process.env.NODE_ENV === 'test' ? 1000 : 200, // 200 req/min par IP
+  message: { 
+    error: 'Trop de requêtes depuis cette IP. Protection DDoS activée.', 
+    code: 'DDOS_PROTECTION',
+    retryAfter: '1 minute'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip, // Explicitement par IP
+  skip: (req) => req.path === '/api/health'
+});
+
+// 🔐 Protection authentification - Rate limiting par IP pour login/register
+const authProtection = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'test' ? 100 : 10, // 10 tentatives/15min par IP
+  message: { 
+    error: 'Trop de tentatives de connexion. Réessayez dans 15 minutes.', 
+    code: 'AUTH_RATE_LIMIT',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip,
+  skipSuccessfulRequests: true // Ne compte que les échecs
+});
+
+// 📁 Protection upload - Rate limiting par IP pour uploads
+const uploadProtection = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: process.env.NODE_ENV === 'test' ? 100 : 20, // 20 uploads/5min par IP
+  message: { 
+    error: 'Trop d\'uploads depuis cette IP. Réessayez dans 5 minutes.', 
+    code: 'UPLOAD_RATE_LIMIT',
+    retryAfter: '5 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip
+});
+
+// 🌐 Rate limiting global - Plus permissif pour usage normal
+const globalLimiter = rateLimit({
   windowMs: (Number(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000,
   max: process.env.NODE_ENV === 'test'
     ? 10000
-    : (Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100),
-  message: { error: 'Trop de requêtes, veuillez réessayer plus tard', code: 'RATE_LIMIT_EXCEEDED' }
+    : (Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 5000), // 5000 req/15min par IP
+  message: { 
+    error: 'Limite globale de requêtes atteinte. Réessayez plus tard.', 
+    code: 'GLOBAL_RATE_LIMIT',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.ip,
+  skip: (req) => req.path === '/api/health'
 });
-app.use(limiter);
+
+// Application des limiters dans l'ordre (du plus strict au plus permissif)
+app.use(rateLimitMonitor.middleware);  // Monitoring des requêtes suspectes
+app.use(ddosProtection);        // Protection DDoS globale
+app.use('/api/auth/login', authProtection);
+app.use('/api/auth/register', authProtection);
+app.use('/api/registration/register', authProtection);
+app.use('/api/upload', uploadProtection);
+app.use(globalLimiter);         // Limite globale
+
+// 📊 Middleware de logging des rate limits (pour monitoring)
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(data) {
+    // Log si rate limit atteint
+    if (res.statusCode === 429) {
+      console.warn(`🚨 Rate limit exceeded:`, {
+        ip: req.ip,
+        path: req.path,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString()
+      });
+      
+      // Signaler au monitoring system
+      rateLimitMonitor.trackSuspiciousIP(req.ip, 'rate_limit_exceeded', {
+        path: req.path,
+        userAgent: req.get('User-Agent')
+      });
+    }
+    originalSend.call(this, data);
+  };
+  next();
+});
 
 app.use(process.env.NODE_ENV === 'development' ? morgan('dev') : morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
@@ -101,6 +190,7 @@ app.use('/api/age-verification', ageVerificationRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/admin/logs', logsRoutes); // compat front
 app.use('/api/admin', adminRoutes);
+app.use('/api/monitoring', monitoringRoutes);
 
 // Exemple d’endpoint protégé
 app.get('/api/user/stats', authenticateToken, (req, res) => {
