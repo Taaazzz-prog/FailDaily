@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # Traefik reverse proxy avec SSL automatique FONCTIONNEL
+  traefik:
+    image: traefik:v3.0
+    container_name: faildaily-traefik-ssl
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=faildaily_faildaily-ssl-network"
+      - "--certificatesresolvers.letsencrypt.acme.email=bruno@taaazzz.be"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - faildaily_traefik-ssl-certs:/letsencrypt
+    networks:
+      - faildaily-ssl-network
+
+  # Backend API avec SSL
+  backend:
+    build:
+      context: ./backend-api
+      dockerfile: ../docker/production/backend.prod.Dockerfile
+    container_name: faildaily-backend-ssl
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=db
+      - DB_USER=faildaily_user
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=faildaily
+      - JWT_SECRET=${JWT_SECRET}
+      - CORS_ORIGIN=https://faildaily.com,https://www.faildaily.com
+      - RATE_LIMIT_WINDOW=15
+      - RATE_LIMIT_MAX_REQUESTS=1000
+    networks:
+      - faildaily-ssl-network
+    volumes:
+      - faildaily_backend-uploads-ssl:/app/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`faildaily.com`) && PathPrefix(`/api/`)"
+      - "traefik.http.routers.backend.tls=true"
+      - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+
+  # Frontend avec SSL
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/production/frontend.prod.Dockerfile
+    container_name: faildaily-frontend-ssl
+    restart: unless-stopped
+    networks:
+      - faildaily-ssl-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`faildaily.com`)"
+      - "traefik.http.routers.frontend.tls=true"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  # Service PowerPoint pour api.faildaily.com
+  powerpoint:
+    image: node:20-alpine
+    container_name: faildaily-powerpoint-ssl
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./powerpoint:/app
+    networks:
+      - faildaily-ssl-network
+    command: npx serve -s . -p 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.powerpoint-service.rule=Host(`api.faildaily.com`)"
+      - "traefik.http.routers.powerpoint-service.tls=true"
+      - "traefik.http.routers.powerpoint-service.tls.certresolver=letsencrypt"
+      - "traefik.http.services.powerpoint-service.loadbalancer.server.port=3000"
+
+  # Base de données MySQL
+  db:
+    image: mysql:8.0.35
+    container_name: faildaily-db-ssl
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_PASSWORD}"
+      MYSQL_DATABASE: faildaily
+      MYSQL_USER: faildaily_user
+      MYSQL_PASSWORD: "${DB_PASSWORD}"
+    volumes:
+      - faildaily_mysql-data-ssl:/var/lib/mysql
+    networks:
+      - faildaily-ssl-network
+    command: --default-authentication-plugin=mysql_native_password
+
+networks:
+  faildaily-ssl-network:
+    driver: bridge
+
+volumes:
+  faildaily_mysql-data-ssl:
+    external: true
+  faildaily_backend-uploads-ssl:
+    external: true
+  faildaily_traefik-ssl-certs:
+    external: true

@@ -53,11 +53,11 @@ export const environment = {
   /*
    * CONFIGURATION DES APIs BACKEND MYSQL
    * ====================================
-   * 
+   *
    * Configuration pour l'API Node.js/Express avec MySQL:
    */
   api: {
-    baseUrl: 'https://api.faildaily.com/api',
+    baseUrl: 'https://faildaily.com/api',
     moderationUrl: 'https://api.openai.com/v1',
     moderationKey: '',
     uploadMaxSize: 3 * 1024 * 1024, // 3MB max en production
