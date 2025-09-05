@@ -66,7 +66,6 @@ const ddosProtection = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip, // Explicitement par IP
   skip: (req) => req.path === '/api/health'
 });
 
@@ -81,7 +80,6 @@ const authProtection = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip,
   skipSuccessfulRequests: true // Ne compte que les échecs
 });
 
@@ -95,8 +93,7 @@ const uploadProtection = rateLimit({
     retryAfter: '5 minutes'
   },
   standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) => req.ip
+  legacyHeaders: false
 });
 
 // 🌐 Rate limiting global - Plus permissif pour usage normal
@@ -112,12 +109,10 @@ const globalLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => req.ip,
   skip: (req) => req.path === '/api/health'
 });
 
 // Application des limiters dans l'ordre (du plus strict au plus permissif)
-app.use(rateLimitMonitor.middleware);  // Monitoring des requêtes suspectes
 app.use(ddosProtection);        // Protection DDoS globale
 app.use('/api/auth/login', authProtection);
 app.use('/api/auth/register', authProtection);
@@ -136,12 +131,6 @@ app.use((req, res, next) => {
         path: req.path,
         userAgent: req.get('User-Agent'),
         timestamp: new Date().toISOString()
-      });
-      
-      // Signaler au monitoring system
-      rateLimitMonitor.trackSuspiciousIP(req.ip, 'rate_limit_exceeded', {
-        path: req.path,
-        userAgent: req.get('User-Agent')
       });
     }
     originalSend.call(this, data);
@@ -173,6 +162,21 @@ app.get('/api/info', (req, res) => {
 });
 
 /* ------------------------------- Routes API ------------------------------- */
+// Endpoint d'information API
+app.get('/api', (req, res) => {
+  res.json({
+    name: 'FailDaily API',
+    version: '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    endpoints: 95,
+    rateLimit: {
+      general: '5000 req/15min',
+      login: '5 req/15min',
+      upload: '10 req/15min'
+    }
+  });
+});
+
 app.use('/api/auth', authRoutes);
 
 // Montre en priorité les nouvelles routes Fails (JSON body) avant l'ancienne version multer

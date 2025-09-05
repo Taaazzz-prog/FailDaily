@@ -2,10 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const rateLimitMonitor = require('../middleware/rateLimitMonitor');
-const { authenticateToken, requireRole } = require('../middleware/auth');
+const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // 📊 Endpoint pour obtenir les statistiques de rate limiting (Admin seulement)
-router.get('/rate-limit-stats', authenticateToken, requireRole('admin'), (req, res) => {
+router.get('/rate-limit-stats', authenticateToken, requireAdmin, (req, res) => {
   try {
     const stats = rateLimitMonitor.getStats();
     
@@ -28,7 +28,7 @@ router.get('/rate-limit-stats', authenticateToken, requireRole('admin'), (req, r
 });
 
 // 🚨 Endpoint pour obtenir la liste des IPs suspectes (Admin seulement)
-router.get('/suspicious-ips', authenticateToken, requireRole('admin'), (req, res) => {
+router.get('/suspicious-ips', authenticateToken, requireAdmin, (req, res) => {
   try {
     const stats = rateLimitMonitor.getStats();
     
@@ -50,7 +50,7 @@ router.get('/suspicious-ips', authenticateToken, requireRole('admin'), (req, res
 });
 
 // 🧹 Endpoint pour nettoyer manuellement le cache de monitoring (Admin seulement)
-router.post('/cleanup-monitoring', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/cleanup-monitoring', authenticateToken, requireAdmin, (req, res) => {
   try {
     rateLimitMonitor.cleanup();
     
@@ -69,7 +69,7 @@ router.post('/cleanup-monitoring', authenticateToken, requireRole('admin'), (req
 });
 
 // 🔄 Endpoint pour réinitialiser complètement le monitoring (Admin seulement - usage en développement)
-router.post('/reset-monitoring', authenticateToken, requireRole('admin'), (req, res) => {
+router.post('/reset-monitoring', authenticateToken, requireAdmin, (req, res) => {
   try {
     if (process.env.NODE_ENV === 'production') {
       return res.status(403).json({
