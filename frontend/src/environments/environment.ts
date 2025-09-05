@@ -5,11 +5,11 @@
 export const environment = {
   production: false,
 
-  // Configuration MySQL Database (développement local)
+  // Configuration MySQL Database (local Docker)
   database: {
     host: 'localhost',
-    port: 3306,
-    name: 'faildaily_dev',
+    port: 3307, // Port Docker local
+    name: 'faildaily',
     charset: 'utf8mb4'
   },
 
@@ -26,7 +26,7 @@ export const environment = {
 
   // APIs backend MySQL et externes
   api: {
-    baseUrl: 'http://localhost:3000/api', // API MySQL backend Node.js
+    baseUrl: 'http://localhost:8000/api', // API MySQL backend Node.js via Traefik
     moderationUrl: 'https://api.openai.com/v1',
     moderationKey: 'your-openai-dev-key',
     uploadMaxSize: 5 * 1024 * 1024, // 5MB max
@@ -45,7 +45,7 @@ export const environment = {
 
   // Configuration du storage local (système moderne)
   storage: {
-    baseUrl: 'http://localhost:3000/storage',
+    baseUrl: 'http://localhost:8000/storage',
     uploadsPath: '/uploads',
     maxFileSize: 5 * 1024 * 1024, // 5MB
     allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
@@ -67,15 +67,18 @@ export const environment = {
 
   // Configuration de l'app
   app: {
-    name: 'FailDaily (Dev MySQL)',
-    version: '2.0.0-dev-mysql',
+    name: 'FailDaily (Local)',
+    version: '2.0.0',
+    environment: 'local-docker',
     debugMode: true,
-    maxFailsPerDay: 10, // Limite en dev pour éviter le spam
+    enableAnalytics: false,
+    enableCrashReporting: false,
+    maxFailsPerDay: 10,
+    enableOfflineMode: true,
     courageHeartCooldown: 1000, // 1 seconde entre réactions en dev
     anonymousMode: true,
     locationEnabled: false, // Désactivé en dev pour la vie privée
-    cacheEnabled: true,
-    offlineMode: false // Mode hors ligne désactivé en dev
+    cacheEnabled: true
   },
 
   // Configuration des badges et points

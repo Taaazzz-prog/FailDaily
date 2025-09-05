@@ -1,5 +1,5 @@
 # Build Angular/Ionic
-FROM node:20-alpine AS build
+FROM node:24.4.1-alpine AS build
 WORKDIR /app
 
 # Copier les fichiers de package
@@ -20,8 +20,10 @@ COPY .eslintrc.json ./
 # Build de production
 RUN npm run build --prod
 
-# Serve with Nginx
-FROM nginx:alpine
-COPY --from=build /app/www/ /usr/share/nginx/html
+# Serve with lightweight HTTP server
+FROM node:24.4.1-alpine
+RUN npm install -g serve
+COPY --from=build /app/www/ /app
+WORKDIR /app
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", ".", "-l", "80"]

@@ -1,54 +1,61 @@
-# FailDaily - Configuration Docker Production
+# 🚀 FailDaily - Production avec Traefik
 
-Cette configuration Docker est optimisée pour un déploiement production sur serveur OVH Linux.
+## Configuration
 
-## 🚀 Déploiement rapide
+- **Reverse Proxy:** Traefik v3.0 avec SSL automatique (Let's Encrypt)
+- **Frontend:** Node.js avec `serve` (port 80)
+- **Backend:** Node.js Express (port 3000)
+- **Database:** MySQL 8.0.35
+
+## Déploiement
+
+### 1. Configuration des variables d'environnement
+
+Copiez `.env.example` vers `.env` et configurez :
 
 ```bash
-# Sur votre serveur OVH Linux
-git clone [votre-repo] faildaily
-cd faildaily
-cp docker/production/.env.example docker/production/.env
-# Éditez les variables d'environnement
-nano docker/production/.env
-# Lancez l'application
-docker-compose -f docker/production/docker-compose.prod.yml up -d
+cp .env.example .env
+nano .env
 ```
 
-## 📁 Structure
+### 2. Déploiement automatique
 
-```
-docker/production/
-├── docker-compose.prod.yml    # Orchestration production
-├── backend.prod.Dockerfile    # Backend optimisé
-├── frontend.prod.Dockerfile   # Frontend optimisé  
-├── nginx.conf                 # Config Nginx
-├── .env.example              # Variables d'environnement
-└── deploy.sh                 # Script de déploiement
+```bash
+# Depuis Windows/WSL
+./deploy-traefik.ps1
+
+# Depuis Linux/Mac
+./deploy-traefik.sh
 ```
 
-## 🔧 Optimisations
+### 3. Déploiement manuel
 
-- **Multi-stage builds** pour des images légères
-- **Node.js 22** (votre version requise)
-- **Alpine Linux** pour la sécurité et la taille
-- **Nginx** optimisé pour le frontend
-- **MySQL 8.0** avec volume persistant
-- **Variables d'environnement** sécurisées
-- **Health checks** intégrés
-- **Restart policies** automatiques
+```bash
+# Sur le serveur OVH
+docker-compose -f docker/production/docker-compose.traefik.yml up -d --build
+```
 
-## 🛡️ Sécurité
+## Accès
 
-- Images basées sur Alpine Linux
-- Utilisateur non-root
-- Variables sensibles externalisées
-- Ports internes uniquement
-- Reverse proxy Nginx
+- **Site:** https://faildaily.com
+- **API:** https://faildaily.com/api/
+- **Traefik Dashboard:** http://IP:8080 (temporaire)
 
-## 📊 Monitoring
+## Volumes persistants
 
-- Health checks pour tous les services
-- Logs structurés
-- Métriques de ressources
-- Alertes de redémarrage
+- `faildaily_mysql-data`: Données MySQL
+- `faildaily_backend-uploads`: Fichiers uploadés
+- `faildaily_traefik-ssl-certs`: Certificats SSL
+
+## Monitoring
+
+```bash
+# Vérifier les services
+docker-compose -f docker/production/docker-compose.traefik.yml ps
+
+# Logs
+docker-compose -f docker/production/docker-compose.traefik.yml logs -f
+
+# Status Traefik
+curl http://localhost:8080/api/rawdata
+```

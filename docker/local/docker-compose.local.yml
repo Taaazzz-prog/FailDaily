@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  # Traefik reverse proxy
+  traefik:
+    image: traefik:v3.0
+    container_name: faildaily-traefik-local
+    restart: unless-stopped
+    command:
+      # API et dashboard
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      
+      # Points d'entrée
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      
+      # Providers
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=local_faildaily-local-network"
+      
+      # Logs
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    
+    ports:
+      - "8000:80"   # Port local 8000 pour éviter conflit avec Apache
+      - "8443:443"  # Port local 8443 pour HTTPS
+      - "8080:8080"  # Dashboard Traefik
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    
+    networks:
+      - faildaily-local-network
+    
+    labels:
+      - "traefik.enable=true"
+      # Dashboard accessible sur localhost:8080
+
+  # Backend API
+  backend:
+    build:
+      context: ../../backend-api
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: faildaily-backend-local
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - DB_HOST=db
+      - DB_USER=faildaily_user
+      - DB_PASSWORD=${DB_PASSWORD:-@51008473@Alexia@}
+      - DB_NAME=faildaily
+      - JWT_SECRET=${JWT_SECRET:-dev-secret-key}
+      - CORS_ORIGIN=http://localhost:4200,http://localhost:8100,http://localhost
+      - RATE_LIMIT_WINDOW=15
+      - RATE_LIMIT_MAX_REQUESTS=1000
+    depends_on:
+      - db
+    networks:
+      - faildaily-local-network
+    volumes:
+      - backend-uploads-local:/app/uploads
+    labels:
+      - "traefik.enable=true"
+      # API routes
+      - "traefik.http.routers.backend-local.rule=PathPrefix(`/api/`)"
+      - "traefik.http.services.backend-local.loadbalancer.server.port=3000"
+      # Health check
+      - "traefik.http.routers.backend-health-local.rule=Path(`/health`)"
+
+  # Frontend
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: faildaily-frontend-local
+    restart: unless-stopped
+    networks:
+      - faildaily-local-network
+    labels:
+      - "traefik.enable=true"
+      # Frontend routes (par défaut)
+      - "traefik.http.routers.frontend-local.rule=PathPrefix(`/`)"
+      - "traefik.http.services.frontend-local.loadbalancer.server.port=80"
+      # SPA fallback pour Angular routing
+      - "traefik.http.routers.frontend-local.middlewares=spa-fallback-local"
+      - "traefik.http.middlewares.spa-fallback-local.errors.status=404"
+      - "traefik.http.middlewares.spa-fallback-local.errors.service=frontend-local"
+      - "traefik.http.middlewares.spa-fallback-local.errors.query=/index.html"
+
+  # Base de données MySQL
+  db:
+    image: mysql:8.0.35
+    container_name: faildaily-db-local
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-@51008473@Alexia@}
+      MYSQL_DATABASE: faildaily
+      MYSQL_USER: faildaily_user
+      MYSQL_PASSWORD: ${DB_PASSWORD:-@51008473@Alexia@}
+    volumes:
+      - mysql-data-local:/var/lib/mysql
+    networks:
+      - faildaily-local-network
+    ports:
+      - "3307:3306"  # Port local différent pour éviter conflits
+    command: --default-authentication-plugin=mysql_native_password
+
+networks:
+  faildaily-local-network:
+    driver: bridge
+
+volumes:
+  mysql-data-local:
+  backend-uploads-local:

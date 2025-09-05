@@ -43,8 +43,10 @@ app.use(cors({
     'http://localhost:4200',  // Frontend dev server
     'http://localhost:8100',  // Ionic serve
     'http://localhost:8101',  // Ionic capacitor serve
-    'http://localhost',       // Production
-    process.env.CORS_ORIGIN || 'http://localhost:4200'
+    'http://localhost',       // Production locale
+    'https://faildaily.com',  // Production
+    'https://www.faildaily.com',  // Production avec www
+    ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : [])
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

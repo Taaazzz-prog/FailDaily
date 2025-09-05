@@ -170,9 +170,10 @@ docker-compose down       # Arrêt des services
 ```
 
 ### Services Docker
-- **Frontend** : nginx:alpine (port 80)
+- **Frontend** : node:20-alpine avec serve (port 80)
 - **Backend** : node:20-alpine (port 3000)
 - **Database** : mysql:8.0 (port 3306)
+- **Reverse Proxy** : traefik:v3.0 (ports 80/443)
 
 ## 🔧 Configuration Environnement
 
