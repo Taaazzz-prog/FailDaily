@@ -62,15 +62,6 @@ services:
       - "traefik.http.routers.backend.tls=true"
       - "traefik.http.routers.backend.tls.certresolver=letsencrypt"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
-      # Route pour PowerPoint sur api.faildaily.com
-      - "traefik.http.routers.powerpoint.rule=Host(`api.faildaily.com`)"
-      - "traefik.http.routers.powerpoint.tls=true"
-      - "traefik.http.routers.powerpoint.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.powerpoint.service=backend"
-      - "traefik.http.routers.powerpoint.middlewares=powerpoint-redirect"
-      # Middleware pour rediriger vers /powerpoint/
-      - "traefik.http.middlewares.powerpoint-redirect.redirectregex.regex=^https://api\\.faildaily\\.com/?$$"
-      - "traefik.http.middlewares.powerpoint-redirect.redirectregex.replacement=https://api.faildaily.com/powerpoint/"
 
   # Frontend avec SSL
   frontend:
@@ -87,6 +78,24 @@ services:
       - "traefik.http.routers.frontend.tls=true"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=80"
+
+  # Service PowerPoint pour api.faildaily.com
+  powerpoint:
+    image: node:20-alpine
+    container_name: faildaily-powerpoint-ssl
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./powerpoint:/app
+    networks:
+      - faildaily-ssl-network
+    command: npx serve -s . -p 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.powerpoint-service.rule=Host(`api.faildaily.com`)"
+      - "traefik.http.routers.powerpoint-service.tls=true"
+      - "traefik.http.routers.powerpoint-service.tls.certresolver=letsencrypt"
+      - "traefik.http.services.powerpoint-service.loadbalancer.server.port=3000"
 
   # Base de données MySQL
   db:
