@@ -3,22 +3,22 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copier les fichiers de package
-COPY package*.json ./
-COPY ionic.config.json ./
-COPY angular.json ./
-COPY tsconfig*.json ./
+COPY frontend/package*.json ./
+COPY frontend/ionic.config.json ./
+COPY frontend/angular.json ./
+COPY frontend/tsconfig*.json ./
 
 # Installer les dépendances
 RUN npm install
 
 # Copier le code source
-COPY src/ ./src/
-COPY .browserslistrc ./
-COPY .editorconfig ./
-COPY .eslintrc.json ./
+COPY frontend/src/ ./src/
+COPY frontend/.browserslistrc ./
+COPY frontend/.editorconfig ./
+COPY frontend/.eslintrc.json ./
 
-# Build de production
-RUN npm run build --prod
+# Build simple (une seule configuration pour dev et prod)
+RUN npm run build
 
 # Serve with Nginx
 FROM nginx:alpine
