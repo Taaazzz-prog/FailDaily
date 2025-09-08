@@ -64,4 +64,4 @@ temp/
 # Testing
 /coverage/
 e2e/reports/
-test-results/" > .gitignorepostgresql.zip
+test-results/
