@@ -1,6 +1,14 @@
-import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, Output, EventEmitter, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonicModule } from '@ionic/angular';
+import { 
+  IonButton, 
+  IonIcon, 
+  IonChip, 
+  IonLabel,
+  ToastController, 
+  PopoverController, 
+  ViewWillEnter 
+} from '@ionic/angular/standalone';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
@@ -8,16 +16,19 @@ import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MysqlService } from '../../services/mysql.service';
 import { CommentsThreadComponent } from '../comments-thread/comments-thread.component';
-import { ToastController, PopoverController, ViewWillEnter } from '@ionic/angular';
 
 @Component({
   selector: 'app-fail-card',
+  standalone: true,
   templateUrl: './fail-card.component.html',
   styleUrls: ['./fail-card.component.scss'],
   imports: [
-    CommonModule, 
-    IonicModule,
-    TimeAgoPipe, 
+    CommonModule,
+    IonButton,
+    IonIcon,
+    IonChip,
+    IonLabel,
+    TimeAgoPipe,
     CommentsThreadComponent
   ]
 })
@@ -28,6 +39,10 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   hidden = false;
   pulseFlags: Record<string, boolean> = { courage: false, laugh: false, empathy: false, support: false };
 
+  private readonly failService = inject(FailService);
+  private readonly toastController = inject(ToastController);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   private encouragementMessages = [
     'Chaque échec est un pas vers la réussite ! 💪',
     'Tu as eu le courage de le partager ! 🌟',
@@ -36,12 +51,6 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
     'Tu n\'es pas seul(e) dans cette aventure ! 🤝',
     'L\'imperfection, c\'est la perfection ! ✨'
   ];
-
-  constructor(
-    private failService: FailService,
-    private toastController: ToastController,
-    private cdr: ChangeDetectorRef
-  ) { }
 
   async ngOnInit() {
     // Récupérer la réaction actuelle de l'utilisateur pour ce fail

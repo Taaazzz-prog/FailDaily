@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonButton, IonIcon,
@@ -28,15 +28,15 @@ import { AuthActionDirective } from '../directives/auth-action.directive';
   ],
 })
 export class HomePage implements OnInit, ViewWillEnter {
+  private readonly failService = inject(FailService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+
   currentUser$ = this.authService.currentUser$;
   fails$: Observable<Fail[]> | null = null;
   isLoading = false;
 
-  constructor(
-    private failService: FailService,
-    private authService: AuthService,
-    private router: Router
-  ) {
+  constructor() {
     // Configuration des icônes
     addIcons({
       person, addCircle, documentOutline, add, chevronDownCircleOutline,

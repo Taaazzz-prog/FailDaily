@@ -1,16 +1,17 @@
-import { Component, OnInit } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Component, OnInit, inject } from '@angular/core';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { ToastController, LoadingController } from '@ionic/angular';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { 
-  IonHeader, 
-  IonToolbar, 
-  IonTitle, 
-  IonButtons, 
-  IonButton, 
-  IonIcon, 
+import { firstValueFrom } from 'rxjs';
+import {
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
   IonContent,
   IonCard,
   IonCardHeader,
@@ -25,10 +26,17 @@ import {
 interface TestResult {
   endpoint: string;
   method: string;
-  status: 'success' | 'error' | 'pending';
+  status: 'success' | 'error' | 'pending' | 'skipped';
   response?: any;
   error?: string;
   duration?: number;
+  timestamp: Date;
+}
+
+interface ApiError {
+  message: string;
+  status?: number;
+  error?: any;
 }
 
 @Component({
@@ -62,462 +70,457 @@ interface TestResult {
             <ion-icon name="play-circle" slot="start"></ion-icon>
             Lancer tous les tests
           </ion-button>
+          <ion-button (click)="clearResults()" [disabled]="isRunning">
+            <ion-icon name="trash" slot="start"></ion-icon>
+            Effacer
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
     <ion-content>
-      <div class="test-container">
-        <!-- Configuration API -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>🔧 Configuration</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
+      <!-- Configuration -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>🔧 Configuration</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-label>URL API:</ion-label>
+            <ion-input 
+              [(ngModel)]="apiUrl" 
+              placeholder="http://localhost:3001/api"
+              [readonly]="isRunning">
+            </ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Token:</ion-label>
+            <ion-input 
+              [(ngModel)]="authToken" 
+              type="password" 
+              placeholder="Bearer token..."
+              [readonly]="isRunning">
+            </ion-input>
+          </ion-item>
+          <ion-button expand="block" (click)="testConnection()" [disabled]="isRunning">
+            <ion-icon name="wifi" slot="start"></ion-icon>
+            Tester la connexion
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Tests Authentication -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>🔐 Tests Authentification</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-button expand="block" (click)="testRegister()" [disabled]="isRunning">
+            <ion-icon name="person-add" slot="start"></ion-icon>
+            Test Inscription
+          </ion-button>
+          <ion-button expand="block" (click)="testLogin()" [disabled]="isRunning">
+            <ion-icon name="log-in" slot="start"></ion-icon>
+            Test Connexion
+          </ion-button>
+          <ion-button expand="block" (click)="testProfile()" [disabled]="isRunning">
+            <ion-icon name="person" slot="start"></ion-icon>
+            Test Profil (avec token)
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Statistiques -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>📈 Statistiques</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-item>
+            <ion-badge color="success" slot="start">{{getSuccessCount()}}</ion-badge>
+            <ion-label>Tests réussis</ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-badge color="danger" slot="start">{{getErrorCount()}}</ion-badge>
+            <ion-label>Tests échoués</ion-label>
+          </ion-item>
+          <ion-item>
+            <ion-badge color="medium" slot="start">{{getTotalDuration()}}ms</ion-badge>
+            <ion-label>Temps total</ion-label>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Résultats -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>📊 Résultats des tests</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div *ngFor="let result of testResults; trackBy: trackByFn">
             <ion-item>
-              <ion-label>URL API:</ion-label>
-              <ion-input [(ngModel)]="apiUrl" placeholder="http://localhost:3001/api"></ion-input>
+              <ion-badge 
+                [color]="getBadgeColor(result.status)"
+                slot="start">
+                {{result.status}}
+              </ion-badge>
+              <ion-label>
+                <h3>{{result.method}} {{result.endpoint}}</h3>
+                <p><small>{{result.timestamp | date:'HH:mm:ss'}} - {{result.duration}}ms</small></p>
+                <p *ngIf="result.response && result.status === 'success'" style="color: green;">
+                  ✅ {{getResponseSummary(result.response)}}
+                </p>
+                <p *ngIf="result.error" style="color: red;">
+                  ❌ {{result.error}}
+                </p>
+              </ion-label>
             </ion-item>
-            <ion-item>
-              <ion-label>Token:</ion-label>
-              <ion-input [(ngModel)]="authToken" type="password" placeholder="Bearer token..."></ion-input>
-            </ion-item>
-            <ion-button expand="block" (click)="testConnection()">
-              <ion-icon name="wifi" slot="start"></ion-icon>
-              Tester la connexion
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Tests Authentication -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>🔐 Tests Authentification</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-button expand="block" (click)="testRegister()" [disabled]="isRunning">
-              <ion-icon name="person-add" slot="start"></ion-icon>
-              Test Inscription
-            </ion-button>
-            <ion-button expand="block" (click)="testLogin()" [disabled]="isRunning">
-              <ion-icon name="log-in" slot="start"></ion-icon>
-              Test Connexion
-            </ion-button>
-            <ion-button expand="block" (click)="testProfile()" [disabled]="isRunning">
-              <ion-icon name="person" slot="start"></ion-icon>
-              Test Profil
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Tests Fails -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>📝 Tests Fails</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-button expand="block" (click)="testCreateFail()" [disabled]="isRunning">
-              <ion-icon name="add-circle" slot="start"></ion-icon>
-              Test Créer Fail
-            </ion-button>
-            <ion-button expand="block" (click)="testGetFails()" [disabled]="isRunning">
-              <ion-icon name="list" slot="start"></ion-icon>
-              Test Lister Fails
-            </ion-button>
-            <ion-button expand="block" (click)="testUpdateFail()" [disabled]="isRunning">
-              <ion-icon name="create" slot="start"></ion-icon>
-              Test Modifier Fail
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Tests Admin -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>👑 Tests Admin</ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-button expand="block" (click)="testAdminStats()" [disabled]="isRunning">
-              <ion-icon name="analytics" slot="start"></ion-icon>
-              Test Statistiques
-            </ion-button>
-            <ion-button expand="block" (click)="testUserManagement()" [disabled]="isRunning">
-              <ion-icon name="people" slot="start"></ion-icon>
-              Test Gestion Utilisateurs
-            </ion-button>
-            <ion-button expand="block" (click)="testBadgeManagement()" [disabled]="isRunning">
-              <ion-icon name="medal" slot="start"></ion-icon>
-              Test Gestion Badges
-            </ion-button>
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Résultats des tests -->
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>📊 Résultats des tests</ion-card-title>
-            <ion-badge [color]="getOverallStatusColor()">
-              {{ getTestSummary() }}
-            </ion-badge>
-          </ion-card-header>
-          <ion-card-content>
-            <div *ngFor="let result of testResults" class="test-result">
-              <ion-item>
-                <ion-icon [name]="getStatusIcon(result.status)" [color]="getStatusColor(result.status)" slot="start"></ion-icon>
-                <ion-label>
-                  <h3>{{ result.method }} {{ result.endpoint }}</h3>
-                  <p *ngIf="result.duration">Durée: {{ result.duration }}ms</p>
-                  <p *ngIf="result.error" class="error-text">{{ result.error }}</p>
-                </ion-label>
-                <ion-button fill="clear" (click)="showResponseDetails(result)">
-                  <ion-icon name="eye"></ion-icon>
-                </ion-button>
-              </ion-item>
-            </div>
-          </ion-card-content>
-        </ion-card>
-      </div>
+          </div>
+          <ion-item *ngIf="testResults.length === 0">
+            <ion-label>
+              <p>Aucun test exécuté</p>
+            </ion-label>
+          </ion-item>
+        </ion-card-content>
+      </ion-card>
     </ion-content>
-  `,
-  styles: [`
-    .test-container {
-      padding: 16px;
-    }
-
-    .test-result {
-      margin-bottom: 8px;
-    }
-
-    .error-text {
-      color: var(--ion-color-danger);
-      font-size: 0.9em;
-    }
-
-    ion-button {
-      margin: 4px 0;
-    }
-  `]
+  `
 })
 export class ApiTestComponent implements OnInit {
-  apiUrl: string = environment.api.baseUrl;
-  authToken: string = 'faildaily_token';
+  apiUrl: string = environment.api?.baseUrl || 'http://localhost:3001/api';
+  authToken: string = '';
   testResults: TestResult[] = [];
   isRunning: boolean = false;
+  private registeredUser: { username: string; email: string; password: string } | null = null;
 
-  constructor(
-    private http: HttpClient,
-    private toastController: ToastController,
-    private loadingController: LoadingController
-  ) {}
+  private http = inject(HttpClient);
+  private toastController = inject(ToastController);
+  private loadingController = inject(LoadingController);
+
+  constructor() {}
 
   ngOnInit() {
     console.log('🧪 ApiTestComponent: Composant de test API initialisé');
-    this.authToken = localStorage.getItem('auth_token') || 'faildaily_token';
-    this.testResults = [];
+    this.authToken = localStorage.getItem('auth_token') || '';
+    this.loadTestResults();
+  }
+
+  private loadTestResults() {
+    const saved = localStorage.getItem('api_test_results');
+    if (saved) {
+      try {
+        this.testResults = JSON.parse(saved).map((r: any) => ({
+          ...r,
+          timestamp: new Date(r.timestamp)
+        }));
+      } catch (e) {
+        console.warn('Impossible de charger les résultats sauvegardés');
+      }
+    }
+  }
+
+  private saveTestResults() {
+    localStorage.setItem('api_test_results', JSON.stringify(this.testResults));
   }
 
   private getHeaders(): HttpHeaders {
-    return new HttpHeaders({
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.authToken}`
-    });
-  }
-
-  private async addTestResult(endpoint: string, method: string, status: 'success' | 'error', response?: any, error?: string, duration?: number): Promise<void> {
-    this.testResults.push({
-      endpoint,
-      method,
-      status,
-      response,
-      error,
-      duration
-    });
-  }
-
-  // Test de connexion basique
-  async testConnection(): Promise<void> {
-    const startTime = performance.now();
-    try {
-      const response = await this.http.get(`${this.apiUrl}/health`).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/health', 'GET', 'success', response, undefined, duration);
-      await this.showToast('✅ Connexion API réussie', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/health', 'GET', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec connexion API', 'danger');
-    }
-  }
-
-  // Tests Authentication
-  async testRegister(): Promise<void> {
-    const startTime = performance.now();
-    const testData = {
-      email: `test-${Date.now()}@example.com`,
-      password: 'TestPassword123!',
-      displayName: `TestUser${Date.now()}`
+    const headers: any = {
+      'Content-Type': 'application/json'
     };
-
-    try {
-      const response = await this.http.post(`${this.apiUrl}/auth/register`, testData).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/auth/register', 'POST', 'success', response, undefined, duration);
-      await this.showToast('✅ Test inscription réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/auth/register', 'POST', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test inscription', 'danger');
-    }
-  }
-
-  async testLogin(): Promise<void> {
-    const startTime = performance.now();
-    const testData = {
-      email: 'test@example.com',
-      password: 'password123'
-    };
-
-    try {
-      const response: any = await this.http.post(`${this.apiUrl}/auth/login`, testData).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      if (response.token) {
-        this.authToken = response.token;
-        localStorage.setItem('auth_token', this.authToken);
-      }
-
-      await this.addTestResult('/auth/login', 'POST', 'success', response, undefined, duration);
-      await this.showToast('✅ Test connexion réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/auth/login', 'POST', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test connexion', 'danger');
-    }
-  }
-
-  async testProfile(): Promise<void> {
-    const startTime = performance.now();
-    try {
-      const response = await this.http.get(`${this.apiUrl}/auth/profile`, { headers: this.getHeaders() }).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/auth/profile', 'GET', 'success', response, undefined, duration);
-      await this.showToast('✅ Test profil réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/auth/profile', 'GET', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test profil', 'danger');
-    }
-  }
-
-  // Tests Fails
-  async testCreateFail(): Promise<void> {
-    const startTime = performance.now();
-    const testData = {
-      title: `Test Fail ${Date.now()}`,
-      description: 'Ceci est un fail de test',
-      category: 'Général',
-      is_anonyme: false
-    };
-
-    try {
-      const response = await this.http.post(`${this.apiUrl}/fails`, testData, { headers: this.getHeaders() }).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/fails', 'POST', 'success', response, undefined, duration);
-      await this.showToast('✅ Test création fail réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/fails', 'POST', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test création fail', 'danger');
-    }
-  }
-
-  async testGetFails(): Promise<void> {
-    const startTime = performance.now();
-    try {
-      const response = await this.http.get(`${this.apiUrl}/fails`, { headers: this.getHeaders() }).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/fails', 'GET', 'success', response, undefined, duration);
-      await this.showToast('✅ Test récupération fails réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/fails', 'GET', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test récupération fails', 'danger');
-    }
-  }
-
-  async testUpdateFail(): Promise<void> {
-    const startTime = performance.now();
-    const testData = {
-      title: `Test Fail Updated ${Date.now()}`,
-      description: 'Description mise à jour'
-    };
-
-    try {
-      // D'abord récupérer un fail existant
-      const fails: any = await this.http.get(`${this.apiUrl}/fails?limit=1`, { headers: this.getHeaders() }).toPromise();
-      
-      if (fails.fails && fails.fails.length > 0) {
-        const failId = fails.fails[0].id;
-        const response = await this.http.put(`${this.apiUrl}/fails/${failId}`, testData, { headers: this.getHeaders() }).toPromise();
-        const duration = Math.round(performance.now() - startTime);
-        
-        await this.addTestResult(`/fails/${failId}`, 'PUT', 'success', response, undefined, duration);
-        await this.showToast('✅ Test mise à jour fail réussi', 'success');
-      } else {
-        throw new Error('Aucun fail disponible pour le test de mise à jour');
-      }
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/fails/:id', 'PUT', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test mise à jour fail', 'danger');
-    }
-  }
-
-  // Tests Admin
-  async testAdminStats(): Promise<void> {
-    const startTime = performance.now();
-    try {
-      const response = await this.http.get(`${this.apiUrl}/admin/stats`, { headers: this.getHeaders() }).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/admin/stats', 'GET', 'success', response, undefined, duration);
-      await this.showToast('✅ Test stats admin réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/admin/stats', 'GET', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test stats admin', 'danger');
-    }
-  }
-
-  async testUserManagement(): Promise<void> {
-    const startTime = performance.now();
-    try {
-      const response = await this.http.get(`${this.apiUrl}/admin/users`, { headers: this.getHeaders() }).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/admin/users', 'GET', 'success', response, undefined, duration);
-      await this.showToast('✅ Test gestion utilisateurs réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/admin/users', 'GET', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test gestion utilisateurs', 'danger');
-    }
-  }
-
-  async testBadgeManagement(): Promise<void> {
-    const startTime = performance.now();
-    try {
-      const response = await this.http.get(`${this.apiUrl}/admin/badges`, { headers: this.getHeaders() }).toPromise();
-      const duration = Math.round(performance.now() - startTime);
-      
-      await this.addTestResult('/admin/badges', 'GET', 'success', response, undefined, duration);
-      await this.showToast('✅ Test gestion badges réussi', 'success');
-    } catch (error: any) {
-      const duration = Math.round(performance.now() - startTime);
-      await this.addTestResult('/admin/badges', 'GET', 'error', undefined, error.message, duration);
-      await this.showToast('❌ Échec test gestion badges', 'danger');
-    }
-  }
-
-  // Lancer tous les tests
-  async runAllTests(): Promise<void> {
-    this.isRunning = true;
-    this.testResults = [];
     
+    if (this.authToken.trim()) {
+      headers['Authorization'] = this.authToken.startsWith('Bearer ') 
+        ? this.authToken 
+        : `Bearer ${this.authToken}`;
+    }
+    
+    return new HttpHeaders(headers);
+  }
+
+  private isValidUrl(url: string): boolean {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private handleError(error: any): ApiError {
+    if (error instanceof HttpErrorResponse) {
+      return {
+        message: error.error?.message || error.message || 'Erreur HTTP',
+        status: error.status,
+        error: error.error
+      };
+    }
+    return {
+      message: error.message || 'Erreur inconnue',
+      error: error
+    };
+  }
+
+  private addTestResult(result: TestResult) {
+    this.testResults.unshift(result); // Ajouter en début pour avoir les plus récents en premier
+    this.saveTestResults();
+  }
+
+  trackByFn(index: number, item: TestResult) {
+    return `${item.endpoint}-${item.method}-${item.timestamp.getTime()}`;
+  }
+
+  getBadgeColor(status: string): string {
+    switch (status) {
+      case 'success': return 'success';
+      case 'error': return 'danger';
+      case 'pending': return 'warning';
+      case 'skipped': return 'medium';
+      default: return 'medium';
+    }
+  }
+
+  getResponseSummary(response: any): string {
+    if (!response) return 'Réponse vide';
+    if (response.token) return 'Token reçu';
+    if (response.message) return response.message;
+    if (response.user) return `Utilisateur: ${response.user.username || response.user.email}`;
+    return 'Réponse OK';
+  }
+
+  getSuccessCount(): number {
+    return this.testResults.filter(r => r.status === 'success').length;
+  }
+
+  getErrorCount(): number {
+    return this.testResults.filter(r => r.status === 'error').length;
+  }
+
+  getTotalDuration(): number {
+    return this.testResults.reduce((total, r) => total + (r.duration || 0), 0);
+  }
+
+  clearResults() {
+    this.testResults = [];
+    localStorage.removeItem('api_test_results');
+  }
+
+  async runAllTests() {
+    if (!this.isValidUrl(this.apiUrl)) {
+      const toast = await this.toastController.create({
+        message: '❌ URL API invalide',
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
+      return;
+    }
+
+    this.isRunning = true;
     const loading = await this.loadingController.create({
       message: 'Exécution des tests...',
-      spinner: 'circular'
+      duration: 0
     });
     await loading.present();
 
     try {
-      await this.testConnection();
-      await this.testLogin();
-      await this.testProfile();
-      await this.testGetFails();
-      await this.testCreateFail();
-      await this.testAdminStats();
-      await this.testUserManagement();
-      await this.testBadgeManagement();
+      // Tests séquentiels pour éviter les race conditions
+      const connectionOk = await this.testConnection();
+      
+      if (connectionOk) {
+        await this.testRegister();
+        await this.testLogin();
+        await this.testProfile();
+      } else {
+        // Skip les autres tests si la connexion échoue
+        this.addTestResult({
+          endpoint: '/auth/*',
+          method: 'SKIP',
+          status: 'skipped',
+          error: 'Tests ignorés suite à l\'échec de connexion',
+          timestamp: new Date()
+        });
+      }
 
-      await this.showToast('🎉 Tous les tests terminés', 'success');
+      const toast = await this.toastController.create({
+        message: `✅ Tests terminés: ${this.getSuccessCount()} réussis, ${this.getErrorCount()} échoués`,
+        duration: 4000,
+        color: this.getErrorCount() === 0 ? 'success' : 'warning'
+      });
+      await toast.present();
+
     } catch (error) {
-      await this.showToast('❌ Erreur lors des tests', 'danger');
+      console.error('Erreur lors des tests:', error);
+      
+      const toast = await this.toastController.create({
+        message: '❌ Erreur inattendue lors des tests',
+        duration: 3000,
+        color: 'danger'
+      });
+      await toast.present();
     } finally {
       this.isRunning = false;
       await loading.dismiss();
     }
   }
 
-  // Utilitaires UI
-  getStatusIcon(status: string): string {
-    switch (status) {
-      case 'success': return 'checkmark-circle';
-      case 'error': return 'close-circle';
-      case 'pending': return 'time';
-      default: return 'help-circle';
+  async testConnection(): Promise<boolean> {
+    const start = Date.now();
+    const result: TestResult = {
+      endpoint: '/health',
+      method: 'GET',
+      status: 'pending',
+      timestamp: new Date()
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.http.get(`${this.apiUrl}/health`, { headers: this.getHeaders() })
+      );
+      
+      result.status = 'success';
+      result.response = response;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return true;
+
+    } catch (error: any) {
+      const apiError = this.handleError(error);
+      result.status = 'error';
+      result.error = apiError.message;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return false;
     }
   }
 
-  getStatusColor(status: string): string {
-    switch (status) {
-      case 'success': return 'success';
-      case 'error': return 'danger';
-      case 'pending': return 'warning';
-      default: return 'medium';
+  async testRegister(): Promise<boolean> {
+    const start = Date.now();
+    const result: TestResult = {
+      endpoint: '/auth/register',
+      method: 'POST',
+      status: 'pending',
+      timestamp: new Date()
+    };
+
+    // Créer un utilisateur unique
+    this.registeredUser = {
+      username: `test_${Date.now()}`,
+      email: `test_${Date.now()}@example.com`,
+      password: 'TestPassword123!'
+    };
+
+    try {
+      const response = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/auth/register`, this.registeredUser, { headers: this.getHeaders() })
+      );
+      
+      result.status = 'success';
+      result.response = response;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return true;
+
+    } catch (error: any) {
+      const apiError = this.handleError(error);
+      result.status = 'error';
+      result.error = apiError.message;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return false;
     }
   }
 
-  getOverallStatusColor(): string {
-    if (this.testResults.length === 0) return 'medium';
-    
-    const hasErrors = this.testResults.some(r => r.status === 'error');
-    const hasPending = this.testResults.some(r => r.status === 'pending');
-    
-    if (hasErrors) return 'danger';
-    if (hasPending) return 'warning';
-    return 'success';
+  async testLogin(): Promise<boolean> {
+    const start = Date.now();
+    const result: TestResult = {
+      endpoint: '/auth/login',
+      method: 'POST',
+      status: 'pending',
+      timestamp: new Date()
+    };
+
+    // Utiliser l'utilisateur créé lors du test d'inscription
+    const testData = this.registeredUser ? {
+      username: this.registeredUser.username,
+      password: this.registeredUser.password
+    } : {
+      username: 'test_user',
+      password: 'testpassword123'
+    };
+
+    try {
+      const response: any = await firstValueFrom(
+        this.http.post(`${this.apiUrl}/auth/login`, testData, { headers: this.getHeaders() })
+      );
+      
+      result.status = 'success';
+      result.response = response;
+      result.duration = Date.now() - start;
+      
+      // Sauvegarder le token reçu pour les tests suivants
+      if (response?.token) {
+        this.authToken = response.token;
+        localStorage.setItem('auth_token', this.authToken);
+      }
+      
+      this.addTestResult(result);
+      return true;
+
+    } catch (error: any) {
+      const apiError = this.handleError(error);
+      result.status = 'error';
+      result.error = apiError.message;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return false;
+    }
   }
 
-  getTestSummary(): string {
-    const total = this.testResults.length;
-    const success = this.testResults.filter(r => r.status === 'success').length;
-    const errors = this.testResults.filter(r => r.status === 'error').length;
-    
-    return `${success}/${total} réussis (${errors} erreurs)`;
-  }
+  async testProfile(): Promise<boolean> {
+    if (!this.authToken) {
+      this.addTestResult({
+        endpoint: '/auth/profile',
+        method: 'GET',
+        status: 'skipped',
+        error: 'Aucun token disponible',
+        timestamp: new Date()
+      });
+      return false;
+    }
 
-  async showResponseDetails(result: TestResult): Promise<void> {
-    console.log('📊 Détails du test:', result);
-    
-    const message = result.response 
-      ? `<pre>${JSON.stringify(result.response, null, 2)}</pre>`
-      : result.error || 'Aucun détail disponible';
-    
-    const toast = await this.toastController.create({
-      header: `${result.method} ${result.endpoint}`,
-      message,
-      duration: 5000,
-      position: 'middle',
-      buttons: ['OK']
-    });
-    
-    await toast.present();
-  }
+    const start = Date.now();
+    const result: TestResult = {
+      endpoint: '/auth/profile',
+      method: 'GET',
+      status: 'pending',
+      timestamp: new Date()
+    };
 
-  private async showToast(message: string, color: string): Promise<void> {
-    const toast = await this.toastController.create({
-      message,
-      duration: 2000,
-      color,
-      position: 'bottom'
-    });
-    
-    await toast.present();
+    try {
+      const response = await firstValueFrom(
+        this.http.get(`${this.apiUrl}/auth/profile`, { headers: this.getHeaders() })
+      );
+      
+      result.status = 'success';
+      result.response = response;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return true;
+
+    } catch (error: any) {
+      const apiError = this.handleError(error);
+      result.status = 'error';
+      result.error = apiError.message;
+      result.duration = Date.now() - start;
+      
+      this.addTestResult(result);
+      return false;
+    }
   }
 }

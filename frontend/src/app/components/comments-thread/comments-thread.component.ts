@@ -1,4 +1,4 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonButton, IonItem, IonList, IonLabel, IonTextarea, IonSpinner, ToastController, IonChip, IonIcon } from '@ionic/angular/standalone';
@@ -20,7 +20,9 @@ export class CommentsThreadComponent implements OnInit {
   newComment = '';
   isAuthenticated = false;
 
-  constructor(private commentsSvc: CommentService, private auth: AuthService, private toast: ToastController) {}
+  private readonly commentsSvc = inject(CommentService);
+  private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastController);
 
   async ngOnInit() {
     this.isAuthenticated = this.auth.isAuthenticated();
