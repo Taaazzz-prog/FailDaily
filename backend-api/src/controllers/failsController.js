@@ -95,6 +95,14 @@ class FailsController {
 
       const result = await executeQuery(failQuery, failValues);
 
+      // CORRECTION: Créer automatiquement une entrée de modération 'under_review'
+      // pour que le fail ne soit pas affiché publiquement tant qu'il n'est pas approuvé
+      const moderationQuery = `
+        INSERT INTO fail_moderation (fail_id, status, created_at, updated_at)
+        VALUES (?, 'under_review', NOW(), NOW())
+      `;
+      await executeQuery(moderationQuery, [failId]);
+
       // Award points to author (configurable)
       try {
         const rows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
@@ -180,7 +188,7 @@ class FailsController {
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
       LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-      WHERE (fm.status IS NULL OR fm.status = 'approved')
+      WHERE (fm.status = 'approved')
       ORDER BY f.created_at DESC, f.id DESC
       LIMIT ${offset}, ${limit}`;
 
@@ -261,7 +269,7 @@ class FailsController {
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
       LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-      WHERE (fm.status IS NULL OR fm.status = 'approved')
+      WHERE (fm.status = 'approved')
       ORDER BY f.created_at DESC, f.id DESC
       LIMIT ?, ?`;
 
@@ -333,10 +341,10 @@ class FailsController {
         JOIN users u ON f.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-        WHERE f.id = ? AND (fm.status IS NULL OR fm.status = 'approved')
+        WHERE f.id = ? AND (fm.status = 'approved' OR f.user_id = ?)
       `;
 
-      const params = userId ? [userId, failId] : [failId];
+      const params = userId ? [userId, failId, userId] : [failId, null];
       console.log('🔍 Query:', query);
       console.log('🔍 Params:', params);
       
@@ -925,7 +933,7 @@ class FailsController {
         JOIN profiles p ON u.id = p.user_id
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
         WHERE (f.title LIKE ? OR f.description LIKE ?)
-          AND (fm.status IS NULL OR fm.status = 'approved')
+          AND (fm.status = 'approved')
       `;
 
       const params = [];
@@ -955,7 +963,7 @@ class FailsController {
         FROM fails f
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
         WHERE (f.title LIKE ? OR f.description LIKE ?)
-          AND (fm.status IS NULL OR fm.status = 'approved')
+          AND (fm.status = 'approved')
       `;
       const countParams = [searchTerm, searchTerm];
 

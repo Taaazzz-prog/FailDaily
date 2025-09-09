@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import {
@@ -48,14 +48,6 @@ interface ProfileStats {
     ]
 })
 export class ProfilePage implements OnInit, OnDestroy {
-    private readonly authService = inject(AuthService);
-    private readonly failService = inject(FailService);
-    private readonly badgeService = inject(BadgeService);
-    private readonly mysqlService = inject(MysqlService);
-    private readonly photoService = inject(PhotoService);
-    private readonly eventBus = inject(EventBusService);
-    private readonly router = inject(Router);
-
     currentUser$ = this.authService.currentUser$;
     userFails$: Observable<Fail[]>;
     userBadges$: Observable<Badge[]>;
@@ -147,7 +139,15 @@ export class ProfilePage implements OnInit, OnDestroy {
     // Message d'encouragement fixe pour éviter ExpressionChangedAfterItHasBeenCheckedError
     currentEncouragementMessage: string = '';
 
-    constructor() {
+    constructor(
+        private authService: AuthService,
+        private failService: FailService,
+        private badgeService: BadgeService,
+        private mysqlService: MysqlService,
+        private photoService: PhotoService,
+        private eventBus: EventBusService,
+        private router: Router
+    ) {
         // Configuration des icônes
         addIcons({
             calendar, createOutline, shareOutline, trophy, documentText, heart,

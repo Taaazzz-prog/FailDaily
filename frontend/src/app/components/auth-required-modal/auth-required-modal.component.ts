@@ -1,4 +1,4 @@
-import { Component, Input, inject } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
@@ -27,10 +27,10 @@ export class AuthRequiredModalComponent {
   @Input() message: string = 'Vous devez être connecté pour accéder à cette fonctionnalité';
   @Input() actionName: string = 'cette action';
 
-  private readonly modalController = inject(ModalController);
-  private readonly router = inject(Router);
-
-  constructor() {
+  constructor(
+    private modalController: ModalController,
+    private router: Router
+  ) {
     addIcons({
       logInOutline,
       personAddOutline,
