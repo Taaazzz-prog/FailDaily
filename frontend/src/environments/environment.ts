@@ -1,34 +1,36 @@
-// Configuration d'environnement unique pour développement et production
-// Utilise des URLs relatives (/api) qui fonctionnent avec Traefik en local et en production
+// This file can be replaced during build by using the `fileReplacements` array.
+// `ng build` replaces `environment.ts` with `environment.prod.ts`.
+// The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  production: true, // Toujours en mode production maintenant
+  production: false,
 
-  // Configuration MySQL Database (production)
+  // Configuration MySQL Database (développement local)
   database: {
     host: 'localhost',
     port: 3306,
-    name: 'faildaily', // Même nom que sur le serveur distant
+    name: 'faildaily_dev',
     charset: 'utf8mb4'
   },
 
   // Configuration Firebase (notifications push uniquement)
   firebase: {
-    apiKey: "AIzaSyB5dGWJ3tZcUm5kO8rN6vX2pL4qR9wA3sE",
-    authDomain: "faildaily-prod.firebaseapp.com",
-    projectId: "faildaily-prod",
-    storageBucket: "faildaily-prod.appspot.com",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abcd1234efgh5678ijklmn"
+    apiKey: 'your-dev-api-key',
+    authDomain: 'faildaily-dev.firebaseapp.com',
+    projectId: 'faildaily-dev',
+    storageBucket: 'faildaily-dev.appspot.com',
+    messagingSenderId: '123456789',
+    appId: 'your-dev-app-id',
+    measurementId: 'G-XXXXXXXXXX'
   },
 
   // APIs backend MySQL et externes
   api: {
-    baseUrl: '/api', // Utilise le même domaine que le frontend (géré par proxy/reverse proxy)
+    baseUrl: 'http://localhost:3000/api', // API MySQL backend Node.js
     moderationUrl: 'https://api.openai.com/v1',
-    moderationKey: '', // À remplir avec votre clé OpenAI
-    uploadMaxSize: 3 * 1024 * 1024, // 3MB max en production
-    imageQuality: 75, // Qualité optimisée pour la production
+    moderationKey: 'your-openai-dev-key',
+    uploadMaxSize: 5 * 1024 * 1024, // 5MB max
+    imageQuality: 80, // Qualité des images compressées
     timeout: 30000, // 30 secondes timeout
     retryAttempts: 3 // Retry API calls
   },
@@ -37,22 +39,22 @@ export const environment = {
   auth: {
     tokenKey: 'auth_token',
     userKey: 'current_user',
-    expiresIn: '7d', // 7 jours en production
-    refreshThreshold: 3600 // Refresh 1 heure avant expiration
+    expiresIn: '24h',
+    refreshThreshold: 300 // Refresh 5 minutes avant expiration
   },
 
-  // Configuration du storage
+  // Configuration du storage local (système moderne)
   storage: {
-    baseUrl: '/uploads', // Utilise le même domaine que le frontend
-    uploadsPath: '',
-    maxFileSize: 3 * 1024 * 1024, // 3MB en production
-    allowedImageTypes: ['image/jpeg', 'image/png', 'image/webp'],
-    compressionQuality: 0.75 // Compression plus agressive en prod
+    baseUrl: 'http://localhost:3000/storage',
+    uploadsPath: '/uploads',
+    maxFileSize: 5 * 1024 * 1024, // 5MB
+    allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+    compressionQuality: 0.8
   },
 
   // Configuration des notifications
   notifications: {
-    vapidKey: '', // À remplir avec votre clé VAPID
+    vapidKey: 'your-vapid-dev-key',
     reminderTimes: {
       min: 18, // 18h minimum
       max: 22, // 22h maximum
@@ -60,22 +62,20 @@ export const environment = {
     },
     enablePush: true,
     enableInApp: true,
-    debugMode: false, // Debug désactivé en production
-    retryAttempts: 5,
-    retryDelay: 5000
+    retryAttempts: 3
   },
 
   // Configuration de l'app
   app: {
-    name: 'FailDaily',
-    version: '2.0.0-mysql',
-    debugMode: false, // Debug désactivé en production
-    maxFailsPerDay: 3, // Limite plus stricte en production
-    courageHeartCooldown: 5000, // 5 secondes entre réactions
-    anonymousMode: false, // Mode anonyme désactivé en prod
-    locationEnabled: true, // Géolocalisation activée en prod
+    name: 'FailDaily (Dev MySQL)',
+    version: '2.0.0-dev-mysql',
+    debugMode: true,
+    maxFailsPerDay: 10, // Limite en dev pour éviter le spam
+    courageHeartCooldown: 1000, // 1 seconde entre réactions en dev
+    anonymousMode: true,
+    locationEnabled: false, // Désactivé en dev pour la vie privée
     cacheEnabled: true,
-    offlineMode: true // Mode hors ligne activé en prod
+    offlineMode: false // Mode hors ligne désactivé en dev
   },
 
   // Configuration des badges et points
@@ -84,28 +84,28 @@ export const environment = {
     dailyStreakPoints: 5,
     courageHeartPoints: 2,
     communityHelpPoints: 15,
-    maxDailyPoints: 50, // Limite plus stricte en prod
-    pointsMultiplier: 1.5 // Bonus en production
+    maxDailyPoints: 100,
+    pointsMultiplier: 1.0 // Dev = pas de bonus
   },
 
-  // Configuration MySQL optimisée pour la production
+  // Configuration MySQL-spécifique
   mysql: {
-    connectionPoolSize: 50, // Pool plus important en prod
-    queryTimeout: 10000, // Timeout plus court en prod
-    reconnectAttempts: 5,
-    enableQueryLogging: false // Logs désactivés en prod pour performance
+    connectionPoolSize: 10,
+    queryTimeout: 15000,
+    reconnectAttempts: 3,
+    enableQueryLogging: true // Pour debug en dev
   },
 
-  // Fonctionnalités (optimisées pour la production)
+  // Fonctionnalités expérimentales (dev seulement)
   features: {
-    voiceNotes: false, // Désactivé en prod pour l'instant
-    groupChallenges: false, // Pas encore prêt pour la prod
-    aiCounselor: false, // En développement
+    voiceNotes: false, // En développement
+    groupChallenges: false, // Futur feature
+    aiCounselor: false, // IA de conseil
     darkModeAuto: true,
     hapticFeedback: true,
-    realTimeUpdates: true,
-    advancedAnalytics: true,
-    betaFeatures: false // Features beta désactivées en prod
+    realTimeUpdates: true, // WebSocket pour updates temps réel
+    advancedAnalytics: true, // Analytics détaillées
+    betaFeatures: true // Features beta en dev
   }
 };
 
