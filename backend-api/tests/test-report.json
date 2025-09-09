@@ -1,488 +1,162 @@
 {
-  "timestamp": "2025-09-01T11:13:04.231Z",
-  "duration": 28259,
+  "timestamp": "2025-09-09T09:00:40.695Z",
+  "duration": 14735,
   "summary": {
     "total": 14,
-    "passed": 7,
-    "failed": 7,
-    "successRate": 50
+    "passed": 0,
+    "failed": 14,
+    "successRate": 0
   },
   "tests": [
     {
       "name": "1.1 - Connexion Base de Données",
       "category": "Database",
-      "success": true,
-      "duration": 124,
+      "success": false,
+      "duration": 308,
       "details": {
-        "connection": true,
-        "tablesCount": 27,
-        "usersCount": 26,
-        "errors": []
+        "connection": false,
+        "tablesCount": 0,
+        "usersCount": 0,
+        "errors": [
+          "Accès refusé pour l'utilisateur: 'root'@'@localhost' (mot de passe: NON)"
+        ]
       }
     },
     {
       "name": "1.2 - Structure Base de Données",
       "category": "Database",
       "success": false,
-      "duration": 215,
+      "duration": 24,
       "details": {
-        "tables": {
-          "users": {
-            "exists": true,
-            "columns": [
-              "id",
-              "email",
-              "email_confirmed",
-              "password_hash",
-              "role",
-              "last_login",
-              "login_count",
-              "account_status",
-              "registration_step",
-              "created_at",
-              "updated_at"
-            ],
-            "missingColumns": [],
-            "extraColumns": []
-          },
-          "profiles": {
-            "exists": true,
-            "columns": [
-              "id",
-              "user_id",
-              "username",
-              "display_name",
-              "avatar_url",
-              "bio",
-              "registration_completed",
-              "legal_consent",
-              "age_verification",
-              "preferences",
-              "stats",
-              "created_at",
-              "updated_at"
-            ],
-            "missingColumns": [],
-            "extraColumns": []
-          },
-          "fails": {
-            "exists": true,
-            "columns": [
-              "id",
-              "user_id",
-              "title",
-              "description",
-              "category",
-              "image_url",
-              "is_anonyme",
-              "comments_count",
-              "created_at",
-              "updated_at"
-            ],
-            "missingColumns": [
-              "reactions"
-            ],
-            "extraColumns": []
-          },
-          "badge_definitions": {
-            "exists": true,
-            "columns": [
-              "id",
-              "name",
-              "description",
-              "icon",
-              "category",
-              "rarity",
-              "requirement_type",
-              "requirement_value",
-              "created_at"
-            ],
-            "missingColumns": [],
-            "extraColumns": []
-          },
-          "user_badges": {
-            "exists": true,
-            "columns": [
-              "id",
-              "user_id",
-              "badge_id",
-              "unlocked_at",
-              "created_at"
-            ],
-            "missingColumns": [],
-            "extraColumns": []
-          },
-          "reactions": {
-            "exists": true,
-            "columns": [
-              "id",
-              "user_id",
-              "fail_id",
-              "reaction_type",
-              "created_at"
-            ],
-            "missingColumns": [],
-            "extraColumns": []
-          },
-          "system_logs": {
-            "exists": true,
-            "columns": [
-              "id",
-              "level",
-              "message",
-              "action",
-              "details",
-              "user_id",
-              "timestamp",
-              "created_at"
-            ],
-            "missingColumns": [],
-            "extraColumns": []
-          }
-        },
+        "tables": {},
         "constraints": {},
-        "indexes": {
-          "users": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "email",
-              "column": "email",
-              "unique": true
-            },
-            {
-              "name": "idx_users_email",
-              "column": "email",
-              "unique": false
-            },
-            {
-              "name": "idx_users_status",
-              "column": "account_status",
-              "unique": false
-            }
-          ],
-          "profiles": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "user_id",
-              "column": "user_id",
-              "unique": true
-            },
-            {
-              "name": "username",
-              "column": "username",
-              "unique": true
-            }
-          ],
-          "fails": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "idx_fails_user_id",
-              "column": "user_id",
-              "unique": false
-            },
-            {
-              "name": "idx_fails_created_at",
-              "column": "created_at",
-              "unique": false
-            }
-          ],
-          "badge_definitions": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "idx_badge_definitions_category",
-              "column": "category",
-              "unique": false
-            },
-            {
-              "name": "idx_badge_definitions_rarity",
-              "column": "rarity",
-              "unique": false
-            }
-          ],
-          "user_badges": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "unique_user_badge",
-              "column": "user_id",
-              "unique": true
-            },
-            {
-              "name": "unique_user_badge",
-              "column": "badge_id",
-              "unique": true
-            },
-            {
-              "name": "idx_user_badges_badge_id",
-              "column": "badge_id",
-              "unique": false
-            }
-          ],
-          "reactions": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "unique_user_fail_reaction",
-              "column": "user_id",
-              "unique": true
-            },
-            {
-              "name": "unique_user_fail_reaction",
-              "column": "fail_id",
-              "unique": true
-            },
-            {
-              "name": "idx_reactions_fail_id",
-              "column": "fail_id",
-              "unique": false
-            },
-            {
-              "name": "idx_reactions_user_id",
-              "column": "user_id",
-              "unique": false
-            }
-          ],
-          "system_logs": [
-            {
-              "name": "PRIMARY",
-              "column": "id",
-              "unique": true
-            },
-            {
-              "name": "system_logs_user_id_fkey",
-              "column": "user_id",
-              "unique": false
-            }
-          ]
-        },
-        "errors": []
+        "indexes": {},
+        "errors": [
+          "Accès refusé pour l'utilisateur: 'root'@'@localhost' (mot de passe: NON)"
+        ]
       }
     },
     {
       "name": "2.1 - Inscription Utilisateur",
       "category": "Authentication",
-      "success": true,
-      "duration": 1220,
+      "success": false,
+      "duration": 55,
       "details": {
-        "validRegistrationAdult": true,
-        "emailUniqueness": true,
-        "displayNameUniqueness": true,
-        "requiredFields": true,
-        "ageVerification": true,
-        "termsValidation": true,
-        "responseFormat": true,
-        "errors": []
+        "validRegistrationAdult": false,
+        "emailUniqueness": false,
+        "displayNameUniqueness": false,
+        "requiredFields": false,
+        "ageVerification": false,
+        "termsValidation": false,
+        "responseFormat": false,
+        "errors": [
+          "Erreur test: request to http://localhost:3000/api/registration/register failed, reason: "
+        ]
       }
     },
     {
       "name": "2.2 - Connexion Utilisateur",
       "category": "Authentication",
-      "success": true,
-      "duration": 3522,
+      "success": false,
+      "duration": 13,
       "details": {
-        "userCreated": true,
-        "validLogin": true,
-        "invalidPassword": true,
-        "invalidEmail": true,
+        "userCreated": false,
+        "validLogin": false,
+        "invalidPassword": false,
+        "invalidEmail": false,
         "missingFields": false,
-        "tokenFormat": true,
-        "errors": []
+        "tokenFormat": false,
+        "errors": [
+          "Erreur réseau: request to http://localhost:3000/api/registration/register failed, reason: "
+        ]
       }
     },
     {
       "name": "2.3 - Vérification JWT",
       "category": "Authentication",
-      "success": true,
-      "duration": 1210,
+      "success": false,
+      "duration": 32,
       "details": {
-        "userCreated": true,
-        "tokenReceived": true,
-        "tokenVerification": true,
-        "invalidToken": true,
-        "missingToken": true,
+        "userCreated": false,
+        "tokenReceived": false,
+        "tokenVerification": false,
+        "invalidToken": false,
+        "missingToken": false,
         "expiredToken": false,
-        "middleware": true,
-        "errors": []
+        "middleware": false,
+        "errors": [
+          "Erreur réseau: request to http://localhost:3000/api/registration/register failed, reason: "
+        ]
       }
     },
     {
       "name": "2.4 - Protection Accès Non Authentifié",
       "category": "Security",
       "success": false,
-      "duration": 1542,
+      "duration": 24,
       "details": {
-        "protectedEndpoints": 11,
-        "blockedEndpoints": 8,
-        "endpointResults": [
-          {
-            "name": "GET /api/fails",
-            "method": "GET",
-            "url": "http://localhost:3000/api/fails",
-            "expectedStatus": 401,
-            "actualStatus": 500,
-            "blocked": false
-          },
-          {
-            "name": "POST /api/fails",
-            "method": "POST",
-            "url": "http://localhost:3000/api/fails",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "GET /api/fails/:id",
-            "method": "GET",
-            "url": "http://localhost:3000/api/fails/123",
-            "expectedStatus": 401,
-            "actualStatus": 404,
-            "blocked": false
-          },
-          {
-            "name": "PUT /api/fails/:id",
-            "method": "PUT",
-            "url": "http://localhost:3000/api/fails/123",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "DELETE /api/fails/:id",
-            "method": "DELETE",
-            "url": "http://localhost:3000/api/fails/123",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "GET /api/auth/profile",
-            "method": "GET",
-            "url": "http://localhost:3000/api/auth/profile",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "PUT /api/auth/profile",
-            "method": "PUT",
-            "url": "http://localhost:3000/api/auth/profile",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "GET /api/auth/verify",
-            "method": "GET",
-            "url": "http://localhost:3000/api/auth/verify",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "GET /api/user/stats",
-            "method": "GET",
-            "url": "http://localhost:3000/api/user/stats",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          },
-          {
-            "name": "GET /api/fails/:id/comments",
-            "method": "GET",
-            "url": "http://localhost:3000/api/fails/123/comments",
-            "expectedStatus": 401,
-            "actualStatus": 404,
-            "blocked": false
-          },
-          {
-            "name": "POST /api/fails/:id/comments",
-            "method": "POST",
-            "url": "http://localhost:3000/api/fails/123/comments",
-            "expectedStatus": 401,
-            "actualStatus": 401,
-            "blocked": true
-          }
-        ],
+        "protectedEndpoints": 1,
+        "blockedEndpoints": 0,
+        "endpointResults": [],
         "errors": [
-          "GET /api/fails - ÉCHEC: attendu 401, reçu 500",
-          "GET /api/fails/:id - ÉCHEC: attendu 401, reçu 404",
-          "GET /api/fails/:id/comments - ÉCHEC: attendu 401, reçu 404",
-          "Token invalide devrait être rejeté, reçu: 500",
-          "Token expiré devrait être rejeté, reçu: 500",
-          "Header malformé devrait être rejeté, reçu: 500"
+          "Erreur réseau: request to http://localhost:3000/api/fails failed, reason: "
         ]
       }
     },
     {
       "name": "2.6 - Profil (GET/PUT)",
       "category": "Authentication",
-      "success": true,
-      "duration": 707,
+      "success": false,
+      "duration": 4,
       "details": {
-        "userCreated": true,
-        "tokenObtained": true,
-        "getProfileOk": true,
-        "updateProfileOk": true,
-        "getUpdatedProfileOk": true,
-        "errors": []
+        "userCreated": false,
+        "tokenObtained": false,
+        "getProfileOk": false,
+        "updateProfileOk": false,
+        "getUpdatedProfileOk": false,
+        "errors": [
+          "Erreur: request to http://localhost:3000/api/registration/register failed, reason: "
+        ]
       }
     },
     {
       "name": "2.7 - Upload Avatar",
       "category": "Authentication",
-      "success": true,
-      "duration": 703,
+      "success": false,
+      "duration": 10,
       "details": {
-        "userCreated": true,
-        "tokenObtained": true,
-        "uploadOk": true,
-        "profileUpdated": true,
-        "errors": []
+        "userCreated": false,
+        "tokenObtained": false,
+        "uploadOk": false,
+        "profileUpdated": false,
+        "errors": [
+          "request to http://localhost:3000/api/registration/register failed, reason: "
+        ]
       }
     },
     {
       "name": "3.0 - Upload Image (Fail)",
       "category": "Fails",
-      "success": true,
-      "duration": 611,
+      "success": false,
+      "duration": 4,
       "details": {
-        "userCreated": true,
-        "tokenObtained": true,
-        "uploadOk": true,
-        "fileServed": true,
-        "errors": []
+        "userCreated": false,
+        "tokenObtained": false,
+        "uploadOk": false,
+        "fileServed": false,
+        "errors": [
+          "request to http://localhost:3000/api/registration/register failed, reason: "
+        ]
       }
     },
     {
       "name": "3.1 - Création de Fails",
       "category": "Fails",
       "success": false,
-      "duration": 734,
+      "duration": 46,
       "details": {
-        "userCreated": true,
-        "tokenObtained": true,
+        "userCreated": false,
+        "tokenObtained": false,
         "validFailCreation": false,
         "missingTitle": false,
         "publicFail": false,
@@ -490,10 +164,7 @@
         "categoryValidation": false,
         "responseFormat": false,
         "errors": [
-          "Création fail valide échouée: 500 - Erreur inconnue",
-          "Création fail public échouée: 500",
-          "Création fail privé échouée: 500",
-          "Certaines catégories rejetées: 0/6"
+          "Erreur réseau: request to http://localhost:3000/api/registration/register failed, reason: "
         ]
       }
     },
@@ -501,9 +172,9 @@
       "name": "3.2 - Récupération de Fails",
       "category": "Fails",
       "success": false,
-      "duration": 932,
+      "duration": 41,
       "details": {
-        "userCreated": true,
+        "userCreated": false,
         "failsCreated": 0,
         "getAllFails": false,
         "getFailById": false,
@@ -512,12 +183,7 @@
         "categoryFilter": false,
         "unauthorizedAccess": false,
         "errors": [
-          "Accès sans auth devrait être rejeté: 500",
-          "Récupération fails avec auth échouée: 500",
-          "Test pagination échoué: 500",
-          "Test filtre catégorie échoué: 500",
-          "Accès non autorisé devrait retourner 401, reçu: 500",
-          "Vérification format échouée: 500"
+          "Erreur réseau: request to http://localhost:3000/api/auth/register failed, reason: "
         ]
       }
     },
@@ -525,15 +191,15 @@
       "name": "3.3 - Commentaires (base)",
       "category": "Fails",
       "success": false,
-      "duration": 558,
+      "duration": 10,
       "details": {
-        "userCreated": true,
-        "tokenObtained": true,
+        "userCreated": false,
+        "tokenObtained": false,
         "failCreated": false,
         "commentCreated": false,
         "commentListed": false,
         "errors": [
-          "Création fail échouée: {\"success\":false,\"message\":\"Erreur lors de la création du fail\"}"
+          "request to http://localhost:3000/api/registration/register failed, reason: "
         ]
       }
     },
@@ -541,9 +207,9 @@
       "name": "3.4 - Commentaires Like/Report",
       "category": "Fails",
       "success": false,
-      "duration": 551,
+      "duration": 4,
       "details": {
-        "authorCreated": true,
+        "authorCreated": false,
         "readerCreated": false,
         "failCreated": false,
         "commentCreated": false,
@@ -551,7 +217,7 @@
         "unliked": false,
         "moderated": false,
         "errors": [
-          "Création fail auteur échouée"
+          "request to http://localhost:3000/api/registration/register failed, reason: "
         ]
       }
     },
@@ -559,18 +225,16 @@
       "name": "4.1 - Intégration Complète",
       "category": "Integration",
       "success": false,
-      "duration": 1525,
+      "duration": 5,
       "details": {
-        "userRegistration": true,
-        "userLogin": true,
+        "userRegistration": false,
+        "userLogin": false,
         "failCreation": false,
         "failRetrieval": false,
         "userStats": false,
-        "endToEndFlow": true,
+        "endToEndFlow": false,
         "errors": [
-          "Seulement 0/3 fails créés",
-          "Accès non autorisé devrait retourner 401, reçu: 500",
-          "Récupération des fails échouée: 500"
+          "Erreur générale: request to http://localhost:3000/api/auth/register failed, reason: "
         ]
       }
     }

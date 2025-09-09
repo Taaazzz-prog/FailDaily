@@ -2,7 +2,25 @@
 
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/Taaazzz-prog/FailDaily)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue.svg)](#)
-[![Tech](https://img.shields.io/badge/Tech-Angular%2018%20%7C%20Ionic%208%20%7C%20MySQL-orange.svg)](#)
+[![Tech](https://img.shields.io/badge/Tech-Angular%2020%20%7C%20Ionic%208%20%7C%20Node.js%2022%20%7C%20MySQL%209-orange.svg)](#)
+
+## 🚀 **Démarrage Rapide**
+
+```bash
+# 1. Cloner le projet
+git clone https://github.com/Taaazzz-prog/FailDaily.git
+cd FailDaily
+
+# 2. Lancer avec Docker (recommandé)
+.\docker\start-local.ps1 --with-data
+
+# 3. Accéder à l'application
+# Frontend: http://localhost:8080
+# Backend:  http://localhost:3000
+# MySQL:    localhost:3306
+```
+
+**🔗 Documentation :** [Scripts Guide](SCRIPTS_GUIDE.md) | [API Reference](API_ENDPOINTS.md) | [Badges System](BADGES_GUIDE.md)
 
 ## 🎯 **Concept & Vision**
 
