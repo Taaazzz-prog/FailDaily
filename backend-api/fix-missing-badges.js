@@ -1,5 +1,4 @@
 // Script pour attribuer rétroactivement les badges manquants
-const express = require('express');
 const { executeQuery } = require('./src/config/database');
 
 async function fixMissingBadges() {

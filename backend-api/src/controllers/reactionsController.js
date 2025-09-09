@@ -1,4 +1,4 @@
-const { executeQuery, executeTransaction } = require('../config/database');
+const { executeQuery } = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -243,7 +243,7 @@ class ReactionsController {
         });
       }
 
-      const fail = fails[0];
+      // const fail = fails[0]; // Pas de restriction d'accès pour le moment
 
       // Aucune restriction d'accès basée sur l'anonymat
 
@@ -448,7 +448,7 @@ async function getReactionSummary(failId, userId = null) {
   );
   const counts = { courage: 0, laugh: 0, empathy: 0, support: 0 };
   for (const r of rows) {
-    if (counts.hasOwnProperty(r.reaction_type)) counts[r.reaction_type] = Number(r.c) || 0;
+    if (Object.prototype.hasOwnProperty.call(counts, r.reaction_type)) counts[r.reaction_type] = Number(r.c) || 0;
   }
   let userReaction = null;
   if (userId) {

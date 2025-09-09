@@ -146,6 +146,9 @@ router.get('/validate-referral', async (req, res) => {
     const { code } = req.query;
 
     // Pour l'instant, les codes de parrainage ne sont pas implémentés
+    // Log du code pour debug futur
+    console.log('Code de parrainage reçu:', code);
+    
     res.json({
       success: true,
       valid: false,
@@ -172,7 +175,7 @@ router.post('/register', async (req, res) => {
       displayName,
       birthDate,
       agreeToTerms,
-      agreeToNewsletter = false,
+      // _agreeToNewsletter = false, // Non implémenté pour le moment
       referralCode = null,
       parentEmail = null // ✅ Ajout de l'email parent optionnel
     } = req.body;
@@ -256,7 +259,6 @@ router.post('/register', async (req, res) => {
     }
 
     // Validation du code de parrainage si fourni
-    let referralData = null;
     if (referralCode) {
       // Pour l'instant, on ignore les codes de parrainage car la table n'existe pas
       console.log('⚠️ Code de parrainage ignoré (non implémenté):', referralCode);
@@ -264,7 +266,6 @@ router.post('/register', async (req, res) => {
 
     // Transaction pour créer l'utilisateur ET son profil
     const userId = uuidv4();
-    const profileId = uuidv4();
     
     // Hacher le mot de passe
     const saltRounds = 12;
@@ -476,6 +477,7 @@ router.post('/verify-email', async (req, res) => {
       });
 
     } catch (jwtError) {
+      console.log('❌ Token JWT invalide:', jwtError.message);
       return res.status(400).json({
         success: false,
         message: 'Token de vérification invalide ou expiré'

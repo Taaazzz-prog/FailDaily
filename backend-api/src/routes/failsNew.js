@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const FailsController = require('../controllers/failsController');
-const { authenticateToken, optionalAuth } = require('../middleware/auth');
-const { executeQuery } = require('../config/database');
+const { authenticateToken } = require('../middleware/auth');
 
 // GET /api/fails - Récupérer les fails (avec pagination et filtres) - PROTÉGÉ
 router.get('/', authenticateToken, FailsController.getFails);

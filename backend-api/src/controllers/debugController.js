@@ -13,7 +13,6 @@ class DebugController {
       const startTime = Date.now();
       
       const result = await executeQuery(
-        req.dbConnection,
         'SELECT 1 as test, NOW() as server_time, VERSION() as mysql_version',
         []
       );
@@ -48,7 +47,6 @@ class DebugController {
   static async getDatabaseInfo(req, res) {
     try {
       const tables = await executeQuery(
-        req.dbConnection,
         `SELECT 
           TABLE_NAME,
           TABLE_ROWS,
@@ -61,7 +59,6 @@ class DebugController {
       );
 
       const dbInfo = await executeQuery(
-        req.dbConnection,
         `SELECT 
           SCHEMA_NAME as database_name,
           DEFAULT_CHARACTER_SET_NAME as charset,
@@ -246,25 +243,25 @@ class DebugController {
 
       // Test connexion DB
       try {
-        await executeQuery(req.dbConnection, 'SELECT 1', []);
+        await executeQuery('SELECT 1', []);
         healthChecks.database_connection = true;
-      } catch (error) {
+      } catch {
         issues.push('Connexion base de données échouée');
       }
 
       // Test table users
       try {
-        await executeQuery(req.dbConnection, 'SELECT COUNT(*) FROM users LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM users LIMIT 1', []);
         healthChecks.user_table_access = true;
-      } catch (error) {
+      } catch {
         issues.push('Accès table users échoué');
       }
 
       // Test table fails
       try {
-        await executeQuery(req.dbConnection, 'SELECT COUNT(*) FROM fails LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM fails LIMIT 1', []);
         healthChecks.fail_table_access = true;
-      } catch (error) {
+      } catch {
         issues.push('Accès table fails échoué');
       }
 
@@ -274,15 +271,15 @@ class DebugController {
         const testToken = jwt.sign({ test: true }, process.env.JWT_SECRET || 'fallback-secret');
         jwt.verify(testToken, process.env.JWT_SECRET || 'fallback-secret');
         healthChecks.authentication_ready = true;
-      } catch (error) {
+      } catch {
         issues.push('Système d\'authentification non configuré');
       }
 
       // Test système de badges
       try {
-        await executeQuery(req.dbConnection, 'SELECT COUNT(*) FROM badges LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM badges LIMIT 1', []);
         healthChecks.badges_system = true;
-      } catch (error) {
+      } catch {
         issues.push('Système de badges non accessible');
       }
 
@@ -357,7 +354,7 @@ class DebugController {
 
       for (let i = 0; i < parseInt(queries); i++) {
         const queryStart = Date.now();
-        await executeQuery(req.dbConnection, 'SELECT SLEEP(0.001), ? as query_num', [i + 1]);
+        await executeQuery('SELECT SLEEP(0.001), ? as query_num', [i + 1]);
         const queryTime = Date.now() - queryStart;
         results.push(queryTime);
       }

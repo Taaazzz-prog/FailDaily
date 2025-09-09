@@ -93,7 +93,7 @@ class FailsController {
         imageUrl
       ];
 
-      const result = await executeQuery(failQuery, failValues);
+      await executeQuery(failQuery, failValues);
 
       // CORRECTION: Créer automatiquement une entrée de modération 'under_review'
       // pour que le fail ne soit pas affiché publiquement tant qu'il n'est pas approuvé
@@ -901,7 +901,7 @@ class FailsController {
       const { 
         q: searchQuery, 
         category, 
-        tags,
+        // tags, // Non implémenté pour le moment
         page = 1, 
         limit = 20 
       } = req.query;
@@ -1050,8 +1050,8 @@ class FailsController {
   static async getPopularTags(req, res) {
     
     try {
-      const { limit = 50 } = req.query;
-      const limitNum = parseInt(limit) || 50;
+      // const { limit = 50 } = req.query; // Non utilisé car fonctionnalité non implémentée
+      // const limitNum = parseInt(limit) || 50; // Non utilisé car fonctionnalité non implémentée
 
       // Temporaire : retourner un tableau vide car le champ tags n'existe pas dans la table fails
       // TODO: Ajouter le champ tags à la table ou implémenter une table tags séparée
@@ -1157,7 +1157,7 @@ class FailsController {
           'INSERT INTO fail_reports (id, fail_id, user_id, reason, created_at) VALUES (?, ?, ?, ?, NOW())',
           [uuidv4(), id, userId, reason]
         );
-      } catch (_) { /* duplicate, ignore */ }
+      } catch { /* duplicate, ignore */ }
 
       // Compter reports et comparer au seuil
       const [{ reports }] = await executeQuery('SELECT COUNT(*) AS reports FROM fail_reports WHERE fail_id = ?', [id]);

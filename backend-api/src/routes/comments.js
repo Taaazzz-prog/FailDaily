@@ -63,7 +63,7 @@ router.post('/:id/comments/:commentId/like', authenticateToken, async (req, res)
       if (pointsCfg.commentLikeReward > 0) {
         await CommentsController.awardCouragePoints(targetUserId, pointsCfg.commentLikeReward);
       }
-    } catch (_) { /* likely duplicate, ignore */ }
+    } catch { /* likely duplicate, ignore */ }
 
     const [{ likes }] = await require('../config/database').executeQuery(
       'SELECT COUNT(*) AS likes FROM comment_reactions WHERE comment_id = ?',[commentId]
@@ -120,7 +120,7 @@ router.post('/:id/comments/:commentId/report', authenticateToken, async (req, re
         'INSERT INTO comment_reports (id, comment_id, user_id, reason, created_at) VALUES (?, ?, ?, ?, NOW())',
         [id, commentId, userId, reason]
       );
-    } catch (_) { /* duplicate */ }
+    } catch { /* duplicate */ }
 
     const db = require('../config/database');
     const [{ reports }] = await db.executeQuery('SELECT COUNT(*) AS reports FROM comment_reports WHERE comment_id = ?', [commentId]);

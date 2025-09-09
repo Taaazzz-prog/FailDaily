@@ -56,7 +56,7 @@ class CommentsController {
           commentReportThreshold: Number(cfg.commentReportThreshold) || 10
         };
       }
-    } catch (_) {}
+    } catch {/* ignore */}
     return { commentCreate: 2, commentLikeReward: 1, commentReportThreshold: 10 };
   }
 
@@ -104,7 +104,7 @@ class CommentsController {
         });
       }
 
-      const fail = fails[0];
+      // const fail = fails[0]; // Pas de restriction d'accès pour le moment
       // Aucune restriction d'accès basée sur l'anonymat
 
       // Créer le commentaire
@@ -195,7 +195,7 @@ class CommentsController {
     try {
       const { id: failId } = req.params;
       const { page = 1, limit = 20 } = req.query;
-      const userId = req.user ? req.user.id : null;
+      // const userId = req.user ? req.user.id : null; // Non utilisé pour le moment
 
       const pageNum = parseInt(page) || 1;
       const limitNum = parseInt(limit) || 20;
@@ -216,7 +216,7 @@ class CommentsController {
         });
       }
 
-      const fail = fails[0];
+      // const fail = fails[0]; // Pas de restriction d'accès pour le moment
       // Aucune restriction d'accès basée sur l'anonymat
 
       // Récupérer les commentaires avec pagination

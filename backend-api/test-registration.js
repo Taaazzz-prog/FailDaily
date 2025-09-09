@@ -32,7 +32,7 @@ async function testRegistration() {
     try {
       const jsonResult = JSON.parse(result);
       console.log('📊 JSON Response:', JSON.stringify(jsonResult, null, 2));
-    } catch (e) {
+    } catch {
       console.log('📊 Response n\'est pas du JSON valide');
     }
 

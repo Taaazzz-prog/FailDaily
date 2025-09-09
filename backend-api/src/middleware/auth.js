@@ -100,7 +100,7 @@ const optionalAuth = async (req, res, next) => {
     );
 
     req.user = users.length > 0 ? users[0] : null;
-  } catch (error) {
+  } catch {
     req.user = null;
   }
 

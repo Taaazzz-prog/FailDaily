@@ -21,13 +21,13 @@ const adminRoutes = require('./src/routes/admin');
 
 // Routes (optionnelles)
 let failsPublicRoutes = null;
-try { failsPublicRoutes = require('./src/routes/failsNew'); } catch (_) {}
+try { failsPublicRoutes = require('./src/routes/failsNew'); } catch {/* ignore */}
 
 let badgesRoutes = null;
-try { badgesRoutes = require('./src/routes/badges'); } catch (_) {}
+try { badgesRoutes = require('./src/routes/badges'); } catch {/* ignore */}
 
 let usersRoutes = null;
-try { usersRoutes = require('./src/routes/users'); } catch (_) {}
+try { usersRoutes = require('./src/routes/users'); } catch {/* ignore */}
 
 // Auth middleware (pour les endpoints protégés)
 const { authenticateToken } = require('./src/middleware/auth');
@@ -130,7 +130,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint non trouvé', code: 'NOT_FOUND', path: req.originalUrl });
 });
 
-app.use((error, req, res, next) => {
+app.use((error, req, res) => {
   console.error('Erreur globale:', error);
   if (error && error.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'Fichier trop volumineux', code: 'FILE_TOO_LARGE' });

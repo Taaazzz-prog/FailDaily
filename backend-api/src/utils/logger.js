@@ -17,7 +17,6 @@ async function logSystem({ level = 'info', action = null, message = '', details 
     );
   } catch (e) {
     // Ne jamais casser le flux applicatif pour un log
-    // eslint-disable-next-line no-console
     console.warn('logSystem failure:', e?.message);
   }
 }
