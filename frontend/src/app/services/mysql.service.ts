@@ -1319,7 +1319,7 @@ export class MysqlService {
 
   async getPointsConfiguration(): Promise<any> {
     try {
-      const response: any = await this.http.get(`${this.apiUrl}/admin/points-config`, {
+      const response: any = await this.http.get(`${this.apiUrl}/admin/points/config`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
@@ -1336,7 +1336,7 @@ export class MysqlService {
 
   async updatePointsConfiguration(config: any): Promise<void> {
     try {
-      const response: any = await this.http.put(`${this.apiUrl}/admin/points-config`, config, {
+      const response: any = await this.http.put(`${this.apiUrl}/admin/points/config`, config, {
         headers: this.getAuthHeaders()
       }).toPromise();
 

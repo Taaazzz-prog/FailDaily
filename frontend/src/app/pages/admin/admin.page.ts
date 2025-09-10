@@ -120,9 +120,24 @@ export class AdminPage implements OnInit, OnDestroy {
     ) { }
 
     async ngOnInit() {
-        await this.loadDashboardData();
-        await this.loadPointsConfiguration();
-        await this.loadAllUsers();
+        // Charger les données en arrière-plan pour éviter de bloquer l'UI
+        try {
+            await this.loadDashboardData();
+        } catch (error) {
+            console.error('🔴 Erreur chargement dashboard:', error);
+        }
+        
+        try {
+            await this.loadPointsConfiguration();
+        } catch (error) {
+            console.error('🔴 Erreur chargement config points:', error);
+        }
+        
+        try {
+            await this.loadAllUsers();
+        } catch (error) {
+            console.error('🔴 Erreur chargement utilisateurs:', error);
+        }
     }
 
     ngOnDestroy() {
@@ -131,23 +146,32 @@ export class AdminPage implements OnInit, OnDestroy {
 
     async onSegmentChanged(event: any) {
         this.selectedSegment = event.detail.value;
+        console.log('🔄 Segment changed to:', this.selectedSegment);
 
-        switch (this.selectedSegment) {
-            case 'dashboard':
-                await this.loadDashboardData();
-                break;
-            case 'config':
-                await this.loadPointsConfiguration();
-                break;
-            case 'users':
-                await this.loadAllUsers();
-                break;
-            case 'logs':
-                await this.loadAdminLogsAll();
-                break;
-            case 'realtime':
-                await this.loadRealTimeData();
-                break;
+        try {
+            switch (this.selectedSegment) {
+                case 'dashboard':
+                    await this.loadDashboardData();
+                    break;
+                case 'config':
+                    await this.loadPointsConfiguration();
+                    break;
+                case 'users':
+                    await this.loadAllUsers();
+                    break;
+                case 'logs':
+                    await this.loadAdminLogsAll();
+                    break;
+                case 'realtime':
+                    await this.loadRealTimeData();
+                    break;
+                default:
+                    console.log('🟡 Segment non géré:', this.selectedSegment);
+            }
+        } catch (error) {
+            console.error('🔴 Erreur lors du changement de segment:', error);
+            // Afficher un toast d'erreur
+            this.showToast('Erreur lors du chargement des données', 'danger');
         }
     }
 
@@ -171,8 +195,18 @@ export class AdminPage implements OnInit, OnDestroy {
         this.loading = true;
         try {
             this.dashboardStats = await this.adminService.getDashboardStats();
+            console.log('✅ Dashboard data loaded:', this.dashboardStats);
         } catch (error) {
-            console.error('Error loading dashboard data:', error);
+            console.error('🔴 Error loading dashboard data:', error);
+            // Fallback avec des données par défaut
+            this.dashboardStats = {
+                totalUsers: 0,
+                totalFails: 0,
+                totalReactions: 0,
+                todayActivity: 0,
+                systemStatus: 'warning',
+                error: 'Service indisponible'
+            };
         }
         this.loading = false;
     }

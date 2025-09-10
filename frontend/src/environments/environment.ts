@@ -24,7 +24,7 @@ export const environment = {
 
   // APIs backend MySQL et externes
   api: {
-    baseUrl: '/api', // Utilise le même domaine que le frontend (géré par proxy/reverse proxy)
+    baseUrl: 'http://localhost:3000/api', // Directement vers le serveur backend local
     moderationUrl: 'https://api.openai.com/v1',
     moderationKey: '', // À remplir avec votre clé OpenAI
     uploadMaxSize: 3 * 1024 * 1024, // 3MB max en production
