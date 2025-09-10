@@ -10,6 +10,11 @@ export const routes: Routes = [
     redirectTo: '/tabs/home',
     pathMatch: 'full'
   },
+  // Page de réinitialisation de mot de passe (via token dans l'URL)
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./pages/reset-password/reset-password.page').then(m => m.ResetPasswordPage)
+  },
   {
     path: 'tabs',
     loadComponent: () => import('./pages/tabs/tabs.page').then(m => m.TabsPage),
@@ -106,6 +111,11 @@ export const routes: Routes = [
       {
         path: 'register',
         loadComponent: () => import('./pages/auth/register.page').then(m => m.RegisterPage),
+        canActivate: [NoAuthGuard]
+      },
+      {
+        path: 'forgot-password',
+        loadComponent: () => import('./pages/auth/forgot-password.page').then(m => m.ForgotPasswordPage),
         canActivate: [NoAuthGuard]
       }
     ]

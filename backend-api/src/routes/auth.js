@@ -39,5 +39,7 @@ router.put('/password', authenticateToken, changePassword);
 
 // POST /api/auth/password-reset - Demande de réinitialisation de mot de passe
 router.post('/password-reset', requestPasswordReset);
+// POST /api/auth/password-reset/confirm - Confirmation avec token (nouveau)
+router.post('/password-reset/confirm', require('../controllers/authController').confirmPasswordReset);
 
 module.exports = router;

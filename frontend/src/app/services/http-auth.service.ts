@@ -16,6 +16,8 @@ export interface RegisterData {
   displayName: string;
   legalConsent?: any;
   ageVerification?: any;
+  birthDate?: string; // optionnel: pour calcul d'âge côté backend
+  agreeToTerms?: boolean; // optionnel: consentement
 }
 
 export interface AuthResponse {
@@ -79,13 +81,17 @@ export class HttpAuthService {
     try {
       console.log('📝 Tentative d\'inscription:', registerData.email);
       
-      const response: any = await this.http.post(`${this.apiUrl}/auth/register`, {
+      const payload: any = {
         email: registerData.email,
         password: registerData.password,
         displayName: registerData.displayName,
         legalConsent: registerData.legalConsent,
         ageVerification: registerData.ageVerification
-      }).toPromise();
+      };
+      if (registerData.birthDate) payload.birthDate = registerData.birthDate;
+      if (typeof registerData.agreeToTerms === 'boolean') payload.agreeToTerms = registerData.agreeToTerms;
+
+      const response: any = await this.http.post(`${this.apiUrl}/auth/register`, payload).toPromise();
 
       if (response.success && response.token && response.user) {
         this.saveAuthData(response.token, response.user);
@@ -269,7 +275,7 @@ export class HttpAuthService {
 
   async resetPassword(token: string, newPassword: string): Promise<boolean> {
     try {
-      const response: any = await this.http.post(`${this.apiUrl}/auth/password-reset`, { token, newPassword }).toPromise();
+      const response: any = await this.http.post(`${this.apiUrl}/auth/password-reset/confirm`, { token, newPassword }).toPromise();
 
       if (response.success) {
         console.log('✅ Mot de passe réinitialisé avec succès');
@@ -278,29 +284,15 @@ export class HttpAuthService {
         throw new Error(response.message || 'Erreur lors de la réinitialisation du mot de passe');
       }
     } catch (error) {
-      console.error('❌ Erreur reset password:', error);
+      console.error('❌ Erreur reset password (confirm):', error);
       throw error;
     }
   }
 
   async deleteAccount(password: string): Promise<boolean> {
-    try {
-      const response: any = await this.http.delete(`${this.apiUrl}/auth/delete-account`, {
-        headers: this.getAuthHeaders(),
-        body: { password }
-      }).toPromise();
-
-      if (response.success) {
-        console.log('✅ Compte supprimé avec succès');
-        this.clearAuthData();
-        return true;
-      } else {
-        throw new Error(response.message || 'Erreur lors de la suppression du compte');
-      }
-    } catch (error) {
-      console.error('❌ Erreur suppression compte:', error);
-      throw error;
-    }
+    // Non implémenté côté backend. On informe clairement pour éviter un appel 404.
+    console.warn('⚠️ Suppression de compte non disponible côté backend');
+    throw new Error('Suppression de compte non disponible');
   }
 
   private async logUserLogin(userId: string): Promise<void> {

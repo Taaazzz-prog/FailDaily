@@ -7,7 +7,7 @@ import { CustomValidators } from '../../utils/validators';
 import {
   ToastController,
   IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
-  IonInput, IonButton, IonSpinner
+  IonInput, IonButton, IonSpinner, IonText
 } from '@ionic/angular/standalone';
 
 @Component({
@@ -18,12 +18,13 @@ import {
     CommonModule,
     ReactiveFormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
-    IonInput, IonButton, IonSpinner
+    IonInput, IonButton, IonSpinner, IonText
   ]
 })
 export class LoginPage implements OnInit {
   loginForm: FormGroup;
   isLoading = false;
+  failedAttempts = 0;
 
   constructor(
     private fb: FormBuilder,
@@ -88,6 +89,7 @@ export class LoginPage implements OnInit {
         });
         await toast.present();
         console.log('🔐 LoginPage - Error toast shown');
+        this.failedAttempts++;
       } finally {
         this.isLoading = false;
         console.log('🔐 LoginPage - Loading finished');
@@ -100,5 +102,14 @@ export class LoginPage implements OnInit {
   goToRegister() {
     console.log('🔐 LoginPage - Navigating to register');
     this.router.navigate(['/auth/register']);
+  }
+
+  goToForgotPassword() {
+    console.log('🔐 LoginPage - Navigating to forgot-password');
+    this.router.navigate(['/auth/forgot-password']);
+  }
+
+  get showHelpHint(): boolean {
+    return this.failedAttempts >= 3;
   }
 }

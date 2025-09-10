@@ -247,11 +247,11 @@ export class HttpFailService {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      const fails: Fail[] = Array.isArray(response)
-        ? response.map((f: any) => ({ ...f, is_public: !!f.is_public }))
-        : [];
+      if (response?.success && Array.isArray(response.fails)) {
+        return response.fails.map((f: any) => ({ ...f, is_anonyme: !!f.is_anonyme }));
+      }
 
-      return fails;
+      return [];
     } catch (error: any) {
       console.error('❌ Erreur chargement fails publics:', error);
       return [];

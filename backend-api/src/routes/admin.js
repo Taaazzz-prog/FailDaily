@@ -33,6 +33,19 @@ async function ensureCommentModerationTable() {
   `);
 }
 
+// Ensure fail moderation table exists (defensive)
+async function ensureFailModerationTable() {
+  await executeQuery(`
+    CREATE TABLE IF NOT EXISTS fail_moderation (
+      fail_id CHAR(36) NOT NULL,
+      status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+      updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (fail_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+}
+
 // GET /api/admin/dashboard/stats
 router.get('/dashboard/stats', authenticateToken, requireAdmin, async (req, res) => {
   try {
@@ -362,18 +375,42 @@ router.post('/comments/:id/moderate', authenticateToken, requireAdmin, async (re
 // POST /api/admin/fails/:id/moderate { action }
 router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, res) => {
   try {
+    await ensureFailModerationTable();
     const { id } = req.params;
     const { action } = req.body || {};
     if (!action) return res.status(400).json({ success: false, message: 'Action requise' });
 
     if (action === 'hide') {
+      // Masquer le fail (optionnel: anonymiser) et marquer la modération
       await executeQuery('UPDATE fails SET is_anonyme = 1, updated_at = NOW() WHERE id = ?', [id]);
+      await executeQuery(
+        `INSERT INTO fail_moderation (fail_id, status, created_at, updated_at)
+         VALUES (?, 'hidden', NOW(), NOW())
+         ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()`,
+        [id]
+      );
+    } else if (action === 'approve') {
+      // Approuver le fail pour qu'il soit listé
+      await executeQuery(
+        `INSERT INTO fail_moderation (fail_id, status, created_at, updated_at)
+         VALUES (?, 'approved', NOW(), NOW())
+         ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()`,
+        [id]
+      );
+    } else if (action === 'under_review') {
+      await executeQuery(
+        `INSERT INTO fail_moderation (fail_id, status, created_at, updated_at)
+         VALUES (?, 'under_review', NOW(), NOW())
+         ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = NOW()`,
+        [id]
+      );
     } else if (action === 'delete') {
+      // Supprimer le fail et ses données annexes
       await executeQuery('DELETE FROM reactions WHERE fail_id = ?', [id]);
       await executeQuery('DELETE FROM comments WHERE fail_id = ?', [id]);
+      await executeQuery('DELETE FROM fail_reports WHERE fail_id = ?', [id]);
+      await executeQuery('DELETE FROM fail_moderation WHERE fail_id = ?', [id]);
       await executeQuery('DELETE FROM fails WHERE id = ?', [id]);
-    } else if (action === 'approve') {
-      // no-op, but could clear report logs in future
     } else {
       return res.status(400).json({ success: false, message: 'Action inconnue' });
     }
@@ -383,7 +420,7 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
       ['info', 'Moderation decision on fail', JSON.stringify({ failId: id, action }), req.user.id, 'moderation_decision']
     );
 
-    res.json({ success: true, message: 'Décision de modération appliquée' });
+    res.json({ success: true, message: 'Décision de modération appliquée', failId: id, action });
   } catch (error) {
     console.error('❌ /admin/fails/:id/moderate error:', error);
     res.status(500).json({ success: false, message: 'Erreur modération' });

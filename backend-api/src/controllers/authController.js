@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
 const { logSystem } = require('../utils/logger');
+const crypto = require('crypto');
 
 // Fonction utilitaire pour obtenir les informations de l'utilisateur et de la requête
 const getUserActivityData = (req, userId, userEmail, userName = null) => {
@@ -51,6 +52,26 @@ async function ensureProfilesTable() {
     `);
   } catch (e) {
     console.warn('⚠️ ensureProfilesTable: impossible de créer la table profiles:', e?.message);
+  }
+}
+
+async function ensurePasswordResetTable() {
+  try {
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        token VARCHAR(128) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_token (token),
+        KEY idx_user (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  } catch (e) {
+    console.warn('⚠️ ensurePasswordResetTable: impossible de créer la table password_reset_tokens:', e?.message);
   }
 }
 
@@ -197,6 +218,7 @@ const register = async (req, res) => {
     await logSystem({ level: 'info', action: 'user_register', message: 'User registered', details: { email: email.toLowerCase(), displayName }, userId });
 
     res.status(201).json({
+      success: true,
       message: 'Inscription réussie',
       user: {
         id: userId,
@@ -318,6 +340,7 @@ const verifyToken = async (req, res) => {
     }
 
     res.json({
+      success: true,
       valid: true,
       user: {
         id: user[0].id,
@@ -349,6 +372,7 @@ const logout = async (req, res) => {
 
     await logSystem({ level: 'info', action: 'user_logout', message: 'User logout', userId: req.user.id });
     res.json({
+      success: true,
       message: 'Déconnexion réussie'
     });
 
@@ -421,9 +445,7 @@ const getProfile = async (req, res) => {
     const profile = userProfile[0];
 
     await logSystem({ level: 'info', action: 'profile_get', message: 'Profile fetched', userId });
-    res.json({
-      success: true,
-      data: {
+    const userObj = {
         id: profile.id,
         email: profile.email,
         displayName: profile.display_name,
@@ -436,8 +458,8 @@ const getProfile = async (req, res) => {
         ageVerification: profile.age_verification ? JSON.parse(profile.age_verification) : null,
         createdAt: profile.created_at,
         couragePoints: profile.points_total
-      }
-    });
+      };
+    res.json({ success: true, user: userObj, data: userObj });
 
   } catch (error) {
     console.error('❌ Erreur récupération profil:', error);
@@ -537,19 +559,16 @@ const updateProfile = async (req, res) => {
       WHERE u.id = ?
     `, [userId]);
 
-    res.json({
-      success: true,
-      message: 'Profil mis à jour avec succès',
-      data: {
-        id: updatedProfile[0].id,
-        email: updatedProfile[0].email,
-        displayName: updatedProfile[0].display_name,
-        avatarUrl: updatedProfile[0].avatar_url,
-        bio: updatedProfile[0].bio,
-        role: updatedProfile[0].role,
-        updatedAt: updatedProfile[0].updated_at
-      }
-    });
+    const updated = {
+      id: updatedProfile[0].id,
+      email: updatedProfile[0].email,
+      displayName: updatedProfile[0].display_name,
+      avatarUrl: updatedProfile[0].avatar_url,
+      bio: updatedProfile[0].bio,
+      role: updatedProfile[0].role,
+      updatedAt: updatedProfile[0].updated_at
+    };
+    res.json({ success: true, message: 'Profil mis à jour avec succès', user: updated, data: updated });
 
   } catch (error) {
     console.error('❌ Erreur mise à jour profil:', error);
@@ -662,24 +681,39 @@ const requestPasswordReset = async (req, res) => {
     );
 
     // Toujours retourner succès pour des raisons de sécurité
-    // (ne pas révéler si un email existe ou non)
     res.json({
       success: true,
       message: 'Si cet email existe, un lien de réinitialisation a été envoyé'
     });
 
-    // Si l'utilisateur existe, générer un token de reset (à implémenter)
+    // Si l'utilisateur existe, générer un token et le stocker
     if (users.length > 0) {
-      // TODO: Implémenter l'envoi d'email avec token de reset
-      console.log(`🔔 Demande de reset de mot de passe pour: ${email}`);
-      
-      // Log de l'activité avec toutes les données utilisateur
-      const activityData = getUserActivityData(req, users[0].id, users[0].email, null);
+      const userId = users[0].id;
+      await ensurePasswordResetTable();
+      const token = crypto.randomBytes(32).toString('hex');
+      const id = uuidv4();
+      // expiration dans 1h
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      await executeQuery(
+        'INSERT INTO password_reset_tokens (id, user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [id, userId, token, expiresAt]
+      );
+      console.log(`🔑 Token de reset généré pour ${email}: ${token} (exp: ${expiresAt.toISOString()})`);
+      // Envoi de l'email (si SMTP configuré)
+      try {
+        const { sendPasswordResetEmail } = require('../utils/mailer');
+        const ok = await sendPasswordResetEmail(email.toLowerCase(), token);
+        console.log(ok ? '📨 Email de reset envoyé' : '⚠️ Email de reset non envoyé (SMTP non configuré)');
+      } catch (e) {
+        console.warn('⚠️ Erreur envoi email reset (continuation silencieuse):', e?.message);
+      }
+
+      const activityData = getUserActivityData(req, userId, email.toLowerCase(), null);
       await executeQuery(
         'INSERT INTO user_activities (id, user_id, user_email, user_name, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())',
         [activityData.id, activityData.user_id, activityData.user_email, activityData.user_name, 'password_reset_request', JSON.stringify({ email }), activityData.ip_address, activityData.user_agent]
       );
-      await logSystem({ level: 'info', action: 'password_reset_request', message: 'Password reset requested', details: { email }, userId: users[0].id });
+      await logSystem({ level: 'info', action: 'password_reset_request', message: 'Password reset requested', details: { email }, userId });
     }
 
   } catch (error) {
@@ -689,6 +723,49 @@ const requestPasswordReset = async (req, res) => {
       message: 'Erreur lors de la demande de réinitialisation',
       code: 'PASSWORD_RESET_REQUEST_ERROR'
     });
+  }
+};
+
+// Confirmation de réinitialisation de mot de passe avec token
+const confirmPasswordReset = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body || {};
+    if (!token || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Token et nouveau mot de passe requis', code: 'MISSING_FIELDS' });
+    }
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ success: false, message: 'Le mot de passe doit contenir au moins 6 caractères', code: 'PASSWORD_TOO_SHORT' });
+    }
+
+    await ensurePasswordResetTable();
+    const rows = await executeQuery(
+      'SELECT user_id, expires_at, used_at FROM password_reset_tokens WHERE token = ? LIMIT 1',
+      [token]
+    );
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'Token invalide', code: 'INVALID_TOKEN' });
+    }
+    const rec = rows[0];
+    if (rec.used_at) {
+      return res.status(400).json({ success: false, message: 'Token déjà utilisé', code: 'TOKEN_USED' });
+    }
+    const exp = new Date(rec.expires_at);
+    if (Date.now() > exp.getTime()) {
+      return res.status(400).json({ success: false, message: 'Token expiré', code: 'TOKEN_EXPIRED' });
+    }
+
+    const saltRounds = 12;
+    const hashed = await bcrypt.hash(String(newPassword), saltRounds);
+    await executeTransaction([
+      { query: 'UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?', params: [hashed, rec.user_id] },
+      { query: 'UPDATE password_reset_tokens SET used_at = NOW() WHERE token = ?', params: [token] }
+    ]);
+
+    await logSystem({ level: 'info', action: 'password_reset_confirm', message: 'Password reset confirmed', userId: rec.user_id });
+    return res.json({ success: true, message: 'Mot de passe réinitialisé avec succès' });
+  } catch (error) {
+    console.error('❌ Erreur confirmation reset mot de passe:', error);
+    return res.status(500).json({ success: false, message: "Erreur lors de la confirmation de réinitialisation", code: 'PASSWORD_RESET_CONFIRM_ERROR' });
   }
 };
 
@@ -702,4 +779,5 @@ module.exports = {
   updateProfile,
   changePassword,
   requestPasswordReset
+  ,confirmPasswordReset
 };

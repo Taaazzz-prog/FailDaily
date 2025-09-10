@@ -130,7 +130,8 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Endpoint non trouvé', code: 'NOT_FOUND', path: req.originalUrl });
 });
 
-app.use((error, req, res) => {
+// Middleware global de gestion d'erreurs (signature à 4 arguments requise par Express)
+app.use((error, req, res, next) => {
   console.error('Erreur globale:', error);
   if (error && error.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'Fichier trop volumineux', code: 'FILE_TOO_LARGE' });

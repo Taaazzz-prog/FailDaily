@@ -111,6 +111,7 @@ router.post('/image', authenticateToken, (req, res) => {
     res.json({
       success: true,
       message: 'Image uploadée avec succès',
+      url: imageUrl,
       data: {
         imageUrl: imageUrl,
         filename: req.file.filename,

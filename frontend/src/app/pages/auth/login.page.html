@@ -40,5 +40,20 @@
         Créer un compte
       </ion-button>
     </div>
+
+    <div class="forgot-link">
+      <ion-button fill="clear" (click)="goToForgotPassword()" color="medium">
+        Mot de passe oublié ?
+      </ion-button>
+    </div>
+
+    @if (showHelpHint) {
+      <div class="help-hint">
+        <ion-text color="medium" class="comfort-text">
+          Astuce: Si vous avez oublié votre mot de passe, utilisez
+          <a (click)="goToForgotPassword()">la réinitialisation</a>. Assurez‑vous aussi que votre email est correct et sans espace.
+        </ion-text>
+      </div>
+    }
   </div>
 </ion-content>

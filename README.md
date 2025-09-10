@@ -20,7 +20,7 @@ cd FailDaily
 # MySQL:    localhost:3306
 ```
 
-**🔗 Documentation :** [Scripts Guide](SCRIPTS_GUIDE.md) | [API Reference](API_ENDPOINTS.md) | [Badges System](BADGES_GUIDE.md)
+**🔗 Documentation :** [Scripts Guide](SCRIPTS_GUIDE.md) | [API Reference](API_ENDPOINTS.md) | [Badges System](BADGES_GUIDE.md) | [Changements API](DOC_CHANGEMENTS_API.md) | [Plan de tests](TEST_PLAN_MANUEL.md) | [SMTP OVH](docs/OVH_EMAIL_SMTP.md)
 
 ## 🎯 **Concept & Vision**
 
