@@ -1,0 +1,9 @@
+{
+  "name": "faildaily-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "up": "docker compose -f docker/e2e/docker-compose.yml up --build",
+    "down": "docker compose -f docker/e2e/docker-compose.yml down -v"
+  }
+}

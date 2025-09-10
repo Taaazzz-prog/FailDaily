@@ -107,6 +107,14 @@ app.use('/api/logs', logsRoutes);
 app.use('/api/admin/logs', logsRoutes); // compat front
 app.use('/api/admin', adminRoutes);
 
+// Endpoints de test (uniquement en NODE_ENV=test)
+try {
+  if (process.env.NODE_ENV === 'test') {
+    const testRoutes = require('./src/routes/test');
+    app.use('/api/test', testRoutes);
+  }
+} catch { /* ignore */ }
+
 // Exemple d’endpoint protégé
 app.get('/api/user/stats', authenticateToken, (req, res) => {
   res.json({
