@@ -131,7 +131,7 @@ app.use('*', (req, res) => {
 });
 
 // Middleware global de gestion d'erreurs (signature à 4 arguments requise par Express)
-app.use((error, req, res, next) => {
+app.use((error, req, res, _next) => {
   console.error('Erreur globale:', error);
   if (error && error.code === 'LIMIT_FILE_SIZE') {
     return res.status(400).json({ error: 'Fichier trop volumineux', code: 'FILE_TOO_LARGE' });

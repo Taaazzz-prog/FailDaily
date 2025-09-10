@@ -1,10 +1,9 @@
 // Chargement paresseux de nodemailer (évite crash si dépendance non installée)
 function loadNodemailer() {
   try {
-    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
     return require('nodemailer');
   } catch (e) {
-    console.warn("⚠️ Nodemailer non installé. Exécutez 'npm i nodemailer' dans backend-api/ pour activer l'envoi d'emails.");
+    console.warn("⚠️ Nodemailer non installé. Exécutez 'npm i nodemailer' dans backend-api/ pour activer l'envoi d'emails.", e?.message);
     return null;
   }
 }
