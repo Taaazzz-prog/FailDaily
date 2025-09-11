@@ -32,7 +32,7 @@
         <div class="profile-header imperfect-element">
             <div class="user-header">
                 <ion-avatar class="profile-avatar">
-                    <img [src]="userProfile.avatar_url" [alt]="userProfile.display_name">
+                    <img [src]="getUserAvatarUrl()" [alt]="userProfile.display_name">
                 </ion-avatar>
                 <div class="user-info">
                     <h1 class="handwriting">{{ userProfile.display_name }}</h1>

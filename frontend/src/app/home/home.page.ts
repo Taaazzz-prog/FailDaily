@@ -58,15 +58,12 @@ export class HomePage implements OnInit, ViewWillEnter {
 
   ngOnInit() {
     console.log('🏠 HomePage - ngOnInit called');
-    // Charger les données seulement si connecté
-    if (this.authService.isAuthenticated()) {
-      this.loadInitialData();
-    }
+    // Ne pas charger ici car ionViewWillEnter sera appelé juste après
   }
 
   ionViewWillEnter() {
     console.log('🏠 HomePage - ionViewWillEnter called');
-    // Recharger les fails chaque fois que la page devient active seulement si connecté
+    // Charger les données seulement si connecté
     if (this.authService.isAuthenticated()) {
       this.loadInitialData();
     } else {

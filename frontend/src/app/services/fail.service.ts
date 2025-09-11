@@ -22,6 +22,9 @@ export interface CreateFailData {
 export class FailService {
   private failsSubject = new BehaviorSubject<Fail[]>([]);
   public fails$ = this.failsSubject.asObservable();
+  private isLoading = false;
+  private lastLoadTime = 0;
+  private readonly LOAD_DEBOUNCE_MS = 2000; // 2 secondes entre les chargements
 
   constructor(
     private mysqlService: MysqlService,
@@ -142,6 +145,16 @@ export class FailService {
   }
 
   private async loadFails(): Promise<void> {
+    // Éviter les chargements multiples
+    const now = Date.now();
+    if (this.isLoading || (now - this.lastLoadTime) < this.LOAD_DEBOUNCE_MS) {
+      console.log('FailService: Load already in progress or too recent, skipping...');
+      return;
+    }
+
+    this.isLoading = true;
+    this.lastLoadTime = now;
+
     try {
       console.log('FailService: Loading public fails from backend...');
       const fails = await this.mysqlService.getPublicFails();
@@ -157,6 +170,8 @@ export class FailService {
     } catch (error) {
       console.error('❌ FailService: Erreur lors du chargement des fails:', error);
       this.failsSubject.next([]);
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -353,6 +368,8 @@ export class FailService {
       return;
     }
     
+    // Forcer un rechargement même si récent
+    this.lastLoadTime = 0;
     await this.loadFails();
   }
 }

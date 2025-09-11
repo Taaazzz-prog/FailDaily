@@ -25,7 +25,7 @@ async function ensureCommentModerationTable() {
   await executeQuery(`
     CREATE TABLE IF NOT EXISTS comment_moderation (
       comment_id CHAR(36) NOT NULL,
-      status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+      status ENUM('under_review','hidden','approved','rejected') NOT NULL DEFAULT 'under_review',
       updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (comment_id)
@@ -38,7 +38,7 @@ async function ensureFailModerationTable() {
   await executeQuery(`
     CREATE TABLE IF NOT EXISTS fail_moderation (
       fail_id CHAR(36) NOT NULL,
-      status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+      status ENUM('under_review','hidden','approved','rejected') NOT NULL DEFAULT 'under_review',
       updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (fail_id)
@@ -996,7 +996,7 @@ router.put('/fails/:id/moderation', authenticateToken, requireAdmin, async (req,
   try {
     const { id } = req.params;
     const { status } = req.body || {};
-    if (!['approved','hidden','under_review'].includes(status)) {
+    if (!['approved','hidden','under_review','rejected'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Statut invalide' });
     }
     await executeQuery(
@@ -1019,7 +1019,7 @@ router.put('/comments/:id/moderation', authenticateToken, requireAdmin, async (r
     if (!id || typeof id !== 'string' || id.length < 10) {
       return res.status(400).json({ success: false, message: 'Comment ID invalide' });
     }
-    if (!['approved','hidden','under_review'].includes(status)) {
+    if (!['approved','hidden','under_review','rejected'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Statut invalide' });
     }
     // Validate comment exists for safety and to avoid orphan rows

@@ -184,8 +184,8 @@ const register = async (req, res) => {
       },
       // Crée ou met à jour le profil selon l'âge
       {
-        query: `INSERT INTO profiles (user_id, display_name, registration_completed, legal_consent, age_verification, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        query: `INSERT INTO profiles (id, user_id, display_name, registration_completed, legal_consent, age_verification, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE 
                   display_name = VALUES(display_name),
                   registration_completed = VALUES(registration_completed),
@@ -193,6 +193,7 @@ const register = async (req, res) => {
                   age_verification = VALUES(age_verification),
                   updated_at = NOW()`,
         params: [
+          uuidv4(),
           userId,
           displayName,
           registrationCompleted,

@@ -52,9 +52,10 @@
 |---------|----------|-------------|------------|
 | GET | `/fails` | Liste des fails avec pagination | 🔒 Token |
 | GET | `/fails/search` | Recherche de fails | 🔒 Token |
-| GET | `/fails/categories` | Catégories disponibles | ❌ Public |
+| GET | `/fails/categories` | Catégories disponibles | 🔒 Token |
 | GET | `/fails/stats` | Statistiques des fails | 🔒 Token |
-| GET | `/fails/public` | Fails publics uniquement | 🔒 Token |
+| GET | `/fails/anonymes` | Liste des fails (anonymisation si is_anonyme) | 🔒 Token |
+| GET | `/fails/public` | (Déprécié) Alias de `/fails/anonymes` | 🔒 Token |
 | POST | `/fails` | Créer un nouveau fail | 🔒 Token |
 | GET | `/fails/:id` | Détails d'un fail spécifique | 🔒 Token |
 | PUT | `/fails/:id` | Modifier un fail | 🔒 Token |
@@ -255,3 +256,11 @@
 
 *Dernière mise à jour : 5 septembre 2025*  
 *Version API : 1.0.0*
+#### Modération (status)
+- `approved`: visible normalement
+- `hidden`: masqué suite à signalements (atteinte du seuil) ou action modérateur
+- `under_review`: visible mais marqué comme en examen (si utilisé par l’admin)
+- `rejected`: refusé par modération, masqué de la liste
+
+Endpoints Admin liés:
+- `PUT /api/admin/fails/:id/moderation { status }` — accepte `approved|hidden|under_review|rejected`

@@ -4,6 +4,7 @@
 .env
 .env.local
 .env.production
+.local-node
 *.env
 frontend/.env
 backend-api/.env

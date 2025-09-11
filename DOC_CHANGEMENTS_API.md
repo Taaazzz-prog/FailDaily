@@ -44,5 +44,13 @@ Ce document liste les changements appliqués pour aligner les réponses backend 
   - Réponse: `{ success: true, message, failId, action }`
 
 ## Notes
-- Toutes les routes “fails” restent protégées (token requis), y compris `/api/fails/public`.
+- Les routes de lecture “fails” restent protégées par le token (conforme à la règle « sans compte, on ne voit rien »).
+  - `GET /api/fails`, `GET /api/fails/search`, `GET /api/fails/:id`, `GET /api/fails/anonymes` (et alias `/public`) nécessitent un token.
+- Renommage sémantique préservé: `/api/fails/anonymes` remplace `/api/fails/public` (alias déprécié maintenu).
+- Statuts de modération des fails:
+  - `approved`: visible
+  - `hidden`: masqué suite à signalements (atteinte seuil)
+  - `under_review`: visible (si employé par l’admin pour indiquer l’examen)
+  - `rejected`: refusé par modération, masqué
+- Logique d’apparition en liste/détail: visibles si `status IS NULL` (jamais modéré) ou `status NOT IN ('hidden','rejected')`.
 - Aucune rupture de contrat côté frontend après ces ajustements.

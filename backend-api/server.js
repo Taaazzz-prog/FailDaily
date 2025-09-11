@@ -57,6 +57,8 @@ const limiter = rateLimit({
   windowMs: (Number(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000,
   max: process.env.NODE_ENV === 'test'
     ? 10000
+    : process.env.NODE_ENV === 'development'
+    ? 1000  // Plus de requêtes autorisées en développement
     : (Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100),
   message: { error: 'Trop de requêtes, veuillez réessayer plus tard', code: 'RATE_LIMIT_EXCEEDED' }
 });
@@ -155,8 +157,13 @@ async function startServer() {
   try {
     const dbConnected = await database.testConnection();
     if (!dbConnected) {
-      console.error('❌ Impossible de se connecter à la base de données');
-      process.exit(1);
+      const env = process.env.NODE_ENV || 'development';
+      if (env === 'production') {
+        console.error('❌ Impossible de se connecter à la base de données (mode production). Arrêt.');
+        process.exit(1);
+      } else {
+        console.warn('⚠️ Base de données indisponible. Démarrage en mode dégradé (dev/test).');
+      }
     }
     app.listen(PORT, () => {
       console.log('🚀 FailDaily API Server démarré !');

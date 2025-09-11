@@ -9,14 +9,17 @@ router.get('/', authenticateToken, FailsController.getFails);
 // GET /api/fails/search - Rechercher des fails - PROTÉGÉ
 router.get('/search', authenticateToken, FailsController.searchFails);
 
-// GET /api/fails/categories - Récupérer les catégories
-router.get('/categories', FailsController.getCategories);
+// GET /api/fails/categories - Récupérer les catégories - PROTÉGÉ
+router.get('/categories', authenticateToken, FailsController.getCategories);
 
 // GET /api/fails/stats - Récupérer les statistiques des fails - PROTÉGÉ
 router.get('/stats', authenticateToken, FailsController.getFailsStats);
 
-// GET /api/fails/public - Récupérer uniquement les fails publics - PROTÉGÉ
-router.get('/public', authenticateToken, FailsController.getPublicFails);
+// GET /api/fails/anonymes - Récupérer les fails avec anonymisation appliquée - PROTÉGÉ
+router.get('/anonymes', authenticateToken, FailsController.getAnonymeFails);
+
+// Compatibilité rétro (déprécié): /public
+router.get('/public', authenticateToken, FailsController.getAnonymeFails);
 
 // POST /api/fails - Créer un fail
 router.post('/', authenticateToken, FailsController.createFail);

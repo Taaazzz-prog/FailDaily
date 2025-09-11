@@ -215,12 +215,12 @@ async function checkAndUnlockBadges(userId) {
       FROM badge_definitions
     `);
     
-    // Récupérer les badges déjà débloqués par l'utilisateur
+    // Récupérer les badges déjà débloqués par l'utilisateur (via user_badges)
     const userBadges = await executeQuery(`
-      SELECT id FROM badges WHERE user_id = ?
+      SELECT badge_id FROM user_badges WHERE user_id = ?
     `, [userId]);
     
-    const userBadgeIds = userBadges.map(b => b.id);
+    const userBadgeIds = userBadges.map(b => b.badge_id);
     const newBadges = [];
     
     // Vérifier chaque badge
@@ -233,18 +233,16 @@ async function checkAndUnlockBadges(userId) {
       const shouldUnlock = await checkBadgeRequirement(userId, badgeDefinition);
       
       if (shouldUnlock) {
-        // Débloquer le badge
+        // Débloquer le badge (via user_badges)
+        const { v4: uuidv4 } = require('uuid');
         await executeQuery(`
-          INSERT INTO badges (id, user_id, name, description, icon, category, rarity, badge_type, unlocked_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'achievement', NOW())
+          INSERT INTO user_badges (id, user_id, badge_id, unlocked_at, created_at)
+          VALUES (?, ?, ?, NOW(), NOW())
+          ON DUPLICATE KEY UPDATE unlocked_at = COALESCE(unlocked_at, NOW())
         `, [
-          badgeDefinition.id,
+          uuidv4(),
           userId,
-          badgeDefinition.name,
-          badgeDefinition.description,
-          badgeDefinition.icon,
-          badgeDefinition.category,
-          badgeDefinition.rarity
+          badgeDefinition.id
         ]);
         
         console.log(`🏆 Badge débloqué: ${badgeDefinition.name} pour l'utilisateur ${userId}`);
@@ -266,7 +264,7 @@ async function checkBadgeRequirement(userId, badgeDefinition) {
   try {
     const { requirement_type, requirement_value } = badgeDefinition;
     
-    switch (requirement_type) {
+  switch (requirement_type) {
       case 'fail_count':
         const failCount = await executeQuery(`
           SELECT COUNT(*) as count FROM fails WHERE user_id = ?
@@ -300,6 +298,42 @@ async function checkBadgeRequirement(userId, badgeDefinition) {
           SELECT DATEDIFF(NOW(), created_at) as days FROM users WHERE id = ?
         `, [userId]);
         return user[0]?.days >= requirement_value;
+      
+      case 'total_laughs':
+      case 'laugh_reactions': {
+        const rows = await executeQuery(`
+          SELECT COUNT(r.id) as count
+          FROM fails f
+          LEFT JOIN reactions r ON f.id = r.fail_id
+          WHERE f.user_id = ? AND r.reaction_type = 'laugh'
+        `, [userId]);
+        return (rows[0]?.count || 0) >= requirement_value;
+      }
+      
+      case 'support_given': {
+        const rows = await executeQuery(`
+          SELECT COUNT(*) as count FROM reactions WHERE user_id = ? AND reaction_type = 'support'
+        `, [userId]);
+        return (rows[0]?.count || 0) >= requirement_value;
+      }
+      
+      case 'help_count':
+      case 'helpful_comments': {
+        const rows = await executeQuery(`
+          SELECT COUNT(*) as count FROM comments WHERE user_id = ?
+        `, [userId]);
+        return (rows[0]?.count || 0) >= requirement_value;
+      }
+      
+      case 'unique_interactions': {
+        const rows = await executeQuery(`
+          SELECT COUNT(DISTINCT r.user_id) as count
+          FROM reactions r
+          JOIN fails f ON f.id = r.fail_id
+          WHERE f.user_id = ?
+        `, [userId]);
+        return (rows[0]?.count || 0) >= requirement_value;
+      }
         
       default:
         console.log(`⚠️ Type de critère non supporté: ${badgeDefinition.requirement_type}`);

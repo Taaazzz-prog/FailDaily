@@ -2,7 +2,7 @@
   <!-- En-tête de la carte -->
   <div class="card-header">
     <div class="author-info" [class.clickable-author]="!fail.is_anonyme" [class.anonymous-author]="fail.is_anonyme">
-      <img [src]="fail.authorAvatar" [alt]="fail.authorName" [class.clickable]="!fail.is_anonyme" class="author-avatar">
+      <img [src]="getAuthorAvatarUrl()" [alt]="fail.authorName" [class.clickable]="!fail.is_anonyme" class="author-avatar">
       <div class="author-details">
         <h3 class="author-name comfort-text" [class.clickable]="!fail.is_anonyme">{{ fail.authorName }}</h3>
         <p class="post-time">{{ fail.createdAt | timeAgo }}</p>
@@ -24,7 +24,7 @@
     <h2 class="fail-title">{{ fail.title }}</h2>
     <p class="fail-text">{{ fail.description }}</p>
   @if (fail.imageUrl) {
-    <img [src]="fail.imageUrl" alt="Image du fail" class="fail-image">
+    <img [src]="getFailImageUrl()" alt="Image du fail" class="fail-image">
   }
   </div>
 

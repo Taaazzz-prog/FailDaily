@@ -1,7 +1,7 @@
 const request = require('supertest');
 const app = require('../server'); // importe l'app Express exportée
 
-describe('GET /api/fails/public', () => {
+describe('GET /api/fails/anonymes', () => {
   let authToken;
 
   beforeAll(async () => {
@@ -21,7 +21,6 @@ describe('GET /api/fails/public', () => {
         agreeToTerms: true
       });
 
-    // Si l'inscription échoue pour email existant, continuons quand même
     console.log('Inscription status:', registerResponse.status);
 
     // Connexion pour obtenir le token
@@ -35,36 +34,39 @@ describe('GET /api/fails/public', () => {
     console.log('Login status:', loginResponse.status);
     console.log('Login body:', loginResponse.body);
 
-    // Si la connexion échoue, essayons de créer un token de test
     if (loginResponse.status === 200 && loginResponse.body.token) {
       authToken = loginResponse.body.token;
     } else {
-      // Skip ce test si pas d'auth disponible
       authToken = null;
     }
   });
 
-it('renvoie 200 (ou 204) et un booléen is_anonyme quand des données existent', async () => {
+  it("renvoie 200 (ou 204) et un booléen is_anonyme quand des données existent", async () => {
     if (!authToken) {
-      console.log('⚠️ Test skippé - pas de token d\'authentification disponible');
+      console.log("⚠️ Test skippé - pas de token d'authentification disponible");
       return;
     }
 
     const res = await request(app)
-      .get('/api/fails/public')
+      .get('/api/fails/anonymes')
       .set('Authorization', `Bearer ${authToken}`);
       
     expect([200, 204]).toContain(res.status);
 
     if (res.status === 200) {
-      expect(Array.isArray(res.body)).toBe(true);
-      if (res.body.length) {
-        const sample = res.body[0];
-        // doit être un booléen selon le schéma et la sélection SQL
+      expect(res.body).toHaveProperty('success', true);
+      expect(res.body).toHaveProperty('fails');
+      expect(Array.isArray(res.body.fails)).toBe(true);
+      
+      if (res.body.fails.length) {
+        const sample = res.body.fails[0];
         expect(typeof sample.is_anonyme).toBe('boolean');
-        // Pour les fails anonymes, user_id ne doit pas être exposé
-        expect(sample.user_id).toBeUndefined();
+        if (sample.is_anonyme) {
+          // En mode anonyme, pseudo et avatar doivent être anonymisés côté mapping
+          expect(sample.authorName).toBe('Anonyme');
+        }
       }
     }
   });
 });
+

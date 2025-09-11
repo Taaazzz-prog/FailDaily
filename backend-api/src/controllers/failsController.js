@@ -95,13 +95,7 @@ class FailsController {
 
       await executeQuery(failQuery, failValues);
 
-      // CORRECTION: Créer automatiquement une entrée de modération 'under_review'
-      // pour que le fail ne soit pas affiché publiquement tant qu'il n'est pas approuvé
-      const moderationQuery = `
-        INSERT INTO fail_moderation (fail_id, status, created_at, updated_at)
-        VALUES (?, 'under_review', NOW(), NOW())
-      `;
-      await executeQuery(moderationQuery, [failId]);
+      // Par défaut: aucun enregistrement de modération -> visible jusqu'à signalements suffisants.
 
       // Award points to author (configurable)
       try {
@@ -188,7 +182,7 @@ class FailsController {
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
       LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-      WHERE (fm.status = 'approved')
+      WHERE (fm.status IS NULL OR fm.status NOT IN ('hidden','rejected'))
       ORDER BY f.created_at DESC, f.id DESC
       LIMIT ${offset}, ${limit}`;
 
@@ -240,7 +234,7 @@ class FailsController {
  * - Scroll infini supporté via ?offset=
  * - Pagination classique via ?page=
  */
-  static async getPublicFails(req, res) {
+  static async getAnonymeFails(req, res) {
   try {
     // 1) Params robustes
     const rawLimit  = Number(req.query.limit);
@@ -258,6 +252,7 @@ class FailsController {
 
     // 2) Requête : pas de filtre sur is_anonyme (tout est visible)
     //    Ordre stable pour éviter doublons/manqués si nouveaux posts arrivent
+    //    N'afficher publiquement que les fails approuvés (ou anciens sans enregistrement de modération)
     const sql = `
       SELECT f.*, p.display_name, p.avatar_url, fm.status AS moderation_status,
              (SELECT COUNT(*) FROM reactions fr WHERE fr.fail_id = f.id) as reactions_count,
@@ -269,7 +264,7 @@ class FailsController {
       JOIN users u    ON f.user_id = u.id
       JOIN profiles p ON u.id = p.user_id
       LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-      WHERE (fm.status = 'approved')
+      WHERE (fm.status IS NULL OR fm.status NOT IN ('hidden','rejected'))
       ORDER BY f.created_at DESC, f.id DESC
       LIMIT ?, ?`;
 
@@ -308,13 +303,18 @@ class FailsController {
       }
     });
   } catch (error) {
-    console.error('❌ Erreur récupération fails publics:', error);
+    console.error('❌ Erreur récupération fails anonymes:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la récupération des fails publics'
+      message: 'Erreur lors de la récupération des fails anonymes'
     });
   }
 }
+
+  // Compat: ancien nom
+  static async getPublicFails(req, res) {
+    return FailsController.getAnonymeFails(req, res);
+  }
 
 
   /**
@@ -341,7 +341,7 @@ class FailsController {
         JOIN users u ON f.user_id = u.id
         JOIN profiles p ON u.id = p.user_id
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
-        WHERE f.id = ? AND (fm.status = 'approved' OR f.user_id = ?)
+        WHERE f.id = ? AND (fm.status IS NULL OR fm.status NOT IN ('hidden','rejected') OR f.user_id = ?)
       `;
 
       const params = userId ? [userId, failId, userId] : [failId, null];
@@ -717,22 +717,10 @@ class FailsController {
    * Mettre à jour les statistiques utilisateur
    */
   static async updateUserStats(userId, statType) {
-    try {
-      const statMapping = {
-        'fail_created': 'fails_count',
-        'reaction_given': 'reactions_given',
-        'reaction_received': 'reactions_received'
-      };
-
-      const statField = statMapping[statType];
-      if (statField) {
-        await executeQuery(`UPDATE users SET ${statField} = ${statField} + 1 WHERE id = ?`,
-          [userId]
-        );
-      }
-    } catch (error) {
-      console.warn('⚠️ Erreur mise à jour stats:', error);
-    }
+    // Schéma actuel ne stocke pas ces compteurs dans `users`.
+    // Les stats sont agrégées à la volée via SELECT.
+    // On garde une fonction no-op pour compatibilité.
+    return;
   }
 
   /**
@@ -933,7 +921,7 @@ class FailsController {
         JOIN profiles p ON u.id = p.user_id
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
         WHERE (f.title LIKE ? OR f.description LIKE ?)
-          AND (fm.status = 'approved')
+          AND (fm.status IS NULL OR fm.status NOT IN ('hidden','rejected'))
       `;
 
       const params = [];
@@ -963,7 +951,7 @@ class FailsController {
         FROM fails f
         LEFT JOIN fail_moderation fm ON fm.fail_id = f.id
         WHERE (f.title LIKE ? OR f.description LIKE ?)
-          AND (fm.status = 'approved')
+          AND (fm.status IS NULL OR fm.status NOT IN ('hidden','rejected'))
       `;
       const countParams = [searchTerm, searchTerm];
 
@@ -1125,7 +1113,7 @@ class FailsController {
     await executeQuery(`
       CREATE TABLE IF NOT EXISTS fail_moderation (
         fail_id CHAR(36) NOT NULL,
-        status ENUM('under_review','hidden','approved') NOT NULL DEFAULT 'under_review',
+        status ENUM('under_review','hidden','approved','rejected') NOT NULL DEFAULT 'under_review',
         updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (fail_id)

@@ -14,6 +14,7 @@ import {
 } from 'ionicons/icons';
 import { FollowService } from '../../services/follow.service';
 import { AuthService } from '../../services/auth.service';
+import { ImageUrlService } from '../../services/image-url.service';
 import { UserProfile } from '../../models/follow.model';
 import { Subscription } from 'rxjs';
 
@@ -46,6 +47,7 @@ export class UserProfilePage implements OnInit, OnDestroy {
         private location: Location,
         private followService: FollowService,
         private authService: AuthService,
+        private imageUrlService: ImageUrlService,
         private toastController: ToastController
     ) {
         addIcons({
@@ -162,5 +164,9 @@ export class UserProfilePage implements OnInit, OnDestroy {
 
     goBack() {
         this.location.back();
+    }
+
+    getUserAvatarUrl(): string {
+        return this.imageUrlService.getAvatarUrl(this.userProfile?.avatar_url);
     }
 }

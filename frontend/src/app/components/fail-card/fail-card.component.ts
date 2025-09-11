@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { Fail } from '../../models/fail.model';
 import { FailService } from '../../services/fail.service';
+import { ImageUrlService } from '../../services/image-url.service';
 import { TimeAgoPipe } from '../../pipes/time-ago.pipe';
 import { FailCategory } from '../../models/enums';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -39,6 +40,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
 
   constructor(
     private failService: FailService,
+    private imageUrlService: ImageUrlService,
     private toastController: ToastController,
     private cdr: ChangeDetectorRef
   ) { }
@@ -327,5 +329,14 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       this.pulseFlags[type] = false;
       this.cdr.detectChanges();
     }, 400);
+  }
+
+  // Méthodes pour gérer les URLs d'images
+  getFailImageUrl(): string {
+    return this.imageUrlService.getFailImageUrl(this.fail.imageUrl);
+  }
+
+  getAuthorAvatarUrl(): string {
+    return this.imageUrlService.getAvatarUrl(this.fail.authorAvatar);
   }
 }
