@@ -281,10 +281,11 @@ async function checkBadgeRequirement(userId, badgeDefinition) {
         return reactionsReceived[0].count >= requirement_value;
         
       case 'streak_days':
-        const profile = await executeQuery(`
-          SELECT streak FROM profiles WHERE user_id = ?
+        // Schéma actuel: pas de colonne streak. Approximer par jours depuis création du compte
+        const u = await executeQuery(`
+          SELECT DATEDIFF(NOW(), created_at) as days FROM users WHERE id = ?
         `, [userId]);
-        return profile[0]?.streak >= requirement_value;
+        return (u[0]?.days || 0) >= requirement_value;
         
       case 'reaction_given':
         const reactionsGiven = await executeQuery(`

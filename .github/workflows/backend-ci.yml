@@ -67,4 +67,25 @@ jobs:
           DB_PASSWORD: root
           JWT_SECRET: test_jwt_secret_for_ci
         run: npx jest --runInBand
+  docker-deploy-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        run: docker --version && docker compose version
+
+      - name: Deploy Docker stack (smoke)
+        env:
+          # Override if your docker/.env differs in CI
+          DB_ROOT_PASSWORD: root
+        run: |
+          # Ensure docker/.env has a root password for CI
+          if [ ! -f docker/.env ]; then
+            printf 'DB_NAME=faildaily\nDB_ROOT_PASSWORD=%s\n' "$DB_ROOT_PASSWORD" > docker/.env
+          elif ! grep -q '^DB_ROOT_PASSWORD=' docker/.env; then
+            printf '\nDB_ROOT_PASSWORD=%s\n' "$DB_ROOT_PASSWORD" >> docker/.env
+          fi
+          bash scripts/deploy-docker.sh
 
