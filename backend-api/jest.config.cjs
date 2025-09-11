@@ -3,6 +3,9 @@ module.exports = {
   roots: ['<rootDir>/tests'],
   verbose: true,
   testTimeout: 60000,
+  globalTeardown: '<rootDir>/tests/tools/teardown.js',
+  forceExit: true,
+  detectOpenHandles: false,
   testPathIgnorePatterns: [
     '/tests/1_database/',
     '/tests/2_auth/',
