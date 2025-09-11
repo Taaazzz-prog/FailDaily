@@ -700,18 +700,21 @@ router.put('/points/config', authenticateToken, requireAdmin, async (req, res) =
 // GET /api/admin/config
 router.get('/config', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const [pointsRow, reactRow, modRow] = await Promise.all([
+    const [pointsRow, reactRow, modRow, emailRow] = await Promise.all([
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']),
-      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation'])
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email'])
     ]);
     let points = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
     let reaction_points = { courage: 5, laugh: 3, empathy: 2, support: 3 };
     let moderation = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
+    let email = { enabled: false };
     try { if (pointsRow[0]?.value) points = { ...points, ...JSON.parse(pointsRow[0].value) }; } catch {}
     try { if (reactRow[0]?.value) reaction_points = { ...reaction_points, ...JSON.parse(reactRow[0].value) }; } catch {}
     try { if (modRow[0]?.value) moderation = { ...moderation, ...JSON.parse(modRow[0].value) }; } catch {}
-    res.json({ success: true, config: { points, reaction_points, moderation } });
+    try { if (emailRow[0]?.value) email = { ...email, ...JSON.parse(emailRow[0].value) }; } catch {}
+    res.json({ success: true, config: { points, reaction_points, moderation, email } });
   } catch (e) {
     console.error('❌ /api/admin/config error:', e);
     res.status(500).json({ success: false, message: 'Erreur lecture config consolidée' });
@@ -725,19 +728,22 @@ router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
     const body = req.body || {};
 
     // Lire existants
-    const [pointsRow, reactRow, modRow] = await Promise.all([
+    const [pointsRow, reactRow, modRow, emailRow] = await Promise.all([
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']),
-      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation'])
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email'])
     ]);
 
     let points = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
     let reaction_points = { courage: 5, laugh: 3, empathy: 2, support: 3 };
     let moderation = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
+    let email = { enabled: false };
 
     try { if (pointsRow[0]?.value) points = { ...points, ...JSON.parse(pointsRow[0].value) }; } catch {}
     try { if (reactRow[0]?.value) reaction_points = { ...reaction_points, ...JSON.parse(reactRow[0].value) }; } catch {}
     try { if (modRow[0]?.value) moderation = { ...moderation, ...JSON.parse(modRow[0].value) }; } catch {}
+    try { if (emailRow[0]?.value) email = { ...email, ...JSON.parse(emailRow[0].value) }; } catch {}
 
     // Merge with payload
     if (body.points && typeof body.points === 'object') {
@@ -768,6 +774,13 @@ router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
         ...(m.panelAutoRefreshSec !== undefined ? { panelAutoRefreshSec: Math.max(5, Number(m.panelAutoRefreshSec) || 20) } : {})
       };
     }
+    if (body.email && typeof body.email === 'object') {
+      const em = body.email;
+      email = {
+        ...email,
+        ...(em.enabled !== undefined ? { enabled: !!em.enabled } : {})
+      };
+    }
 
     // Upserts
     await executeQuery(
@@ -788,11 +801,50 @@ router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
        ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
       [JSON.stringify(moderation)]
     );
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'email', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(email)]
+    );
 
-    res.json({ success: true, config: { points, reaction_points, moderation } });
+    res.json({ success: true, config: { points, reaction_points, moderation, email } });
   } catch (e) {
     console.error('❌ /api/admin/config PUT error:', e);
     res.status(500).json({ success: false, message: 'Erreur mise à jour config' });
+  }
+});
+
+// Email config dedicated endpoints
+router.get('/email/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email']);
+    let email = { enabled: false };
+    if (row && row[0] && row[0].value) { try { email = { ...email, ...JSON.parse(row[0].value) }; } catch {} }
+    res.json({ success: true, email });
+  } catch (e) {
+    console.error('❌ /admin/email/config get error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture config email' });
+  }
+});
+
+router.put('/email/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    let email = { enabled: false };
+    if (body && typeof body === 'object' && body.enabled !== undefined) {
+      email.enabled = !!body.enabled;
+    }
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'email', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(email)]
+    );
+    res.json({ success: true, email });
+  } catch (e) {
+    console.error('❌ /admin/email/config put error:', e);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour config email' });
   }
 });
 

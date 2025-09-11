@@ -7,6 +7,39 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+async function ensureEmailVerificationTable() {
+  await executeQuery(`
+    CREATE TABLE IF NOT EXISTS email_verification_tokens (
+      id CHAR(36) NOT NULL,
+      user_id CHAR(36) NOT NULL,
+      token VARCHAR(128) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP NULL DEFAULT NULL,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_token (token),
+      KEY idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+}
+
+async function ensureParentConsentTable() {
+  await executeQuery(`
+    CREATE TABLE IF NOT EXISTS parent_consent_tokens (
+      id CHAR(36) NOT NULL,
+      child_user_id CHAR(36) NOT NULL,
+      parent_email VARCHAR(255) NOT NULL,
+      token VARCHAR(128) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP NULL DEFAULT NULL,
+      created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      UNIQUE KEY uniq_token (token),
+      KEY idx_child (child_user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `);
+}
+
 /**
  * Route pour vérifier la disponibilité d'un email
  */
@@ -522,3 +555,107 @@ router.get('/stats', async (req, res) => {
 });
 
 module.exports = router;
+
+/**
+ * Ré-envoi email de vérification
+ */
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) return res.status(400).json({ success: false, message: 'Email requis' });
+    const rows = await executeQuery('SELECT id, email_confirmed FROM users WHERE email = ? LIMIT 1', [String(email).toLowerCase()]);
+    // Toujours répondre succès
+    res.json({ success: true, message: 'Si cet email existe, un message de vérification a été envoyé' });
+    if (rows.length === 0) return;
+    if (Number(rows[0].email_confirmed) === 1) return; // déjà confirmé
+    const userId = rows[0].id;
+    await ensureEmailVerificationTable();
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const id = uuidv4();
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await executeQuery('INSERT INTO email_verification_tokens (id, user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())', [id, userId, token, expiresAt]);
+    try {
+      const { sendVerificationEmail } = require('../utils/mailer');
+      await sendVerificationEmail(String(email).toLowerCase(), token);
+    } catch (e) { console.warn('⚠️ Email verification send failed (ignored):', e?.message); }
+  } catch (e) {
+    console.error('❌ resend-verification error:', e);
+    // réponse déjà envoyée en cas de succès; sinon, envoyer erreur générique
+    if (!res.headersSent) res.status(500).json({ success: false, message: 'Erreur envoi vérification' });
+  }
+});
+
+/**
+ * Confirmation de vérification email
+ */
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (!token) return res.status(400).json({ success: false, message: 'Token requis' });
+    await ensureEmailVerificationTable();
+    const rows = await executeQuery('SELECT user_id, expires_at, used_at FROM email_verification_tokens WHERE token = ? LIMIT 1', [token]);
+    if (rows.length === 0) return res.status(400).json({ success: false, message: 'Token invalide' });
+    const rec = rows[0];
+    if (rec.used_at) return res.status(400).json({ success: false, message: 'Token déjà utilisé' });
+    if (Date.now() > new Date(rec.expires_at).getTime()) return res.status(400).json({ success: false, message: 'Token expiré' });
+    await executeTransaction([
+      { query: 'UPDATE users SET email_confirmed = 1, updated_at = NOW() WHERE id = ?', params: [rec.user_id] },
+      { query: 'UPDATE email_verification_tokens SET used_at = NOW() WHERE token = ?', params: [token] }
+    ]);
+    res.json({ success: true, message: 'Email confirmé' });
+  } catch (e) {
+    console.error('❌ verify-email error:', e);
+    res.status(500).json({ success: false, message: 'Erreur confirmation email' });
+  }
+});
+
+/**
+ * Demande de consentement parental
+ */
+router.post('/parent-consent/request', async (req, res) => {
+  try {
+    const { childEmail, parentEmail } = req.body || {};
+    if (!childEmail || !parentEmail) return res.status(400).json({ success: false, message: 'childEmail et parentEmail requis' });
+    const rows = await executeQuery('SELECT id FROM users WHERE email = ? LIMIT 1', [String(childEmail).toLowerCase()]);
+    if (rows.length === 0) return res.json({ success: true, message: 'Demande acceptée (si utilisateur existe)' });
+    const childId = rows[0].id;
+    await ensureParentConsentTable();
+    const token = require('crypto').randomBytes(32).toString('hex');
+    const id = uuidv4();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    await executeQuery('INSERT INTO parent_consent_tokens (id, child_user_id, parent_email, token, expires_at, created_at) VALUES (?, ?, ?, ?, ?, NOW())', [id, childId, parentEmail.toLowerCase(), token, expiresAt]);
+    try {
+      const { sendParentConsentEmail } = require('../utils/mailer');
+      await sendParentConsentEmail(parentEmail.toLowerCase(), childEmail.toLowerCase(), token);
+    } catch (e) { console.warn('⚠️ Parent consent email failed (ignored):', e?.message); }
+    res.json({ success: true, message: 'Demande de consentement envoyée' });
+  } catch (e) {
+    console.error('❌ parent-consent/request error:', e);
+    res.status(500).json({ success: false, message: 'Erreur demande consentement' });
+  }
+});
+
+/**
+ * Confirmation de consentement parental
+ */
+router.post('/parent-consent/confirm', async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (!token) return res.status(400).json({ success: false, message: 'Token requis' });
+    await ensureParentConsentTable();
+    const rows = await executeQuery('SELECT child_user_id, expires_at, used_at FROM parent_consent_tokens WHERE token = ? LIMIT 1', [token]);
+    if (rows.length === 0) return res.status(400).json({ success: false, message: 'Token invalide' });
+    const rec = rows[0];
+    if (rec.used_at) return res.status(400).json({ success: false, message: 'Token déjà utilisé' });
+    if (Date.now() > new Date(rec.expires_at).getTime()) return res.status(400).json({ success: false, message: 'Token expiré' });
+    await executeTransaction([
+      { query: 'UPDATE users SET account_status = "active", updated_at = NOW() WHERE id = ?', params: [rec.child_user_id] },
+      { query: 'UPDATE profiles SET registration_completed = 1, updated_at = NOW() WHERE user_id = ?', params: [rec.child_user_id] },
+      { query: 'UPDATE parent_consent_tokens SET used_at = NOW() WHERE token = ?', params: [token] }
+    ]);
+    res.json({ success: true, message: 'Consentement parental confirmé' });
+  } catch (e) {
+    console.error('❌ parent-consent/confirm error:', e);
+    res.status(500).json({ success: false, message: 'Erreur confirmation consentement' });
+  }
+});

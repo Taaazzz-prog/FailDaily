@@ -31,8 +31,10 @@
 | POST | `/registration/generate-display-name` | Générer nom d'affichage | ❌ Public |
 | GET | `/registration/validate-referral` | Valider code parrainage | ❌ Public |
 | POST | `/registration/register` | Inscription complète | ❌ Public |
-| POST | `/registration/resend-verification` | Renvoyer email vérification | 🔒 Token |
+| POST | `/registration/resend-verification` | Renvoyer email vérification | ❌ Public |
 | POST | `/registration/verify-email` | Vérifier email | ❌ Public |
+| POST | `/registration/parent-consent/request` | Demander consentement parental | ❌ Public |
+| POST | `/registration/parent-consent/confirm` | Confirmer consentement parental | ❌ Public |
 | GET | `/registration/stats` | Statistiques inscription | ❌ Public |
 
 ### `/api/age-verification`
@@ -176,6 +178,8 @@
 | PUT | `/admin/points/config` | Modifier config points | 🔒 Admin |
 | GET | `/admin/reactions/config` | Configuration réactions | 🔒 Admin |
 | PUT | `/admin/reactions/config` | Modifier config réactions | 🔒 Admin |
+| GET | `/admin/email/config` | Configuration email (enabled) | 🔒 Admin |
+| PUT | `/admin/email/config` | Activer/Désactiver envois email | 🔒 Admin |
 
 #### **📋 Logs Administration**
 | Méthode | Endpoint | Description | Protection |

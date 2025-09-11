@@ -2,7 +2,7 @@
 
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/Taaazzz-prog/FailDaily)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue.svg)](#)
-[![Tech](https://img.shields.io/badge/Tech-Angular%2020%20%7C%20Ionic%208%20%7C%20Node.js%2022%20%7C%20MySQL%209-orange.svg)](#)
+[![Tech](https://img.shields.io/badge/Tech-Angular%2020%20%7C%20Ionic%208%20%7C%20Node.js%2022%20%7C%20MySQL%208-orange.svg)](#)
 
 ## 🚀 **Démarrage Rapide**
 
@@ -51,7 +51,7 @@ FailDaily/
 ```
 
 ### **Stack Technologique**
-- **Frontend** : Angular 18 + Ionic 8 (PWA/Mobile)
+- **Frontend** : Angular 20 + Ionic 8 (PWA/Mobile)
 - **Backend** : Node.js + Express.js (API REST)
 - **Base de données** : MySQL 8.0 (WampServer local)
 - **Authentification** : JWT + bcrypt
@@ -138,8 +138,8 @@ FailDaily/
 #### Backend API
 - [ ] **Finaliser notifications push** (Firebase integration)
 - [ ] **Système d'emails** (SendGrid/Nodemailer)
-- [ ] **API de modération** avancée
-- [ ] **Système de rapports** utilisateur
+- [x] **API de modération** avancée (hidden/approved/rejected, seuils, panneaux admin)
+- [x] **Système de rapports** utilisateur (signalements fails/comments + seuil auto-masquage)
 - [ ] **Cache Redis** pour performances
 
 #### Frontend Mobile
@@ -239,22 +239,32 @@ FailDaily/
 POST /api/auth/register
 POST /api/auth/login
 POST /api/auth/logout
-POST /api/auth/reset-password
+POST /api/auth/password-reset
+POST /api/auth/password-reset/confirm
 
 # Utilisateurs  
-GET  /api/users/profile
-PUT  /api/users/profile
-GET  /api/users/stats
+GET  /api/auth/profile
+PUT  /api/auth/profile
+GET  /api/users/:userId/stats
 
 # Badges
 GET  /api/badges/available
-GET  /api/users/:id/badges
-POST /api/users/:id/badges/:badgeId/unlock
+GET  /api/users/:userId/badges
+GET  /api/users/:userId/badges/ids
+POST /api/badges/check-unlock/:userId
 
 # Administration
 GET  /api/admin/users
 GET  /api/admin/dashboard
-POST /api/admin/badges
+GET  /api/admin/moderation/config
+PUT  /api/admin/fails/:id/moderation   # approved | hidden | under_review | rejected
+
+# Inscription & Vérification
+POST /api/registration/register
+POST /api/registration/resend-verification
+POST /api/registration/verify-email
+POST /api/registration/parent-consent/request
+POST /api/registration/parent-consent/confirm
 ```
 
 ---
@@ -277,16 +287,15 @@ POST /api/admin/badges
 
 ## 🚀 **DÉPLOIEMENT**
 
-### **Environnement Local**
+### **Environnement Local (Docker recommandé)**
 ```bash
-# Frontend (port 8100)
-npm install && ionic serve
+# Déployer la stack locale (DB + migrations + Traefik + API + Frontend)
+npm run deploy:docker
 
-# Backend API (port 3001)  
-cd backend && npm install && npm start
-
-# Base de données
-# WampServer MySQL sur localhost:3306
+# Accès
+# Frontend (Traefik) :  http://localhost:8000
+# Backend API        :  http://localhost:3000
+# MySQL (host)       :  127.0.0.1:3308
 ```
 
 ### **Production (Prêt)**
@@ -301,4 +310,3 @@ cd backend && npm install && npm start
 *FailDaily - Transformons nos échecs en succès collectifs* 🌟
 
 > For AI coding agent usage and guardrails, see [AGENTS.md](./AGENTS.md).
-

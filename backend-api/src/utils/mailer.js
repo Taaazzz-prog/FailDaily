@@ -33,7 +33,28 @@ function createTransporter(cfg) {
   });
 }
 
+async function getEmailConfig() {
+  try {
+    const { executeQuery } = require('../config/database');
+    const rows = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email']);
+    if (rows && rows[0] && rows[0].value) {
+      try { return JSON.parse(rows[0].value); } catch { return { enabled: false }; }
+    }
+  } catch (e) {
+    // ignore DB errors; default disabled
+  }
+  return { enabled: false };
+}
+
 async function sendMail({ to, subject, text, html }) {
+  // Admin toggle: if disabled, skip send
+  try {
+    const cfgDb = await getEmailConfig();
+    if (!cfgDb.enabled) {
+      console.warn('✉️  Email désactivé par configuration admin (app_config.email.enabled=false).');
+      return false;
+    }
+  } catch {}
   const cfg = getSmtpConfig();
   if (!isConfigured(cfg)) {
     console.warn('⚠️ SMTP non configuré: email non envoyé. Renseigner SMTP_HOST/SMTP_USER.');
@@ -81,3 +102,70 @@ async function sendPasswordResetEmail(to, token) {
 }
 
 module.exports = { sendMail, sendPasswordResetEmail };
+/**
+ * Envoi email de vérification d'inscription
+ */
+async function sendVerificationEmail(to, token) {
+  const base = process.env.APP_WEB_URL || 'http://localhost:8000';
+  const url = new URL('/verify-email', base);
+  url.searchParams.set('token', token);
+  const link = url.toString();
+  const subject = 'Vérification de votre email - FailDaily';
+  const text = `Bonjour,\n\nMerci de confirmer votre adresse email.\n\nCliquez sur ce lien pour vérifier votre email (valide 24h):\n${link}\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet email.`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
+      <h2>Vérification de votre email</h2>
+      <p>Merci de confirmer votre adresse email pour activer votre compte.</p>
+      <p>
+        <a href="${link}" style="background:#16a34a;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block">
+          Vérifier mon email
+        </a>
+      </p>
+      <p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur:<br/>
+        <a href="${link}">${link}</a>
+      </p>
+      <p style="font-size:12px;color:#666">Ce lien est valable 24 heures.</p>
+    </div>
+  `;
+  try {
+    return await sendMail({ to, subject, text, html });
+  } catch (e) {
+    console.error('❌ Erreur envoi email vérification:', e?.message);
+    return false;
+  }
+}
+
+/**
+ * Envoi email de consentement parental
+ */
+async function sendParentConsentEmail(parentEmail, childEmail, token) {
+  const base = process.env.APP_WEB_URL || 'http://localhost:8000';
+  const approveUrl = new URL('/parent-consent', base);
+  approveUrl.searchParams.set('token', token);
+  const link = approveUrl.toString();
+  const subject = 'FailDaily - Consentement parental requis';
+  const text = `Bonjour,\n\nL'utilisateur mineur ${childEmail} souhaite activer son compte FailDaily.\nVeuillez donner votre consentement en visitant le lien suivant:\n${link}\n\nSi vous refusez, ignorez simplement cet email.`;
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#222">
+      <h2>Consentement parental requis</h2>
+      <p>L'utilisateur mineur <b>${childEmail}</b> souhaite activer son compte FailDaily.</p>
+      <p>
+        <a href="${link}" style="background:#2563eb;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;display:inline-block">
+          Donner mon consentement
+        </a>
+      </p>
+      <p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur:<br/>
+        <a href="${link}">${link}</a>
+      </p>
+    </div>
+  `;
+  try {
+    return await sendMail({ to: parentEmail, subject, text, html });
+  } catch (e) {
+    console.error('❌ Erreur envoi email consentement parental:', e?.message);
+    return false;
+  }
+}
+
+module.exports.sendVerificationEmail = sendVerificationEmail;
+module.exports.sendParentConsentEmail = sendParentConsentEmail;

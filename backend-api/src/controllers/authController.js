@@ -218,6 +218,26 @@ const register = async (req, res) => {
     // Log system
     await logSystem({ level: 'info', action: 'user_register', message: 'User registered', details: { email: email.toLowerCase(), displayName }, userId });
 
+    // Tentative d'envoi de l'email de vérification pour les comptes actifs
+    try {
+      await ensureEmailVerificationTable();
+      const token = crypto.randomBytes(32).toString('hex');
+      const vId = uuidv4();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await executeQuery(
+        'INSERT INTO email_verification_tokens (id, user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())',
+        [vId, userId, token, expiresAt]
+      );
+      try {
+        const { sendVerificationEmail } = require('../utils/mailer');
+        await sendVerificationEmail(email.toLowerCase(), token);
+      } catch (e) {
+        console.warn('⚠️ Email de vérification non envoyé (SMTP non configuré?)', e?.message);
+      }
+    } catch (e) {
+      console.warn('⚠️ Génération/stockage token vérification échoué:', e?.message);
+    }
+
     res.status(201).json({
       success: true,
       message: 'Inscription réussie',
@@ -762,6 +782,25 @@ const confirmPasswordReset = async (req, res) => {
       { query: 'UPDATE password_reset_tokens SET used_at = NOW() WHERE token = ?', params: [token] }
     ]);
 
+async function ensureEmailVerificationTable() {
+  try {
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS email_verification_tokens (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        token VARCHAR(128) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used_at TIMESTAMP NULL DEFAULT NULL,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_token (token),
+        KEY idx_user (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  } catch (e) {
+    console.warn('⚠️ ensureEmailVerificationTable: impossible de créer la table:', e?.message);
+  }
+}
     await logSystem({ level: 'info', action: 'password_reset_confirm', message: 'Password reset confirmed', userId: rec.user_id });
     return res.json({ success: true, message: 'Mot de passe réinitialisé avec succès' });
   } catch (error) {
