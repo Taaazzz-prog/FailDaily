@@ -89,3 +89,25 @@ jobs:
           fi
           bash scripts/deploy-docker.sh
 
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+
+      - name: Install workspace dependencies
+        run: |
+          npm ci
+          npm ci --workspaces
+
+      - name: Build frontend (Angular)
+        run: npm run -w frontend build --silent
+
