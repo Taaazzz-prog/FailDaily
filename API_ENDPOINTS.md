@@ -180,6 +180,8 @@
 | PUT | `/admin/reactions/config` | Modifier config réactions | 🔒 Admin |
 | GET | `/admin/email/config` | Configuration email (enabled) | 🔒 Admin |
 | PUT | `/admin/email/config` | Activer/Désactiver envois email | 🔒 Admin |
+| GET | `/admin/push/config` | Configuration push (enabled, provider) | 🔒 Admin |
+| PUT | `/admin/push/config` | Activer/Désactiver notifications push | 🔒 Admin |
 
 #### **📋 Logs Administration**
 | Méthode | Endpoint | Description | Protection |
@@ -268,3 +270,8 @@
 
 Endpoints Admin liés:
 - `PUT /api/admin/fails/:id/moderation { status }` — accepte `approved|hidden|under_review|rejected`
+### **Notifications Push**
+| Méthode | Endpoint | Description | Protection |
+|---------|----------|-------------|------------|
+| POST | `/push/register` | Enregistrer token push (web/android/ios) | 🔒 Token |
+| POST | `/push/test` | Envoyer une notification test à soi-même | 🔒 Token |

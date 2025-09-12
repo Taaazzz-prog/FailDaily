@@ -700,21 +700,24 @@ router.put('/points/config', authenticateToken, requireAdmin, async (req, res) =
 // GET /api/admin/config
 router.get('/config', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const [pointsRow, reactRow, modRow, emailRow] = await Promise.all([
+    const [pointsRow, reactRow, modRow, emailRow, pushRow] = await Promise.all([
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']),
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']),
-      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email'])
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['push'])
     ]);
     let points = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
     let reaction_points = { courage: 5, laugh: 3, empathy: 2, support: 3 };
     let moderation = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
     let email = { enabled: false };
+    let push = { enabled: false, provider: 'fcm' };
     try { if (pointsRow[0]?.value) points = { ...points, ...JSON.parse(pointsRow[0].value) }; } catch {}
     try { if (reactRow[0]?.value) reaction_points = { ...reaction_points, ...JSON.parse(reactRow[0].value) }; } catch {}
     try { if (modRow[0]?.value) moderation = { ...moderation, ...JSON.parse(modRow[0].value) }; } catch {}
     try { if (emailRow[0]?.value) email = { ...email, ...JSON.parse(emailRow[0].value) }; } catch {}
-    res.json({ success: true, config: { points, reaction_points, moderation, email } });
+    try { if (pushRow[0]?.value) push = { ...push, ...JSON.parse(pushRow[0].value) }; } catch {}
+    res.json({ success: true, config: { points, reaction_points, moderation, email, push } });
   } catch (e) {
     console.error('❌ /api/admin/config error:', e);
     res.status(500).json({ success: false, message: 'Erreur lecture config consolidée' });
@@ -728,22 +731,25 @@ router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
     const body = req.body || {};
 
     // Lire existants
-    const [pointsRow, reactRow, modRow, emailRow] = await Promise.all([
+    const [pointsRow, reactRow, modRow, emailRow, pushRow] = await Promise.all([
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']),
       executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['moderation']),
-      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email'])
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['email']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['push'])
     ]);
 
     let points = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
     let reaction_points = { courage: 5, laugh: 3, empathy: 2, support: 3 };
     let moderation = { failReportThreshold: 1, commentReportThreshold: 1, panelAutoRefreshSec: 20 };
     let email = { enabled: false };
+    let push = { enabled: false, provider: 'fcm' };
 
     try { if (pointsRow[0]?.value) points = { ...points, ...JSON.parse(pointsRow[0].value) }; } catch {}
     try { if (reactRow[0]?.value) reaction_points = { ...reaction_points, ...JSON.parse(reactRow[0].value) }; } catch {}
     try { if (modRow[0]?.value) moderation = { ...moderation, ...JSON.parse(modRow[0].value) }; } catch {}
     try { if (emailRow[0]?.value) email = { ...email, ...JSON.parse(emailRow[0].value) }; } catch {}
+    try { if (pushRow[0]?.value) push = { ...push, ...JSON.parse(pushRow[0].value) }; } catch {}
 
     // Merge with payload
     if (body.points && typeof body.points === 'object') {
@@ -781,6 +787,14 @@ router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
         ...(em.enabled !== undefined ? { enabled: !!em.enabled } : {})
       };
     }
+    if (body.push && typeof body.push === 'object') {
+      const pv = body.push;
+      push = {
+        ...push,
+        ...(pv.enabled !== undefined ? { enabled: !!pv.enabled } : {}),
+        ...(pv.provider ? { provider: String(pv.provider) } : {})
+      };
+    }
 
     // Upserts
     await executeQuery(
@@ -807,8 +821,14 @@ router.put('/config', authenticateToken, requireAdmin, async (req, res) => {
        ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
       [JSON.stringify(email)]
     );
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'push', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(push)]
+    );
 
-    res.json({ success: true, config: { points, reaction_points, moderation, email } });
+    res.json({ success: true, config: { points, reaction_points, moderation, email, push } });
   } catch (e) {
     console.error('❌ /api/admin/config PUT error:', e);
     res.status(500).json({ success: false, message: 'Erreur mise à jour config' });
@@ -1229,3 +1249,36 @@ router.post('/tables/bulk-truncate', authenticateToken, requireStrictAdmin, asyn
 });
 
 module.exports = router;
+// Push config dedicated endpoints
+router.get('/push/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['push']);
+    let push = { enabled: false, provider: 'fcm' };
+    if (row && row[0] && row[0].value) { try { push = { ...push, ...JSON.parse(row[0].value) }; } catch {} }
+    res.json({ success: true, push });
+  } catch (e) {
+    console.error('❌ /admin/push/config get error:', e);
+    res.status(500).json({ success: false, message: 'Erreur lecture config push' });
+  }
+});
+
+router.put('/push/config', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    let push = { enabled: false, provider: 'fcm' };
+    if (body && typeof body === 'object') {
+      if (body.enabled !== undefined) push.enabled = !!body.enabled;
+      if (body.provider) push.provider = String(body.provider);
+    }
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'push', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(push)]
+    );
+    res.json({ success: true, push });
+  } catch (e) {
+    console.error('❌ /admin/push/config put error:', e);
+    res.status(500).json({ success: false, message: 'Erreur mise à jour config push' });
+  }
+});

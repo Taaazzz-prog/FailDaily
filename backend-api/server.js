@@ -18,6 +18,8 @@ const reactionsRoutes = require('./src/routes/reactions');
 const commentsRoutes = require('./src/routes/comments');
 const logsRoutes = require('./src/routes/logs');
 const adminRoutes = require('./src/routes/admin');
+let pushRoutes = null;
+try { pushRoutes = require('./src/routes/push'); } catch {}
 
 // Routes (optionnelles)
 let failsPublicRoutes = null;
@@ -100,6 +102,7 @@ app.use('/api/fails', commentsRoutes);
 
 if (badgesRoutes) app.use('/api/badges', badgesRoutes);
 if (usersRoutes) app.use('/api/users', usersRoutes);
+if (pushRoutes) { app.use('/api/push', pushRoutes); console.log('🔔 Push routes enabled'); }
 
 app.use('/api/upload', uploadRoutes);
 app.use('/api/registration', registrationRoutes);
