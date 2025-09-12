@@ -181,7 +181,7 @@ router.get('/available', authenticateToken, async (req, res) => {
   res.json({ success: true, badges: mappedBadges });
 });
 
-// Script attribution rétroactive (fix-missing-badges.js)
+// Script attribution rétroactive (backend-api/scripts/maintenance/fix-missing-badges.js)
 async function fixMissingBadges() {
   const users = await executeQuery(`
     SELECT u.id, u.email, COUNT(f.id) as fail_count 
@@ -807,13 +807,13 @@ GET /api/info           // Infos système
 ### **Scripts de Maintenance**
 ```bash
 # Backend
-fix-missing-badges.js         # Corriger badges manqués
-cleanup-orphans.sql          # Nettoyer données orphelines
+backend-api/scripts/maintenance/fix-missing-badges.js   # Corriger badges manqués
+backend-api/scripts/maintenance/cleanup-orphans.sql     # Nettoyer données orphelines
 debug-badge-definitions.js   # Vérifier badges
 
 # Base de données
-check-fails-structure.js     # Vérifier intégrité fails
-get-database-stats.js       # Statistiques BDD
+backend-api/scripts/checks/check-fails-structure.js     # Vérifier intégrité fails
+backend-api/scripts/stats/get-database-stats.js         # Statistiques BDD
 ```
 
 ---
@@ -1034,8 +1034,8 @@ docker-compose up -d       # Traefik + MySQL + services
 
 # Commandes utiles
 node debug-badge-definitions.js  # Vérifier badges
-node check-fails-structure.js    # Structure BDD
-node get-real-stats.js           # Statistiques
+node backend-api/scripts/checks/check-fails-structure.js    # Structure BDD
+node backend-api/scripts/stats/get-real-stats.js            # Statistiques
 ```
 
 ---

@@ -178,3 +178,29 @@ Après nettoyage, voici les scripts essentiels conservés pour votre API FailDai
 ---
 
 *Guide généré automatiquement après optimisation des scripts - Septembre 2025*
+
+---
+
+## Backend API – Organisation des scripts
+
+- ackend-api/scripts/debug/
+  - debug-tables.js, debug-tables.sql, debug-users-profiles.sql, debug-limit-syntax.js, debug-sql-issue.js
+- ackend-api/scripts/checks/
+  - check-fails-structure.js, check-fails-quick.js, check-all-duplicates.js, check-moderation-status.js, check-tables.js, check-user.js, check-triggers.sql, profile-age-check.js
+- ackend-api/scripts/maintenance/
+  - fix-missing-badges.js, cleanup-orphans.sql, cleanup-profiles.sql, remove-duplicate-badges.js
+- ackend-api/scripts/stats/
+  - get-database-stats.js, get-real-stats.js
+
+Exemples d’exécution
+
+`ash
+# Vérification structure BDD
+node backend-api/scripts/checks/check-fails-structure.js
+
+# Statistiques base de données
+node backend-api/scripts/stats/get-database-stats.js
+
+# Nettoyage données orphelines (MySQL CLI)
+mysql -u root -p faildaily < backend-api/scripts/maintenance/cleanup-orphans.sql
+`
