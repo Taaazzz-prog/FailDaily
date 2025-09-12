@@ -196,6 +196,16 @@ export class AdminService {
         }
     }
 
+    // DB COUNTS (sanity check)
+    async getDatabaseCounts() {
+        try {
+            return await this.MysqlService.getDatabaseCounts();
+        } catch (error) {
+            this.debugService.addLog('error', 'AdminService', 'Error getting DB counts', error);
+            throw error;
+        }
+    }
+
     // REACTION LOGS
     async logReactionEvent(userId: string, failId: string, reactionType: string, pointsAwarded: number) {
         try {

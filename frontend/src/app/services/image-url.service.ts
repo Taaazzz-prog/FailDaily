@@ -17,8 +17,12 @@ export class ImageUrlService {
     }
 
     // Si c'est déjà une URL complète, on la retourne telle quelle
-    if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('/assets/')) {
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
       return imagePath;
+    }
+    // Chemins d'assets frontend: renvoyer en absolu côté frontend (pas backend)
+    if (imagePath.startsWith('/assets/') || imagePath.startsWith('assets/')) {
+      return imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
     }
 
     // Si c'est un chemin relatif, on ajoute l'URL du backend

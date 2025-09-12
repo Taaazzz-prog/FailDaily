@@ -92,6 +92,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
     // Database management
     truncateResults: Array<{ table: string, success: boolean, message: string }> = [];
+    dbCounts: Record<string, number|null> | null = null;
 
     // Badge management
     showBadgeManagementModal = false;
@@ -249,6 +250,27 @@ export class AdminPage implements OnInit, OnDestroy {
             errorToast.present();
         }
         this.loading = false;
+    }
+
+    // === DB COUNTS ===
+    async loadDbCounts() {
+        this.loading = true;
+        try {
+            const res = await this.adminService.getDatabaseCounts();
+            if (res?.success) {
+                this.dbCounts = res.counts || {} as any;
+                await this.showToast('Comptage des tables chargé', 'success');
+            } else {
+                this.dbCounts = null;
+                await this.showToast('Erreur lors du comptage des tables', 'danger');
+            }
+        } catch (error) {
+            console.error('Error loading DB counts:', error);
+            this.dbCounts = null;
+            await this.showToast('Erreur lors du comptage des tables', 'danger');
+        } finally {
+            this.loading = false;
+        }
     }
 
     getStatusColor(status: string): string {
@@ -1291,14 +1313,14 @@ export class AdminPage implements OnInit, OnDestroy {
                     handler: () => {
                         const appTables = [
                             // Tables principales de l'application (validées par le test)
-                            'fails', 'reactions', 'comments', 'profiles', 
-                            'user_badges', 'user_activities', 'activity_logs', 'system_logs', 
-                            'reaction_logs', 'app_config',
+                            'fails', 'reactions', 'comments', 'profiles',
+                            'user_badges', 'user_activities', 'activity_logs', 'system_logs',
+                            'reaction_logs', 'app_config', 'error_logs', 'push_errors', 'user_push_tokens', 'email_verification_tokens', 'password_reset_tokens',
+                            'user_points', 'user_point_events', 'user_management_logs', 'user_legal_acceptances', 'badges',
                             // Tables de modération et signalements (validées par le test)
                             'fail_moderation', 'fail_reports', 'fail_reactions_archive',
                             'comment_moderation', 'comment_reactions', 'comment_reports',
-                            // Tables légales (validées par le test)
-                            'legal_documents'
+                            // Tables légales conservées (legal_documents préservée)
                         ];
                         this.performBulkTruncate(appTables, false);
                     }
@@ -1459,7 +1481,7 @@ export class AdminPage implements OnInit, OnDestroy {
                     text: 'Vider les logs',
                     role: 'destructive',
                     handler: () => {
-                        const logTables = ['system_logs', 'activity_logs', 'reaction_logs'];
+                        const logTables = ['system_logs', 'activity_logs', 'reaction_logs', 'error_logs', 'push_errors'];
                         this.performBulkTruncate(logTables, false);
                     }
                 }
@@ -1473,37 +1495,9 @@ export class AdminPage implements OnInit, OnDestroy {
         this.loading = true;
 
         try {
-            // D'abord vider les tables de l'app (SANS app_config qui contient les configurations critiques)
-            const appTables = [
-                'fails', 'reactions', 'profiles', 'comments', 'badges', 'user_badges',
-                'system_logs', 'activity_logs', 'reaction_logs', 'user_activities',
-                'user_management_logs', 'user_preferences'
-                // NOTE: app_config est volontairement exclue pour préserver les configurations
-            ];
-            await this.performBulkTruncate(appTables, false);
-
-            // Supprimer tous les utilisateurs d'authentification avec la nouvelle fonction RPC
-            try {
-                const result = await this.MysqlService.deleteAllAuthUsers();
-                this.truncateResults.unshift({
-                    table: 'auth.users',
-                    success: result.success,
-                    message: result.success ? `✅ ${result.message}` : `❌ ${result.message}`
-                });
-
-                if (result.success) {
-                    this.debugService.addLog('info', 'AdminPage', `Auth users deleted: ${result.message}`);
-                } else {
-                    console.error('Erreur suppression utilisateurs:', result.message);
-                }
-            } catch (userError) {
-                this.truncateResults.unshift({
-                    table: 'auth.users',
-                    success: false,
-                    message: '❌ Erreur suppression utilisateurs: ' + userError
-                });
-                console.error('Erreur suppression utilisateurs:', userError);
-            }
+            // Endpoint reset complet côté backend (robuste, whitelistée)
+            const res: any = await this.MysqlService.resetComplete();
+            this.truncateResults.unshift({ table: 'RESET COMPLET', success: !!res?.success, message: res?.message || '' });
 
             // Restaurer les configurations essentielles avec remise à zéro des stats
             // (puisqu'on vient de vider toutes les données, il faut remettre les compteurs à zéro)

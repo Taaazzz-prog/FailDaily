@@ -1425,6 +1425,30 @@ export class MysqlService {
     }
   }
 
+  async getDatabaseCounts(): Promise<{ success: boolean; counts: Record<string, number|null> }> {
+    try {
+      const response: any = await this.http.get(`${this.apiUrl}/admin/db/counts`, {
+        headers: this.getAuthHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('❌ Erreur getDatabaseCounts:', error);
+      return { success: false, counts: {} } as any;
+    }
+  }
+
+  async resetComplete(): Promise<{ success: boolean; message: string; results?: any[] }> {
+    try {
+      const response: any = await this.http.post(`${this.apiUrl}/admin/reset/complete`, {}, {
+        headers: this.getAuthHeaders()
+      }).toPromise();
+      return response;
+    } catch (error: any) {
+      console.error('❌ Erreur resetComplete:', error);
+      throw error?.error?.message || error?.message || 'Erreur reset complet';
+    }
+  }
+
   async deleteAllAuthUsers(): Promise<{ success: boolean, message: string }> {
     try {
       const response: any = await this.http.post(`${this.apiUrl}/admin/users/delete-all`, {}, {

@@ -1131,6 +1131,35 @@
                 </ion-chip>
             </div>
 
+            <!-- Outil de comptage des lignes par table -->
+            <div class="table-section">
+                <h3>🧮 Comptage des lignes par table</h3>
+                <ion-grid>
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" color="primary" fill="solid" (click)="loadDbCounts()" [disabled]="loading">
+                                <ion-icon name="calculator-outline" slot="start"></ion-icon>
+                                Voir les compteurs des tables
+                            </ion-button>
+                        </ion-col>
+                    </ion-row>
+                </ion-grid>
+                @if (dbCounts) {
+                <ion-list>
+                    @for (entry of dbCounts | keyvalue; track entry.key) {
+                    <ion-item>
+                        <ion-label>
+                            <strong>{{ entry.key }}</strong>
+                        </ion-label>
+                        <ion-chip [color]="entry.value ? 'warning' : 'success'" slot="end">
+                            {{ entry.value === null ? 'n/a' : entry.value }}
+                        </ion-chip>
+                    </ion-item>
+                    }
+                </ion-list>
+                }
+            </div>
+
             <!-- Tables du domaine public -->
             <div class="table-section">
                 <h3>📊 Tables de l'Application FailDaily</h3>
@@ -1207,6 +1236,24 @@
                         </ion-col>
                     </ion-row>
 
+                    <!-- Ligne 4bis: Erreurs et Push -->
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('error_logs')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="bug-outline" slot="start"></ion-icon>
+                                Vider "error_logs"
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('push_errors')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="notifications-off-outline" slot="start"></ion-icon>
+                                Vider "push_errors"
+                            </ion-button>
+                        </ion-col>
+                    </ion-row>
+
                     <!-- Ligne 5: Detailed Logs -->
                     <ion-row>
                         <ion-col size="12" size-md="6">
@@ -1221,6 +1268,23 @@
                                 color="warning" fill="outline">
                                 <ion-icon name="cog-outline" slot="start"></ion-icon>
                                 Vider "app_config"
+                            </ion-button>
+                        </ion-col>
+                    </ion-row>
+                    <!-- Ligne 5bis: Points & Badges -->
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('user_points')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="trophy-outline" slot="start"></ion-icon>
+                                Vider "user_points"
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('user_point_events')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="ribbon-outline" slot="start"></ion-icon>
+                                Vider "user_point_events"
                             </ion-button>
                         </ion-col>
                     </ion-row>
@@ -1279,6 +1343,38 @@
                             </ion-button>
                         </ion-col>
                     </ion-row>
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('user_push_tokens')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="push-outline" slot="start"></ion-icon>
+                                Vider "user_push_tokens"
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('email_verification_tokens')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="mail-unread-outline" slot="start"></ion-icon>
+                                Vider "email_verification_tokens"
+                            </ion-button>
+                        </ion-col>
+                    </ion-row>
+                    <ion-row>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('password_reset_tokens')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="key-outline" slot="start"></ion-icon>
+                                Vider "password_reset_tokens"
+                            </ion-button>
+                        </ion-col>
+                        <ion-col size="12" size-md="6">
+                            <ion-button expand="block" (click)="truncateTable('user_legal_acceptances')" [disabled]="loading"
+                                color="warning" fill="outline">
+                                <ion-icon name="document-text-outline" slot="start"></ion-icon>
+                                Vider "user_legal_acceptances"
+                            </ion-button>
+                        </ion-col>
+                    </ion-row>
                 </ion-grid>
             </div>
 
@@ -1287,13 +1383,7 @@
                 <h3>⚖️ Tables Légales et Consentements</h3>
                 <ion-grid>
                     <ion-row>
-                        <ion-col size="12" size-md="6">
-                            <ion-button expand="block" (click)="truncateTable('legal_documents')" [disabled]="loading"
-                                color="warning" fill="outline">
-                                <ion-icon name="document-text-outline" slot="start"></ion-icon>
-                                Vider "legal_documents"
-                            </ion-button>
-                        </ion-col>
+                        <!-- legal_documents est préservée (pas de vidage) -->
                         <ion-col size="12" size-md="6">
                             <ion-button expand="block" (click)="truncateTable('parental_consents')" [disabled]="loading"
                                 color="warning" fill="outline">

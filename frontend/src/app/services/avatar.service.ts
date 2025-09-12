@@ -14,7 +14,7 @@ export interface Avatar {
 })
 export class AvatarService {
 
-    private readonly avatarPath = 'assets/profil/';
+    private readonly avatarPath = '/assets/profil/';
     private readonly defaultAvatar = 'face.png';
 
     constructor(private http: HttpClient) { }
@@ -26,7 +26,7 @@ export class AvatarService {
     async getAvailableAvatars(): Promise<Avatar[]> {
         try {
             // Lire la liste des avatars depuis le fichier JSON
-            const response = await this.http.get<string[]>('assets/profil/avatars-list.json').toPromise();
+            const response = await this.http.get<string[]>('/assets/profil/avatars-list.json').toPromise();
             const avatarNames = response || [];
 
             const availableAvatars: Avatar[] = [];

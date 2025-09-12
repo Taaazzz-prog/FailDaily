@@ -427,7 +427,38 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
   }
 });
 
-module.exports = router;
+// Supprimer tous les utilisateurs (sauf super_admin)
+router.post('/users/delete-all', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    // Vérifier qu'il existe au moins un super_admin sinon refuser
+    const supers = await executeQuery("SELECT id FROM users WHERE LOWER(role) = 'super_admin'");
+    if (!supers || supers.length === 0) {
+      return res.status(400).json({ success: false, message: 'Aucun super_admin présent; opération refusée' });
+    }
+
+    await executeQuery('SET FOREIGN_KEY_CHECKS = 0');
+    try {
+      // Supprimer tous les utilisateurs qui ne sont pas super_admin
+      await executeQuery("DELETE FROM users WHERE LOWER(role) <> 'super_admin'");
+      // Nettoyer les profils orphelins
+      await executeQuery("DELETE FROM profiles WHERE user_id NOT IN (SELECT id FROM users)");
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+
+      await executeQuery(
+        'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+        [require('crypto').randomUUID(), 'warning', 'auth_delete_all', 'Tous les utilisateurs non super_admin supprimés', JSON.stringify({ by: req.user.id }), req.user.id]
+      );
+
+      res.json({ success: true, message: 'Utilisateurs supprimés (hors super_admin)' });
+    } catch (e) {
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+      throw e;
+    }
+  } catch (e) {
+    console.error('❌ /admin/users/delete-all error:', e);
+    res.status(500).json({ success: false, message: 'Erreur suppression utilisateurs' });
+  }
+});
 /**
  * ======================== REACTIONS/POINTS CONFIG =========================
  */
@@ -1121,11 +1152,15 @@ router.post('/tables/:tableName/truncate', authenticateToken, requireStrictAdmin
       'fails', 'reactions', 'comments', 'profiles', 
       'user_badges', 'user_activities', 'activity_logs', 'system_logs', 
       'reaction_logs', 'app_config',
+      'badges', 'user_points', 'user_point_events', 'user_management_logs',
+      'user_legal_acceptances',
+      // Nouvelles tables utilitaires et erreurs
+      'error_logs', 'push_errors', 'user_push_tokens', 'email_verification_tokens', 'password_reset_tokens',
       // Tables de modération et signalements
       'fail_moderation', 'fail_reports', 'fail_reactions_archive',
       'comment_moderation', 'comment_reactions', 'comment_reports',
       // Tables auth (nécessitent confirmation spéciale)
-      'users', 'user_preferences', 'parental_consents', 'legal_documents'
+      'users', 'user_preferences', 'parental_consents'
     ];
 
     // Tables sensibles nécessitant confirmation spéciale
@@ -1245,6 +1280,83 @@ router.post('/tables/bulk-truncate', authenticateToken, requireStrictAdmin, asyn
       success: false, 
       message: `Erreur lors du vidage en masse: ${error.message}` 
     });
+  }
+});
+
+// GET /api/admin/db/counts - Compte les lignes par table (sanity check reset)
+router.get('/db/counts', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const tables = [
+      // Core app
+      'fails','reactions','comments','profiles','user_badges','user_activities',
+      'activity_logs','system_logs','reaction_logs',
+      // Moderation
+      'fail_moderation','fail_reports','fail_reactions_archive',
+      'comment_moderation','comment_reactions','comment_reports',
+      // Utils/errors/push/tokens
+      'error_logs','push_errors','user_push_tokens','email_verification_tokens','password_reset_tokens',
+      // Points & legal
+      'user_points','user_point_events','user_management_logs','user_legal_acceptances',
+      // Auth
+      'users','user_preferences','parental_consents','legal_documents'
+    ];
+
+    const counts = {};
+    for (const t of tables) {
+      try {
+        const rows = await executeQuery(`SELECT COUNT(*) as c FROM ${t}`);
+        counts[t] = rows && rows[0] ? Number(rows[0].c) : 0;
+      } catch (e) {
+        counts[t] = null; // table peut ne pas exister
+      }
+    }
+
+    // Ne pas compter badge_definitions (préservée), app_config (config)
+    res.json({ success: true, counts });
+  } catch (e) {
+    console.error('❌ /admin/db/counts error:', e);
+    res.status(500).json({ success: false, message: 'Erreur comptage tables' });
+  }
+});
+
+// Reset complet robuste
+router.post('/reset/complete', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const dbName = process.env.DB_NAME || 'faildaily';
+    const preserve = new Set(['badge_definitions','app_config','legal_documents','users']);
+    const tables = await executeQuery(
+      `SELECT TABLE_NAME as name FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = 'BASE TABLE'`,
+      [dbName]
+    );
+
+    await executeQuery('SET FOREIGN_KEY_CHECKS = 0');
+    const results = [];
+    try {
+      for (const row of tables) {
+        const t = row.name;
+        if (preserve.has(t)) continue;
+        try { await executeQuery(`TRUNCATE TABLE ${t}`); results.push({ table: t, success: true }); }
+        catch (e) { results.push({ table: t, success: false, error: e.message }); }
+      }
+      // Supprimer tous les utilisateurs qui ne sont pas super_admin
+      await executeQuery("DELETE FROM users WHERE LOWER(role) <> 'super_admin'");
+      // Nettoyer profils orphelins
+      try { await executeQuery("DELETE FROM profiles WHERE user_id NOT IN (SELECT id FROM users)"); } catch {}
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+
+      await executeQuery(
+        'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
+        [require('crypto').randomUUID(), 'warning', 'reset_complete', 'Reset complet effectué', JSON.stringify({ results }), req.user.id]
+      );
+
+      res.json({ success: true, message: 'Reset complet terminé', results });
+    } catch (e) {
+      await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
+      throw e;
+    }
+  } catch (e) {
+    console.error('❌ /admin/reset/complete error:', e);
+    res.status(500).json({ success: false, message: 'Erreur reset complet' });
   }
 });
 
