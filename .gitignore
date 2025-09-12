@@ -29,6 +29,12 @@ frontend/.angular/
 backend-api/dist/
 backend-api/build/
 
+# Uploaded media (avatars, fail images) — do not commit
+backend-api/uploads/
+!backend-api/uploads/.gitkeep
+!backend-api/uploads/avatars/.gitkeep
+!backend-api/uploads/fails/.gitkeep
+
 # Capacitor
 capacitor.config.json.bak
 frontend/capacitor.config.json.bak
