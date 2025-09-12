@@ -32,6 +32,7 @@ router.post('/register', authenticateToken, async (req, res) => {
        ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), platform = VALUES(platform), last_seen_at = NOW()`,
       [req.user.id, token, platform]
     );
+    try { await require('../services/badgesService').checkAndUnlockBadges(req.user.id); } catch {}
     res.json({ success: true });
   } catch (e) {
     console.error('❌ push/register error:', e);
@@ -55,4 +56,3 @@ router.post('/test', authenticateToken, async (req, res) => {
 });
 
 module.exports = router;
-

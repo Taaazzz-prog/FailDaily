@@ -160,6 +160,15 @@ class CommentsController {
       `, [commentId]);
 
       await logSystem({ level: 'info', action: 'comment_add', message: 'Comment added', details: { commentId, failId }, userId });
+
+      // Débloquer badges potentiels (commentateur et auteur du fail)
+      try {
+        const svc = require('../services/badgesService');
+        const failAuthorId = fails[0]?.user_id;
+        const tasks = [svc.checkAndUnlockBadges(userId)];
+        if (failAuthorId) tasks.push(svc.checkAndUnlockBadges(failAuthorId));
+        await Promise.all(tasks);
+      } catch {}
       res.status(201).json({
         success: true,
         message: 'Commentaire ajouté avec succès',

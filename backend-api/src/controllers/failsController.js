@@ -76,11 +76,14 @@ class FailsController {
       const failId = uuidv4();
 
       // Créer le fail
+      // Déterminer le pays depuis headers (cf-ipcountry/x-country-code) si disponible
+      const countryHeader = (req.headers['cf-ipcountry'] || req.headers['x-country-code'] || req.headers['x-app-country'] || '').toString().trim().toUpperCase();
+      const countryCode = /^[A-Z]{2}$/.test(countryHeader) ? countryHeader : null;
       const failQuery = `
         INSERT INTO fails (
-          id, user_id, title, description, category, 
+          id, user_id, title, description, category, country_code,
           is_anonyme, image_url, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
       `;
 
       const failValues = [
@@ -89,6 +92,7 @@ class FailsController {
         title.trim(),
         description ? description.trim() : null,
         category,
+        countryCode,
         is_anonyme,
         imageUrl
       ];
@@ -811,6 +815,16 @@ class FailsController {
       );
       
       console.log(`🎉 Badge "${badgeName}" attribué à l'utilisateur ${userId}!`);
+
+      // Notification push (si activée)
+      try {
+        const { sendPushToUser } = require('../utils/push');
+        await sendPushToUser(userId, {
+          title: '🏆 Badge débloqué',
+          body: `${badgeName}`,
+          data: { type: 'badge_unlocked', badgeId }
+        });
+      } catch (e) { /* ignorer erreur push */ }
       
     } catch (error) {
       console.error('❌ Erreur attribution badge:', error);

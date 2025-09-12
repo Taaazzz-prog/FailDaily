@@ -72,6 +72,14 @@ class ReactionsController {
           });
           await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_remove', message: 'Reaction removed (toggle)', details: { failId, reactionType }, userId });
 
+          // Débloquer badges potentiels (donneur et auteur du fail)
+          try {
+            const svc = require('../services/badgesService');
+            await Promise.all([
+              svc.checkAndUnlockBadges(userId),
+              svc.checkAndUnlockBadges(fail.user_id)
+            ]);
+          } catch {}
           const summary = await getReactionSummary(failId, userId);
           return res.json({
             success: true,
@@ -100,6 +108,14 @@ class ReactionsController {
           });
           await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_update', message: 'Reaction updated', details: { failId, reactionType }, userId });
 
+          // Débloquer badges potentiels
+          try {
+            const svc = require('../services/badgesService');
+            await Promise.all([
+              svc.checkAndUnlockBadges(userId),
+              svc.checkAndUnlockBadges(fail.user_id)
+            ]);
+          } catch {}
           const summary = await getReactionSummary(failId, userId);
           return res.json({
             success: true,
@@ -130,6 +146,14 @@ class ReactionsController {
         });
         await require('../utils/logger').logSystem({ level: 'info', action: 'reaction_add', message: 'Reaction added', details: { failId, reactionType }, userId });
 
+        // Débloquer badges potentiels
+        try {
+          const svc = require('../services/badgesService');
+          await Promise.all([
+            svc.checkAndUnlockBadges(userId),
+            svc.checkAndUnlockBadges(fail.user_id)
+          ]);
+        } catch {}
         const summary = await getReactionSummary(failId, userId);
         return res.json({
           success: true,

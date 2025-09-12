@@ -98,6 +98,8 @@ app.use(process.env.NODE_ENV === 'development' ? morgan('dev') : morgan('combine
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Logging des requêtes (après parsing, avant routes)
+try { app.use(require('./src/middleware/requestLogger')()); } catch {}
 
 // Servir les fichiers PowerPoint pour api.faildaily.com
 app.use('/powerpoint', express.static(path.join(__dirname, '../powerpoint')));
