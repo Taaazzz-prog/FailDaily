@@ -75,6 +75,27 @@ async function ensurePasswordResetTable() {
   }
 }
 
+// Création paresseuse de la table des tokens de vérification d'email
+async function ensureEmailVerificationTable() {
+  try {
+    await executeQuery(`
+      CREATE TABLE IF NOT EXISTS email_verification_tokens (
+        id CHAR(36) NOT NULL,
+        user_id CHAR(36) NOT NULL,
+        token VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        verified_at TIMESTAMP NULL DEFAULT NULL,
+        PRIMARY KEY (id),
+        UNIQUE KEY uniq_email_token (token),
+        KEY idx_evt_user (user_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+  } catch (e) {
+    console.warn('⚠️ ensureEmailVerificationTable: impossible de créer la table email_verification_tokens:', e?.message);
+  }
+}
+
 // Inscription
 const register = async (req, res) => {
   try {
@@ -251,7 +272,7 @@ const register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Erreur inscription:', error);
+    if (process.env.NODE_ENV !== 'test') { console.error('Erreur inscription:', error); }
     res.status(500).json({
       error: 'Erreur interne du serveur',
       code: 'INTERNAL_ERROR'
@@ -334,7 +355,7 @@ const login = async (req, res) => {
     res.json(response);
 
   } catch (error) {
-    console.error('Erreur connexion:', error);
+    if (process.env.NODE_ENV !== 'test') { console.error('Erreur connexion:', error); }
     res.status(500).json({
       error: 'Erreur interne du serveur',
       code: 'INTERNAL_ERROR'

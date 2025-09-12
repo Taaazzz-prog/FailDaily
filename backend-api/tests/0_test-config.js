@@ -9,7 +9,7 @@
 const path = require('path');
 const fetch = require('node-fetch').default || require('node-fetch');
 // Charger le .env du dossier backend-api (et non celui du dossier parent)
-require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.join(__dirname, '..', '.env'), quiet: true });
 
 // Configuration de l'API
 const API_CONFIG = {

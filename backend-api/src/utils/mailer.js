@@ -51,13 +51,17 @@ async function sendMail({ to, subject, text, html }) {
   try {
     const cfgDb = await getEmailConfig();
     if (!cfgDb.enabled) {
-      console.warn('✉️  Email désactivé par configuration admin (app_config.email.enabled=false).');
+      if (process.env.NODE_ENV !== 'test') {
+        console.warn('✉️  Email désactivé par configuration admin (app_config.email.enabled=false).');
+      }
       return false;
     }
   } catch {}
   const cfg = getSmtpConfig();
   if (!isConfigured(cfg)) {
-    console.warn('⚠️ SMTP non configuré: email non envoyé. Renseigner SMTP_HOST/SMTP_USER.');
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn('⚠️ SMTP non configuré: email non envoyé. Renseigner SMTP_HOST/SMTP_USER.');
+    }
     return false;
   }
   const transporter = createTransporter(cfg);
@@ -96,7 +100,9 @@ async function sendPasswordResetEmail(to, token) {
   try {
     return await sendMail({ to, subject, text, html });
   } catch (e) {
-    console.error('❌ Erreur envoi email reset:', e?.message);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('❌ Erreur envoi email reset:', e?.message);
+    }
     return false;
   }
 }
@@ -130,7 +136,9 @@ async function sendVerificationEmail(to, token) {
   try {
     return await sendMail({ to, subject, text, html });
   } catch (e) {
-    console.error('❌ Erreur envoi email vérification:', e?.message);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('❌ Erreur envoi email vérification:', e?.message);
+    }
     return false;
   }
 }
@@ -162,7 +170,9 @@ async function sendParentConsentEmail(parentEmail, childEmail, token) {
   try {
     return await sendMail({ to: parentEmail, subject, text, html });
   } catch (e) {
-    console.error('❌ Erreur envoi email consentement parental:', e?.message);
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('❌ Erreur envoi email consentement parental:', e?.message);
+    }
     return false;
   }
 }

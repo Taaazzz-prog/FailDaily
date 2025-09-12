@@ -6,6 +6,7 @@ module.exports = {
   globalTeardown: '<rootDir>/tests/tools/teardown.js',
   forceExit: true,
   detectOpenHandles: false,
+  setupFiles: ['<rootDir>/tests/tools/setup-env.js'],
   testPathIgnorePatterns: [
     '/tests/1_database/',
     '/tests/2_auth/',

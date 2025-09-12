@@ -7,7 +7,7 @@
  */
 
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 // Configuration de la base de données
 const dbConfig = {
@@ -71,9 +71,13 @@ async function executeQuery(query, params = [], opts = {}) {
 
     return results;
   } catch (error) {
-    console.error('❌ Erreur SQL:', error.message);
-    console.error('📝 Requête:', query);
-    console.error('📋 Paramètres:', params);
+    const isTest = process.env.NODE_ENV === 'test';
+    const disabled = String(error?.message || '').startsWith('DB_DISABLED');
+    if (!(isTest && disabled)) {
+      console.error('❌ Erreur SQL:', error.message);
+      console.error('📝 Requête:', query);
+      console.error('📋 Paramètres:', params);
+    }
     throw error;
   }
 }

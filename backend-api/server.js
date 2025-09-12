@@ -5,7 +5,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 
 const database = require('./src/config/database');
 
@@ -19,7 +19,12 @@ const commentsRoutes = require('./src/routes/comments');
 const logsRoutes = require('./src/routes/logs');
 const adminRoutes = require('./src/routes/admin');
 let pushRoutes = null;
-try { pushRoutes = require('./src/routes/push'); } catch {}
+try {
+  pushRoutes = require('./src/routes/push');
+  console.log('✅ push routes module loaded');
+} catch (e) {
+  console.error('❌ failed to load push routes:', e?.message || e);
+}
 
 // Routes (optionnelles)
 let failsPublicRoutes = null;
@@ -36,6 +41,29 @@ const { authenticateToken } = require('./src/middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Validation des variables d'environnement (dev/prod)
+function validateEnvironment() {
+  const env = process.env.NODE_ENV || 'development';
+  const required = [
+    'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'JWT_SECRET'
+  ];
+  const missing = required.filter((k) => !process.env[k] || String(process.env[k]).trim() === '');
+  if (missing.length > 0) {
+    const msg = `Variables d'environnement manquantes: ${missing.join(', ')}`;
+    if (env === 'production') {
+      console.error('❌ ' + msg);
+      console.error('🚨 Impossible de démarrer en production sans ces variables');
+      process.exit(1);
+    } else if (env !== 'test') {
+      console.warn('⚠️ ' + msg + ' (mode ' + env + ')');
+    }
+  }
+  if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32 && env === 'production') {
+    console.error('❌ JWT_SECRET trop court (min 32 caractères)');
+    process.exit(1);
+  }
+}
 
 /* ------------------------ Middlewares globaux ------------------------ */
 app.use(helmet());
@@ -188,6 +216,7 @@ process.on('SIGTERM', () => { console.log('\n🛑 Arrêt du serveur demandé...'
 
 // Lancer seulement si exécuté directement
 if (require.main === module) {
+  validateEnvironment();
   startServer();
 }
 
