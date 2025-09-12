@@ -52,6 +52,7 @@ Thumbs.db
 # Logs
 *.log
 logs/
+backend-api/tests/test-report.json
 
 # Docker
 docker/data/
