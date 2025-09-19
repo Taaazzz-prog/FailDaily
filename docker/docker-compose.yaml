@@ -36,7 +36,7 @@ services:
   backend:
     build:
       context: ../backend-api
-      dockerfile: ../docker/backend.Dockerfile
+      dockerfile: Dockerfile
     container_name: faildaily_backend
     restart: unless-stopped
     labels:
