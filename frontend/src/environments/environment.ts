@@ -2,13 +2,13 @@
 // Utilise des URLs relatives (/api) qui fonctionnent avec Traefik en local et en production
 
 export const environment = {
-  production: true, // Toujours en mode production maintenant
+  production: false, // Mode développement
 
-  // Configuration MySQL Database (production)
+  // Configuration MySQL Database (local)
   database: {
     host: 'localhost',
     port: 3306,
-    name: 'faildaily', // Même nom que sur le serveur distant
+    name: 'faildaily',
     charset: 'utf8mb4'
   },
 
@@ -24,7 +24,7 @@ export const environment = {
 
   // APIs backend MySQL et externes
   api: {
-    baseUrl: 'http://localhost:3000/api', // Directement vers le serveur backend local
+    baseUrl: 'http://localhost:3000/api', // URL directe vers le backend en développement
     moderationUrl: 'https://api.openai.com/v1',
     moderationKey: '', // À remplir avec votre clé OpenAI
     uploadMaxSize: 3 * 1024 * 1024, // 3MB max en production

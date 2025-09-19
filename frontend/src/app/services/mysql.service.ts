@@ -650,9 +650,9 @@ export class MysqlService {
       params.set('limit', limit.toString());
       params.set('offset', offset.toString());
 
-      console.log('📡 MysqlService: Appel API /fails/public avec params:', { limit, offset });
+      console.log('📡 MysqlService: Appel API /fails/anonymes avec params:', { limit, offset });
 
-      const response: any = await this.http.get(`${this.apiUrl}/fails/public?${params.toString()}`, {
+      const response: any = await this.http.get(`${this.apiUrl}/fails/anonymes?${params.toString()}`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
