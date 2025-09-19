@@ -1,0 +1,41 @@
+# Service CGU pour cgu.faildaily.com
+# Configuration Docker Compose
+
+version: '3.8'
+
+services:
+  cgu-faildaily:
+    image: nginx:alpine
+    container_name: faildaily_cgu
+    volumes:
+      - ./cgu-site:/usr/share/nginx/html:ro
+      - ./cgu-nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cgu.rule=Host(`cgu.faildaily.com`)"
+      - "traefik.http.routers.cgu.entrypoints=websecure"
+      - "traefik.http.routers.cgu.tls=true"
+      - "traefik.http.routers.cgu.tls.certresolver=letsencrypt"
+      - "traefik.http.services.cgu.loadbalancer.server.port=80"
+      # Redirection HTTP vers HTTPS
+      - "traefik.http.routers.cgu-http.rule=Host(`cgu.faildaily.com`)"
+      - "traefik.http.routers.cgu-http.entrypoints=web"
+      - "traefik.http.routers.cgu-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+    networks:
+      - faildaily_faildaily-ssl-network
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Paris
+
+networks:
+  faildaily_faildaily-ssl-network:
+    external: true
+
+# Instructions de déploiement :
+# 1. Copier ce fichier dans le répertoire Docker principal
+# 2. Créer la configuration Nginx
+# 3. Exécuter : docker-compose -f docker-compose.cgu.yml up -d
+# 4. Vérifier les logs : docker logs faildaily_cgu
+# 5. Tester l'accès : https://cgu.faildaily.com
