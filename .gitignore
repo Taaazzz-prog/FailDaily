@@ -8,6 +8,12 @@
 *.env
 frontend/.env
 backend-api/.env
+CONFIG_PRIVÉ.md
+
+# Temporary SQL exports (keep only faildaily.sql)
+*_export_*.sql
+*_production_ready.sql
+faildaily_distant_*.sql
 
 # Dependencies
 node_modules/

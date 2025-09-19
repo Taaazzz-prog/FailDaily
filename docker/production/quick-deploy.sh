@@ -94,7 +94,7 @@ sed -i "s/CHANGEZ_CE_MOT_DE_PASSE_ROOT_MYSQL_ULTRA_SECURISE/$DB_ROOT_PASSWORD/" 
 
 # Configuration IP publique
 PUBLIC_IP=$(curl -s ifconfig.me || curl -s ipinfo.io/ip || echo "localhost")
-sed -i "s/https:\/\/votre-domaine.com/http:\/\/$PUBLIC_IP/" .env
+sed -i "s/https:\/\/faildaily.com/http:\/\/$PUBLIC_IP/" .env
 
 echo -e "${YELLOW}🚀 Déploiement de l'application...${NC}"
 

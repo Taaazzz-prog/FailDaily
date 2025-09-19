@@ -67,7 +67,7 @@ chmod +x deploy.sh
 
 ```bash
 # Dans votre DNS OVH, créez un enregistrement A :
-# @ ou www -> IP_DE_VOTRE_SERVEUR
+# @ ou www -> 51.75.55.185
 
 # Puis mettez à jour le CORS dans .env :
 # CORS_ORIGIN=https://faildaily.com

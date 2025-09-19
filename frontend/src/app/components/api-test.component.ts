@@ -275,8 +275,8 @@ export class ApiTestComponent implements OnInit {
   async testLogin(): Promise<void> {
     const startTime = performance.now();
     const testData = {
-      email: 'test@example.com',
-      password: 'password123'
+      email: 'bruno@taaazzz.be',
+      password: '@51008473@'
     };
 
     try {

@@ -17,7 +17,7 @@ import {
     CommonModule,
     FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
-    IonInput, IonButton, IonText, IonSpinner, IonProgressBar
+    IonInput, IonButton, IonText, IonProgressBar
   ]
 })
 export class ForgotPasswordPage {
