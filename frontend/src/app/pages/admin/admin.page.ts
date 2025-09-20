@@ -419,7 +419,19 @@ export class AdminPage implements OnInit, OnDestroy {
     // ===== POINTS CONFIGURATION =====
     async loadPointsConfiguration() {
         try {
-            this.pointsConfig = await this.adminService.getPointsConfiguration();
+            const apiConfig = await this.adminService.getPointsConfiguration();
+            
+            // Mapper les données de l'API vers le format attendu par le frontend
+            this.pointsConfig = {
+                createFailPoints: apiConfig.failCreate || 10,
+                courageReactionPoints: apiConfig.reactionCourage || 5,
+                laughReactionPoints: apiConfig.reactionLaugh || 3,
+                empathyReactionPoints: apiConfig.reactionEmpathy || 2,
+                supportReactionPoints: apiConfig.reactionSupport || 3,
+                dailyBonusPoints: apiConfig.dailyBonus || 0
+            };
+            
+            console.log('✅ Configuration des points chargée:', this.pointsConfig);
         } catch (error) {
             console.error('Error loading points config:', error);
         }
@@ -427,7 +439,21 @@ export class AdminPage implements OnInit, OnDestroy {
 
     async savePointsConfiguration() {
         try {
-            await this.adminService.updatePointsConfiguration(this.pointsConfig);
+            // Mapper les données du frontend vers le format attendu par l'API
+            const apiConfig = {
+                failCreate: this.pointsConfig.createFailPoints || 10,
+                commentCreate: 2, // Valeur par défaut pour les commentaires
+                reactionRemovePenalty: true, // Valeur par défaut
+                reactionCourage: this.pointsConfig.courageReactionPoints || 5,
+                reactionLaugh: this.pointsConfig.laughReactionPoints || 3,
+                reactionEmpathy: this.pointsConfig.empathyReactionPoints || 2,
+                reactionSupport: this.pointsConfig.supportReactionPoints || 3,
+                dailyBonus: this.pointsConfig.dailyBonusPoints || 0
+            };
+            
+            console.log('💾 Sauvegarde configuration:', apiConfig);
+            await this.adminService.updatePointsConfiguration(apiConfig);
+            
             const toast = await this.toastController.create({
                 message: 'Configuration sauvegardée avec succès!',
                 duration: 2000,
