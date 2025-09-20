@@ -5,6 +5,9 @@ import { importProvidersFrom } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
 
+// ✅ Désactivation des console.* en production (doit être importé en premier)
+import './app/utils/disable-console-prod';
+
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
 import { HttpAuthService } from './app/services/http-auth.service';

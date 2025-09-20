@@ -2,7 +2,7 @@
 // Utilise des URLs relatives (/api) qui fonctionnent avec Traefik en local et en production
 
 export const environment = {
-  production: false, // Mode développement
+  production: false, // Mode développement (logs visibles)
   enableDebugLogs: true, // ✅ Logs de debug activés en développement
 
   // Configuration MySQL Database (local)

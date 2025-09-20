@@ -7,6 +7,7 @@ import { EventBusService, AppEvents } from './event-bus.service';
 import { DebugService } from './debug.service';
 import { DEFAULT_AVATAR } from '../utils/avatar-constants';
 import { ComprehensiveLoggerService } from './comprehensive-logger.service';
+import { SecureLoggerService } from './secure-logger.service';
 import { environment } from '../../environments/environment';
 
 export interface LoginCredentials {
@@ -56,7 +57,8 @@ export class AuthService {
     private mysqlService: MysqlService,
     private eventBus: EventBusService,
     private debugService: DebugService,
-    private logger: ComprehensiveLoggerService
+    private logger: ComprehensiveLoggerService,
+    private secureLogger: SecureLoggerService
   ) {
     console.log('🔐 AuthService: Constructor called - initializing authentication service');
     this.initializeAuth();
@@ -106,19 +108,21 @@ export class AuthService {
     try {
       console.log('🔐 AuthService: Vérification du cache localStorage...');
       
-      // Debug complet de l'état du localStorage
-      console.log('🔍 CACHE DEBUG:');
-      console.log('  - faildaily_user:', localStorage.getItem('faildaily_user'));
-      console.log('  - faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - faildaily_token:', localStorage.getItem('faildaily_token'));
-      console.log('  - auth_token:', localStorage.getItem('auth_token'));
-      console.log('  - current_user:', localStorage.getItem('current_user'));
-      console.log('  - Toutes les clés localStorage:', Object.keys(localStorage));
+      // Debug complet de l'état du localStorage (sécurisé)
+      this.secureLogger.debug('🔍 CACHE DEBUG');
+      this.secureLogger.logStorage('LocalStorage state', {
+        faildaily_user: localStorage.getItem('faildaily_user'),
+        faildaily_user_cache: localStorage.getItem('faildaily_user_cache'),
+        faildaily_token: localStorage.getItem('faildaily_token'),
+        auth_token: localStorage.getItem('auth_token'),
+        current_user: localStorage.getItem('current_user'),
+        allKeys: Object.keys(localStorage)
+      });
       
       // ✅ CORRECTION CRITIQUE : Vérifier qu'on a un token avant de retourner l'utilisateur
       const token = localStorage.getItem('faildaily_token');
       if (!token) {
-        console.log('🚨 AUCUN TOKEN TROUVÉ - Suppression du cache utilisateur');
+        this.secureLogger.warn('🚨 AUCUN TOKEN TROUVÉ - Suppression du cache utilisateur');
         localStorage.removeItem('faildaily_user_cache');
         localStorage.removeItem('faildaily_user');
         return null;
@@ -126,14 +130,14 @@ export class AuthService {
       
       const cached = localStorage.getItem('faildaily_user_cache');
       if (cached) {
-        console.log('🔐 AuthService: Cache trouvé, parsing...');
+        this.secureLogger.debug('🔐 AuthService: Cache trouvé, parsing...');
         const parsed = JSON.parse(cached);
         // Vérifier que le cache n'est pas trop vieux (max 1 heure)
         if (parsed.timestamp && (Date.now() - parsed.timestamp) < 3600000) {
-          console.log('🔐 AuthService: Cache utilisateur valide trouvé pour:', parsed.user?.email);
+          this.secureLogger.logToken('🔐 AuthService: Cache utilisateur valide trouvé pour:', parsed.user?.email);
           return parsed.user;
         } else {
-          console.log('🔐 AuthService: Cache expiré, suppression...');
+          this.secureLogger.debug('🔐 AuthService: Cache expiré, suppression...');
           localStorage.removeItem('faildaily_user_cache');
         }
       } else {
@@ -448,15 +452,15 @@ export class AuthService {
 
 
   async login(credentials: LoginCredentials): Promise<User | null> {
-    console.log('🔐 AuthService: Login attempt for:', credentials.email);
+    this.secureLogger.logToken('🔐 AuthService: Login attempt for:', credentials.email);
 
     try {
       // Authentification mysqlService - retour immédiat
       const result = await this.mysqlService.signIn(credentials.email, credentials.password);
-      console.log('🔐 AuthService: Login result structure:', JSON.stringify(result, null, 2));
+      this.secureLogger.log('🔐 AuthService: Login result structure:', result);
 
       if (result?.data?.user) {
-        console.log('✅ AuthService: User authenticated successfully');
+        this.secureLogger.log('✅ AuthService: User authenticated successfully');
 
         // Logger la connexion réussie
         await this.logger.logAuth('login_success', `Connexion réussie`, {
