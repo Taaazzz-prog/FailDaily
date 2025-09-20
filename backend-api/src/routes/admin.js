@@ -1110,7 +1110,7 @@ router.get('/logs/by-type', authenticateToken, requireStrictAdmin, async (req, r
   try {
     const type = String(req.query.type || 'all').toLowerCase();
     const limit = Math.min(1000, Math.max(1, parseInt(req.query.limit || '20')));
-    const hours = Math.max(1, parseInt(req.query.periodHours || '24'));
+    const hours = Math.max(1, Math.min(168, parseInt(req.query.periodHours || '24'))); // Max 7 jours
 
     // Récupérer un lot, filtrer ensuite côté serveur pour catégoriser
     const rows = await executeQuery(
@@ -1118,10 +1118,10 @@ router.get('/logs/by-type', authenticateToken, requireStrictAdmin, async (req, r
          FROM system_logs sl
          LEFT JOIN users u ON u.id = sl.user_id
          LEFT JOIN profiles p ON p.user_id = sl.user_id
-        WHERE sl.timestamp >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+        WHERE sl.timestamp >= DATE_SUB(NOW(), INTERVAL ${hours} HOUR)
         ORDER BY sl.timestamp DESC
         LIMIT ?`,
-      [hours, Math.min(limit * 5, 1000)]
+      [Math.min(limit * 5, 1000)]
     );
 
     function categorize(row) {
