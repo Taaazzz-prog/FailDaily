@@ -684,12 +684,32 @@ router.put('/users/:id/parental-reject', authenticateToken, requireStrictAdmin, 
 // GET /api/admin/points/config
 router.get('/points/config', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+    const [pointsRow, reactionPointsRow] = await Promise.all([
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']),
+      executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points'])
+    ]);
+    
     let cfg = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
-    if (row && row[0] && row[0].value) {
-      try { cfg = { ...cfg, ...JSON.parse(row[0].value) }; } catch {}
+    let reactionCfg = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    
+    if (pointsRow && pointsRow[0] && pointsRow[0].value) {
+      try { cfg = { ...cfg, ...JSON.parse(pointsRow[0].value) }; } catch {}
     }
-    res.json({ success: true, config: cfg });
+    
+    if (reactionPointsRow && reactionPointsRow[0] && reactionPointsRow[0].value) {
+      try { reactionCfg = { ...reactionCfg, ...JSON.parse(reactionPointsRow[0].value) }; } catch {}
+    }
+    
+    const completeConfig = {
+      ...cfg,
+      reactionCourage: reactionCfg.courage || 5,
+      reactionLaugh: reactionCfg.laugh || 3,
+      reactionEmpathy: reactionCfg.empathy || 2,
+      reactionSupport: reactionCfg.support || 3,
+      dailyBonus: cfg.dailyBonus || 0
+    };
+    
+    res.json({ success: true, config: completeConfig });
   } catch (e) {
     console.error('❌ /admin/points/config error:', e);
     res.status(500).json({ success: false, message: 'Erreur lecture config points' });
@@ -700,25 +720,69 @@ router.get('/points/config', authenticateToken, requireAdmin, async (req, res) =
 router.put('/points/config', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const input = req.body || {};
-    let current = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
+    
+    // Récupérer les configurations actuelles
+    let currentPoints = { failCreate: 10, commentCreate: 2, reactionRemovePenalty: true };
+    let currentReactionPoints = { courage: 5, laugh: 3, empathy: 2, support: 3 };
+    
     try {
-      const row = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
-      if (row && row[0] && row[0].value) current = { ...current, ...JSON.parse(row[0].value) };
+      const pointsRow = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['points']);
+      if (pointsRow && pointsRow[0] && pointsRow[0].value) {
+        currentPoints = { ...currentPoints, ...JSON.parse(pointsRow[0].value) };
+      }
+    } catch {}
+    
+    try {
+      const reactionRow = await executeQuery('SELECT value FROM app_config WHERE `key` = ? LIMIT 1', ['reaction_points']);
+      if (reactionRow && reactionRow[0] && reactionRow[0].value) {
+        currentReactionPoints = { ...currentReactionPoints, ...JSON.parse(reactionRow[0].value) };
+      }
     } catch {}
 
-    const nextCfg = {
-      failCreate: Number.isFinite(Number(input.failCreate)) ? Number(input.failCreate) : current.failCreate,
-      commentCreate: Number.isFinite(Number(input.commentCreate)) ? Number(input.commentCreate) : current.commentCreate,
-      reactionRemovePenalty: typeof input.reactionRemovePenalty === 'boolean' ? input.reactionRemovePenalty : current.reactionRemovePenalty
+    // Mise à jour configuration points
+    const nextPointsCfg = {
+      failCreate: Number.isFinite(Number(input.failCreate)) ? Number(input.failCreate) : currentPoints.failCreate,
+      commentCreate: Number.isFinite(Number(input.commentCreate)) ? Number(input.commentCreate) : currentPoints.commentCreate,
+      reactionRemovePenalty: typeof input.reactionRemovePenalty === 'boolean' ? input.reactionRemovePenalty : currentPoints.reactionRemovePenalty,
+      dailyBonus: Number.isFinite(Number(input.dailyBonus)) ? Number(input.dailyBonus) : (currentPoints.dailyBonus || 5)
     };
 
+    // Mise à jour configuration reaction points
+    const nextReactionCfg = {
+      courage: Number.isFinite(Number(input.reactionCourage)) ? Number(input.reactionCourage) : currentReactionPoints.courage,
+      laugh: Number.isFinite(Number(input.reactionLaugh)) ? Number(input.reactionLaugh) : currentReactionPoints.laugh,
+      empathy: Number.isFinite(Number(input.reactionEmpathy)) ? Number(input.reactionEmpathy) : currentReactionPoints.empathy,
+      support: Number.isFinite(Number(input.reactionSupport)) ? Number(input.reactionSupport) : currentReactionPoints.support
+    };
+
+    // Sauvegarder les deux configurations
     await executeQuery(
       `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
        VALUES (UUID(), 'points', ?, NOW(), NOW())
        ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
-      [JSON.stringify(nextCfg)]
+      [JSON.stringify(nextPointsCfg)]
     );
-    res.json({ success: true, config: nextCfg });
+    
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES (UUID(), 'reaction_points', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [JSON.stringify(nextReactionCfg)]
+    );
+
+    // Retourner la configuration complète
+    const fullConfig = {
+      failCreate: nextPointsCfg.failCreate,
+      commentCreate: nextPointsCfg.commentCreate,
+      reactionRemovePenalty: nextPointsCfg.reactionRemovePenalty,
+      dailyBonus: nextPointsCfg.dailyBonus,
+      reactionCourage: nextReactionCfg.courage,
+      reactionLaugh: nextReactionCfg.laugh,
+      reactionEmpathy: nextReactionCfg.empathy,
+      reactionSupport: nextReactionCfg.support
+    };
+    
+    res.json({ success: true, config: fullConfig });
   } catch (e) {
     console.error('❌ /admin/points/config update error:', e);
     res.status(500).json({ success: false, message: 'Erreur mise à jour config points' });
