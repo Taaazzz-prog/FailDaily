@@ -1,12 +1,8 @@
 /*
- * App Global CSS
+ * App Global CSS - ARCHITECTURE & LAYOUT
  * ----------------------------------------------------------------------------
- * Put style rules here that you want to apply globally. These styles are for
- * the entire app and not just one component. Additionally, this file can be
- * used as an entry point to import other CSS/Sass files to be included in the
- * output CSS.
- * For more information on global stylesheets, visit the documentation:
- * https://ionicframework.com/docs/layout/global-stylesheets
+ * Contient uniquement l'architecture, le positionnement et les styles structurels
+ * Les couleurs et thèmes sont dans light-theme.css et dark-theme.css
  */
 
 /* Core CSS required for Ionic components to work properly */
@@ -18,6 +14,10 @@
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
+/* ✅ THÈMES FAILDAILY */
+@import "./theme/light-theme.css";
+@import "./theme/dark-theme.css";
+
 /* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
@@ -26,25 +26,197 @@
 @import "@ionic/angular/css/flex-utils.css";
 
 /**
- * Ionic Dark Mode
+ * Ionic Dark Mode - DÉSACTIVÉ pour utiliser notre système
  * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
  */
-
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* @import '@ionic/angular/css/palettes/dark.system.css'; */
 
 /**
- * FailDaily Custom Global Styles
+ * ARCHITECTURE & LAYOUT GLOBAUX
  * -----------------------------------------------------
- * Styles globaux pour maintenir la cohérence visuelle
  */
 
-// Import des polices via Fontsource (locales, plus rapides)
+/* Import des polices */
 @import "@fontsource/caveat/400.css";
 @import "@fontsource/caveat/600.css";
+
+/* Variables d'architecture (tailles, espacements, positions) */
+:root {
+    // Espacements standardisés
+    --app-spacing-xs: 4px;
+    --app-spacing-sm: 8px;
+    --app-spacing-md: 16px;
+    --app-spacing-lg: 24px;
+    --app-spacing-xl: 32px;
+
+    // Rayons de bordure
+    --app-border-radius-sm: 4px;
+    --app-border-radius-md: 8px;
+    --app-border-radius-lg: 16px;
+    --app-border-radius-xl: 24px;
+
+    // Tailles de police
+    --app-font-size-xs: 12px;
+    --app-font-size-sm: 14px;
+    --app-font-size-md: 16px;
+    --app-font-size-lg: 18px;
+    --app-font-size-xl: 24px;
+
+    // Hauteurs de ligne
+    --app-line-height-tight: 1.2;
+    --app-line-height-normal: 1.5;
+    --app-line-height-relaxed: 1.8;
+
+    // Z-index
+    --app-z-modal: 1000;
+    --app-z-overlay: 900;
+    --app-z-dropdown: 800;
+    --app-z-sticky: 700;
+
+    // Transitions
+    --app-transition-fast: 0.15s ease;
+    --app-transition-normal: 0.3s ease;
+    --app-transition-slow: 0.5s ease;
+
+    // Breakpoints (pour référence, pas utilisés directement en CSS)
+    --app-breakpoint-sm: 576px;
+    --app-breakpoint-md: 768px;
+    --app-breakpoint-lg: 992px;
+    --app-breakpoint-xl: 1200px;
+}
+
+/* Typography - Structure seulement */
+.handwriting {
+    font-family: 'Caveat', cursive;
+    font-weight: 600;
+    font-size: var(--app-font-size-lg);
+    line-height: var(--app-line-height-tight);
+}
+
+.comfort-text {
+    font-size: var(--app-font-size-sm);
+    line-height: var(--app-line-height-relaxed);
+    opacity: 0.8;
+}
+
+/* Layout - Containers */
+.page-container {
+    padding: var(--app-spacing-md);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.form-section {
+    margin-bottom: var(--app-spacing-lg);
+    padding: var(--app-spacing-md);
+    border-radius: var(--app-border-radius-lg);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: var(--app-spacing-sm);
+    margin-bottom: var(--app-spacing-md);
+}
+
+/* Layout - Items et Cards */
+.imperfect-element {
+    border-radius: var(--app-border-radius-md);
+    margin-bottom: var(--app-spacing-sm);
+    padding: var(--app-spacing-md);
+    transition: var(--app-transition-normal);
+}
+
+.imperfect-element:hover {
+    transform: translateY(-2px);
+}
+
+/* Layout - Messages et États */
+.error-message {
+    font-size: var(--app-font-size-sm);
+    margin-top: var(--app-spacing-xs);
+    padding: var(--app-spacing-sm);
+    border-radius: var(--app-border-radius-sm);
+}
+
+.success-message {
+    font-size: var(--app-font-size-sm);
+    margin-top: var(--app-spacing-xs);
+    padding: var(--app-spacing-sm);
+    border-radius: var(--app-border-radius-sm);
+}
+
+/* Layout - Animations */
+.fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.fade-in:nth-child(1) { animation-delay: 0.1s; }
+.fade-in:nth-child(2) { animation-delay: 0.2s; }
+.fade-in:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Layout - Responsive */
+@media (max-width: 768px) {
+    .page-container {
+        padding: var(--app-spacing-sm);
+    }
+    
+    .form-section {
+        margin-bottom: var(--app-spacing-md);
+        padding: var(--app-spacing-sm);
+    }
+}
+
+/* Layout - States et interactions */
+.loading-state {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.disabled-state {
+    pointer-events: none;
+    opacity: 0.4;
+}
+
+/* Layout - Utility classes */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.flex { display: flex; }
+.flex-column { flex-direction: column; }
+.flex-center { justify-content: center; align-items: center; }
+.flex-between { justify-content: space-between; }
+.flex-around { justify-content: space-around; }
+
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; }
+
+.overflow-hidden { overflow: hidden; }
+.overflow-auto { overflow: auto; }
+.overflow-scroll { overflow: scroll; }
+
+/* Layout - Z-index management */
+.z-modal { z-index: var(--app-z-modal); }
+.z-overlay { z-index: var(--app-z-overlay); }
+.z-dropdown { z-index: var(--app-z-dropdown); }
+.z-sticky { z-index: var(--app-z-sticky); }
 @import "@fontsource/caveat/700.css";
 @import "@fontsource/comfortaa/300.css";
 @import "@fontsource/comfortaa/400.css";
@@ -468,4 +640,85 @@ ion-icon {
   --width: 90%;
   --max-width: 400px;
   --border-radius: 16px;
+}
+
+/**
+ * ✅ STYLES POUR OVERLAYS ET POPOVERS EN MODE SOMBRE
+ * -----------------------------------------------------
+ * Assurer que les overlays (select, popover, modal) utilisent le bon thème
+ */
+
+/* Correction pour les ion-select en mode sombre */
+.dark {
+  /* Overlay du select (popover) */
+  .select-interface-popover .popover-content {
+    background: var(--faildaily-surface) !important;
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .select-interface-popover ion-item {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  .select-interface-popover ion-radio {
+    --color: var(--faildaily-primary) !important;
+    --color-checked: var(--faildaily-primary) !important;
+  }
+
+  /* Action sheet style */
+  .action-sheet-group {
+    background: var(--faildaily-surface) !important;
+  }
+
+  .action-sheet-title {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .action-sheet-button {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Select options dans action sheet */
+  .select-interface-options {
+    background: var(--faildaily-surface) !important;
+  }
+
+  /* Modal wrapper */
+  .modal-wrapper {
+    background: var(--faildaily-background) !important;
+  }
+
+  /* Popover wrapper */
+  .popover-wrapper {
+    .popover-content {
+      background: var(--faildaily-surface) !important;
+      color: var(--faildaily-text-primary) !important;
+    }
+  }
+
+  /* Alert wrapper */
+  .alert-wrapper {
+    background: var(--faildaily-surface) !important;
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .alert-title,
+  .alert-sub-title,
+  .alert-message {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .alert-input-wrapper {
+    .alert-input {
+      background: var(--faildaily-surface-alt) !important;
+      color: var(--faildaily-text-primary) !important;
+    }
+  }
+
+  .alert-button-group {
+    .alert-button {
+      color: var(--faildaily-primary) !important;
+    }
+  }
 }

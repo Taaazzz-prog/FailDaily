@@ -139,6 +139,14 @@ export class AdminPage implements OnInit, OnDestroy {
         } catch (error) {
             console.error('🔴 Erreur chargement utilisateurs:', error);
         }
+
+        // 🔥 CRITIQUE: Charger les données temps réel pour les métriques en haut
+        try {
+            await this.loadRealTimeData();
+            console.log('🟢 Real-time data loaded in ngOnInit:', this.realTimeStats.activeUsers, 'active users');
+        } catch (error) {
+            console.error('🔴 Erreur chargement données temps réel:', error);
+        }
     }
 
     ngOnDestroy() {

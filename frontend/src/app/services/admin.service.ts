@@ -462,12 +462,16 @@ export class AdminService {
             const logsResponse = await this.MysqlService.adminLogsList({ limit: 100 });
             const allRecentLogs = logsResponse.logs || [];
             
+            console.log('🔍 DEBUG getActiveUsers - Logs response:', logsResponse.success, allRecentLogs.length, 'logs');
+            
             // Filtrer pour ne garder que les connexions récentes (1 heure)
             const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
             const recentLogins = allRecentLogs.filter((log: any) => 
                 log.action === 'user_login' && 
                 new Date(log.timestamp || log.created_at) > oneHourAgo
             );
+            
+            console.log('🔍 DEBUG getActiveUsers - Recent logins found:', recentLogins.length, 'from', allRecentLogs.length, 'total logs');
 
             // Extraire les IDs utilisateurs uniques
             const activeUserIds = [...new Set(recentLogins.map((log: any) => log.user_id).filter(Boolean))];

@@ -1,0 +1,975 @@
+/* ===== THÈME SOMBRE FAILDAILY ===== */
+
+.dark {
+  /* Couleurs principales FailDaily mode sombre */
+  --faildaily-primary: #FF5252;
+  --faildaily-primary-shade: #D84315;
+  --faildaily-primary-tint: #FF6B6B;
+  
+  --faildaily-secondary: #26A69A;
+  --faildaily-secondary-shade: #00695C;
+  --faildaily-secondary-tint: #4DB6AC;
+  
+  --faildaily-tertiary: #FFF176;
+  --faildaily-tertiary-shade: #F9A825;
+  --faildaily-tertiary-tint: #FFFF8D;
+
+  /* Couleurs de background mode sombre */
+  --faildaily-background: #121212;
+  --faildaily-background-alt: #1E1E1E;
+  --faildaily-surface: #1F1F1F;
+  --faildaily-surface-alt: #2A2A2A;
+
+  /* Couleurs de texte mode sombre */
+  --faildaily-text-primary: #FFFFFF;
+  --faildaily-text-secondary: #B0BEC5;
+  --faildaily-text-light: #78909C;
+
+  /* Couleurs d'état mode sombre */
+  --faildaily-success: #4CAF50;
+  --faildaily-warning: #FF9800;
+  --faildaily-danger: #F44336;
+  --faildaily-info: #2196F3;
+
+  /* Ombres mode sombre */
+  --faildaily-shadow: rgba(0, 0, 0, 0.2);
+  --faildaily-shadow-strong: rgba(0, 0, 0, 0.4);
+
+  /* Bordures mode sombre */
+  --faildaily-border: rgba(255, 255, 255, 0.1);
+  --faildaily-border-strong: rgba(255, 255, 255, 0.2);
+
+  /* Variables Ionic pour mode sombre */
+  --ion-color-primary: var(--faildaily-primary);
+  --ion-color-primary-rgb: 255, 82, 82;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: var(--faildaily-primary-shade);
+  --ion-color-primary-tint: var(--faildaily-primary-tint);
+
+  --ion-color-secondary: var(--faildaily-secondary);
+  --ion-color-secondary-rgb: 38, 166, 154;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: var(--faildaily-secondary-shade);
+  --ion-color-secondary-tint: var(--faildaily-secondary-tint);
+
+  --ion-color-tertiary: var(--faildaily-tertiary);
+  --ion-color-tertiary-rgb: 255, 241, 118;
+  --ion-color-tertiary-contrast: #000000;
+  --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+  --ion-color-tertiary-shade: var(--faildaily-tertiary-shade);
+  --ion-color-tertiary-tint: var(--faildaily-tertiary-tint);
+
+  /* Couleurs de background Ionic mode sombre */
+  --ion-background-color: var(--faildaily-background);
+  --ion-background-color-rgb: 18, 18, 18;
+
+  --ion-text-color: var(--faildaily-text-primary);
+  --ion-text-color-rgb: 255, 255, 255;
+
+  /* Variables Ionic pour composants mode sombre */
+  --ion-toolbar-background: var(--faildaily-surface);
+  --ion-toolbar-color: var(--faildaily-text-primary);
+  
+  --ion-tab-bar-background: var(--faildaily-surface);
+  --ion-tab-bar-color: var(--faildaily-text-secondary);
+  --ion-tab-bar-color-selected: var(--faildaily-primary);
+  
+  --ion-card-background: var(--faildaily-surface);
+  --ion-card-color: var(--faildaily-text-primary);
+  
+  --ion-item-background: var(--faildaily-surface);
+  --ion-item-color: var(--faildaily-text-primary);
+  
+  --ion-list-background: var(--faildaily-background);
+  --ion-list-color: var(--faildaily-text-primary);
+
+  /* Variables step pour dégradés mode sombre */
+  --ion-color-step-50: #1a1a1a;
+  --ion-color-step-100: #262626;
+  --ion-color-step-150: #333333;
+  --ion-color-step-200: #404040;
+  --ion-color-step-250: #4d4d4d;
+  --ion-color-step-300: #595959;
+  --ion-color-step-350: #666666;
+  --ion-color-step-400: #737373;
+  --ion-color-step-450: #808080;
+  --ion-color-step-500: #8c8c8c;
+  --ion-color-step-550: #999999;
+  --ion-color-step-600: #a6a6a6;
+  --ion-color-step-650: #b3b3b3;
+  --ion-color-step-700: #bfbfbf;
+  --ion-color-step-750: #cccccc;
+  --ion-color-step-800: #d9d9d9;
+  --ion-color-step-850: #e6e6e6;
+  --ion-color-step-900: #f2f2f2;
+  --ion-color-step-950: #ffffff;
+}
+
+/* Styles pour tous les composants en mode sombre */
+.dark {
+  /* Conteneurs principaux */
+  ion-content {
+    --background: var(--faildaily-background) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Headers et toolbars */
+  ion-header ion-toolbar {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Navigation */
+  ion-tabs ion-tab-bar {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-secondary) !important;
+  }
+
+  ion-tabs ion-tab-bar ion-tab-button {
+    --color: var(--faildaily-text-secondary) !important;
+    --color-selected: var(--faildaily-primary) !important;
+  }
+
+  /* Cards et items */
+  ion-card {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-item {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+    --border-color: var(--faildaily-border) !important;
+  }
+
+  ion-list {
+    --ion-background-color: var(--faildaily-background) !important;
+    --ion-text-color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Formulaires */
+  ion-input, ion-textarea {
+    --background: var(--faildaily-surface-alt) !important;
+    --color: var(--faildaily-text-primary) !important;
+    --placeholder-color: var(--faildaily-text-light) !important;
+  }
+
+  ion-select {
+    --background: var(--faildaily-surface-alt) !important;
+    --color: var(--faildaily-text-primary) !important;
+    --placeholder-color: var(--faildaily-text-light) !important;
+  }
+
+  /* ✅ SPÉCIAL pour ion-select-option */
+  ion-select-option {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-label {
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-label h1, ion-label h2, ion-label h3, 
+  ion-label h4, ion-label h5, ion-label h6 {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-label p {
+    color: var(--faildaily-text-secondary) !important;
+  }
+
+  /* Contrôles */
+  ion-toggle {
+    --background: var(--faildaily-surface-alt) !important;
+    --background-checked: var(--faildaily-primary) !important;
+    --handle-background: var(--faildaily-text-primary) !important;
+    --handle-background-checked: var(--faildaily-surface) !important;
+  }
+
+  ion-checkbox {
+    --background: var(--faildaily-surface-alt) !important;
+    --background-checked: var(--faildaily-primary) !important;
+    --checkmark-color: var(--faildaily-surface) !important;
+    --border-color: var(--faildaily-border) !important;
+    --border-color-checked: var(--faildaily-primary) !important;
+  }
+
+  ion-radio {
+    --color: var(--faildaily-border) !important;
+    --color-checked: var(--faildaily-primary) !important;
+  }
+
+  /* Boutons */
+  ion-button {
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Overlays et popovers */
+  ion-toast {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-alert {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-modal {
+    --background: var(--faildaily-background) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-popover {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Textes */
+  ion-text {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-text[color="medium"] {
+    --color: var(--faildaily-text-secondary) !important;
+  }
+
+  ion-text[color="light"] {
+    --color: var(--faildaily-text-light) !important;
+  }
+
+  ion-list-header {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  ion-note {
+    color: var(--faildaily-text-light) !important;
+  }
+
+  /* ✅ CORRECTION SPÉCIALE pour PAGE POST-FAIL */
+  .post-fail-container {
+    background: var(--faildaily-background) !important;
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .form-section {
+    background: var(--faildaily-surface) !important;
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .section-header h3 {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .comfort-text {
+    color: var(--faildaily-text-secondary) !important;
+  }
+
+  .error-message {
+    color: var(--faildaily-danger) !important;
+  }
+
+  .handwriting {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .imperfect-element {
+    background: var(--faildaily-surface) !important;
+    color: var(--faildaily-text-primary) !important;
+    border-color: var(--faildaily-border) !important;
+  }
+}
+
+/* ✅ CORRECTIONS GLOBALES pour les overlays (important pour ion-select) */
+.dark .select-interface-popover .popover-content {
+  background: var(--faildaily-surface) !important;
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .select-interface-popover ion-item {
+  --background: var(--faildaily-surface) !important;
+  --color: var(--faildaily-text-primary) !important;
+}
+
+.dark .select-interface-popover ion-radio {
+  --color: var(--faildaily-primary) !important;
+  --color-checked: var(--faildaily-primary) !important;
+}
+
+.dark .action-sheet-group {
+  background: var(--faildaily-surface) !important;
+}
+
+.dark .action-sheet-title {
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .action-sheet-button {
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .select-interface-options {
+  background: var(--faildaily-surface) !important;
+}
+
+.dark .modal-wrapper {
+  background: var(--faildaily-background) !important;
+}
+
+.dark .popover-wrapper .popover-content {
+  background: var(--faildaily-surface) !important;
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .alert-wrapper {
+  background: var(--faildaily-surface) !important;
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .alert-title,
+.dark .alert-sub-title,
+.dark .alert-message {
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .alert-input-wrapper .alert-input {
+  background: var(--faildaily-surface-alt) !important;
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .alert-button-group .alert-button {
+  color: var(--faildaily-primary) !important;
+}
+
+/* Classes utilitaires pour les développeurs */
+.dark .faildaily-surface {
+  background-color: var(--faildaily-surface) !important;
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .faildaily-surface-alt {
+  background-color: var(--faildaily-surface-alt) !important;
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .faildaily-text-primary {
+  color: var(--faildaily-text-primary) !important;
+}
+
+.dark .faildaily-text-secondary {
+  color: var(--faildaily-text-secondary) !important;
+}
+
+.dark .faildaily-text-light {
+  color: var(--faildaily-text-light) !important;
+}
+
+.dark .faildaily-shadow {
+  box-shadow: 0 2px 8px var(--faildaily-shadow) !important;
+}
+
+.dark .faildaily-shadow-strong {
+  box-shadow: 0 4px 16px var(--faildaily-shadow-strong) !important;
+}
+
+.dark .faildaily-border {
+  border: 1px solid var(--faildaily-border) !important;
+}
+
+/* Transitions fluides pour le changement de thème */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Variables de couleurs mode clair (défaut) */
+:root {
+  /* Couleurs principales FailDaily */
+  --faildaily-primary: #FF6B6B;
+  --faildaily-primary-shade: #E85A5A;
+  --faildaily-primary-tint: #FF7B7B;
+  
+  --faildaily-secondary: #4ECDC4;
+  --faildaily-secondary-shade: #45B5AD;
+  --faildaily-secondary-tint: #60D0C9;
+  
+  --faildaily-tertiary: #FFE66D;
+  --faildaily-tertiary-shade: #E6CF62;
+  --faildaily-tertiary-tint: #FFEA7C;
+
+  /* Couleurs de background */
+  --faildaily-background: #FFEAA7;
+  --faildaily-background-alt: #FDCB6E;
+  --faildaily-surface: #FFFFFF;
+  --faildaily-surface-alt: #F8F9FA;
+
+  /* Couleurs de texte */
+  --faildaily-text-primary: #2D3436;
+  --faildaily-text-secondary: #636E72;
+  --faildaily-text-light: #B2BEC3;
+
+  /* Couleurs d'état */
+  --faildaily-success: #00B894;
+  --faildaily-warning: #FDCB6E;
+  --faildaily-danger: #E17055;
+  --faildaily-info: #74B9FF;
+
+  /* Ombres */
+  --faildaily-shadow: rgba(45, 52, 54, 0.1);
+  --faildaily-shadow-strong: rgba(45, 52, 54, 0.25);
+
+  /* Bordures */
+  --faildaily-border: rgba(45, 52, 54, 0.1);
+  --faildaily-border-strong: rgba(45, 52, 54, 0.2);
+}
+
+/* Variables de couleurs mode sombre */
+.dark {
+  /* Couleurs principales FailDaily - légèrement désaturées */
+  --faildaily-primary: #FF5252;
+  --faildaily-primary-shade: #D84315;
+  --faildaily-primary-tint: #FF6B6B;
+  
+  --faildaily-secondary: #26A69A;
+  --faildaily-secondary-shade: #00695C;
+  --faildaily-secondary-tint: #4DB6AC;
+  
+  --faildaily-tertiary: #FFF176;
+  --faildaily-tertiary-shade: #F9A825;
+  --faildaily-tertiary-tint: #FFFF8D;
+
+  /* Couleurs de background sombres */
+  --faildaily-background: #121212;
+  --faildaily-background-alt: #1E1E1E;
+  --faildaily-surface: #1F1F1F;
+  --faildaily-surface-alt: #2A2A2A;
+
+  /* Couleurs de texte pour fond sombre */
+  --faildaily-text-primary: #FFFFFF;
+  --faildaily-text-secondary: #B0BEC5;
+  --faildaily-text-light: #78909C;
+
+  /* Couleurs d'état adaptées */
+  --faildaily-success: #4CAF50;
+  --faildaily-warning: #FF9800;
+  --faildaily-danger: #F44336;
+  --faildaily-info: #2196F3;
+
+  /* Ombres pour mode sombre */
+  --faildaily-shadow: rgba(0, 0, 0, 0.2);
+  --faildaily-shadow-strong: rgba(0, 0, 0, 0.4);
+
+  /* Bordures pour mode sombre */
+  --faildaily-border: rgba(255, 255, 255, 0.1);
+  --faildaily-border-strong: rgba(255, 255, 255, 0.2);
+
+  /* Variables Ionic spécifiques pour mode sombre */
+  --ion-color-primary: var(--faildaily-primary);
+  --ion-color-primary-rgb: 255, 82, 82;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: var(--faildaily-primary-shade);
+  --ion-color-primary-tint: var(--faildaily-primary-tint);
+
+  --ion-color-secondary: var(--faildaily-secondary);
+  --ion-color-secondary-rgb: 38, 166, 154;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: var(--faildaily-secondary-shade);
+  --ion-color-secondary-tint: var(--faildaily-secondary-tint);
+
+  --ion-color-tertiary: var(--faildaily-tertiary);
+  --ion-color-tertiary-rgb: 255, 241, 118;
+  --ion-color-tertiary-contrast: #000000;
+  --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+  --ion-color-tertiary-shade: var(--faildaily-tertiary-shade);
+  --ion-color-tertiary-tint: var(--faildaily-tertiary-tint);
+
+  /* Couleurs de background Ionic */
+  --ion-background-color: var(--faildaily-background);
+  --ion-background-color-rgb: 18, 18, 18;
+
+  --ion-text-color: var(--faildaily-text-primary);
+  --ion-text-color-rgb: 255, 255, 255;
+
+  /* Variables Ionic essentielles manquantes */
+  --ion-toolbar-background: var(--faildaily-surface);
+  --ion-toolbar-color: var(--faildaily-text-primary);
+  
+  --ion-tab-bar-background: var(--faildaily-surface);
+  --ion-tab-bar-color: var(--faildaily-text-secondary);
+  --ion-tab-bar-color-selected: var(--faildaily-primary);
+  
+  --ion-card-background: var(--faildaily-surface);
+  --ion-card-color: var(--faildaily-text-primary);
+  
+  --ion-item-background: var(--faildaily-surface);
+  --ion-item-color: var(--faildaily-text-primary);
+  
+  --ion-list-background: var(--faildaily-background);
+  --ion-list-color: var(--faildaily-text-primary);
+
+  --ion-color-step-50: #1a1a1a;
+  --ion-color-step-100: #262626;
+  --ion-color-step-150: #333333;
+  --ion-color-step-200: #404040;
+  --ion-color-step-250: #4d4d4d;
+  --ion-color-step-300: #595959;
+  --ion-color-step-350: #666666;
+  --ion-color-step-400: #737373;
+  --ion-color-step-450: #808080;
+  --ion-color-step-500: #8c8c8c;
+  --ion-color-step-550: #999999;
+  --ion-color-step-600: #a6a6a6;
+  --ion-color-step-650: #b3b3b3;
+  --ion-color-step-700: #bfbfbf;
+  --ion-color-step-750: #cccccc;
+  --ion-color-step-800: #d9d9d9;
+  --ion-color-step-850: #e6e6e6;
+  --ion-color-step-900: #f2f2f2;
+  --ion-color-step-950: #ffffff;
+}
+
+/* Classes utilitaires pour les développeurs */
+.faildaily-surface {
+  background-color: var(--faildaily-surface);
+  color: var(--faildaily-text-primary);
+}
+
+.faildaily-surface-alt {
+  background-color: var(--faildaily-surface-alt);
+  color: var(--faildaily-text-primary);
+}
+
+.faildaily-text-primary {
+  color: var(--faildaily-text-primary);
+}
+
+.faildaily-text-secondary {
+  color: var(--faildaily-text-secondary);
+}
+
+.faildaily-text-light {
+  color: var(--faildaily-text-light);
+}
+
+.faildaily-shadow {
+  box-shadow: 0 2px 8px var(--faildaily-shadow);
+}
+
+.faildaily-shadow-strong {
+  box-shadow: 0 4px 16px var(--faildaily-shadow-strong);
+}
+
+.faildaily-border {
+  border: 1px solid var(--faildaily-border);
+}
+
+/* Styles spécifiques pour le mode sombre */
+.dark {
+  /* Assurer que tous les composants Ionic utilisent les bonnes couleurs */
+  ion-content {
+    --background: var(--faildaily-background);
+    --color: var(--faildaily-text-primary);
+  }
+
+  ion-header {
+    ion-toolbar {
+      --background: var(--faildaily-surface);
+      --color: var(--faildaily-text-primary);
+    }
+  }
+
+  ion-tabs {
+    ion-tab-bar {
+      --background: var(--faildaily-surface);
+      --color: var(--faildaily-text-secondary);
+      
+      ion-tab-button {
+        --color: var(--faildaily-text-secondary);
+        --color-selected: var(--faildaily-primary);
+      }
+    }
+  }
+
+  ion-card {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+  }
+
+  ion-item {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+    --border-color: var(--faildaily-border);
+  }
+
+  ion-list {
+    --ion-background-color: var(--faildaily-background);
+    --ion-text-color: var(--faildaily-text-primary);
+  }
+
+  ion-input, ion-textarea {
+    --background: var(--faildaily-surface-alt);
+    --color: var(--faildaily-text-primary);
+    --placeholder-color: var(--faildaily-text-light);
+  }
+
+  ion-select {
+    --background: var(--faildaily-surface-alt);
+    --color: var(--faildaily-text-primary);
+    --placeholder-color: var(--faildaily-text-light);
+  }
+
+  /* ✅ CORRECTION : ion-select-option et popover */
+  ion-select-option {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+  }
+
+  .select-interface-popover {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+    
+    .popover-content {
+      background: var(--faildaily-surface);
+      color: var(--faildaily-text-primary);
+    }
+    
+    ion-item {
+      --background: var(--faildaily-surface);
+      --color: var(--faildaily-text-primary);
+    }
+    
+    ion-radio {
+      --color: var(--faildaily-primary);
+      --color-checked: var(--faildaily-primary);
+    }
+  }
+
+  ion-button {
+    --color: var(--faildaily-text-primary);
+  }
+
+  ion-toast {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+  }
+
+  ion-alert {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+    
+    .alert-wrapper {
+      background: var(--faildaily-surface);
+      color: var(--faildaily-text-primary);
+    }
+    
+    .alert-head,
+    .alert-title,
+    .alert-sub-title,
+    .alert-message {
+      color: var(--faildaily-text-primary);
+    }
+    
+    .alert-input {
+      background: var(--faildaily-surface-alt);
+      color: var(--faildaily-text-primary);
+    }
+    
+    .alert-button {
+      color: var(--faildaily-primary);
+    }
+  }
+
+  ion-modal {
+    --background: var(--faildaily-background);
+    --color: var(--faildaily-text-primary);
+  }
+
+  ion-popover {
+    --background: var(--faildaily-surface);
+    --color: var(--faildaily-text-primary);
+    
+    .popover-content {
+      background: var(--faildaily-surface);
+      color: var(--faildaily-text-primary);
+    }
+  }
+
+  /* ✅ NOUVEAU : Styles pour tous les éléments de formulaire */
+  ion-label {
+    --color: var(--faildaily-text-primary);
+    
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--faildaily-text-primary);
+    }
+    
+    p {
+      color: var(--faildaily-text-secondary);
+    }
+  }
+
+  ion-toggle {
+    --background: var(--faildaily-surface-alt);
+    --background-checked: var(--faildaily-primary);
+    --handle-background: var(--faildaily-text-primary);
+    --handle-background-checked: var(--faildaily-surface);
+  }
+
+  ion-checkbox {
+    --background: var(--faildaily-surface-alt);
+    --background-checked: var(--faildaily-primary);
+    --checkmark-color: var(--faildaily-surface);
+    --border-color: var(--faildaily-border);
+    --border-color-checked: var(--faildaily-primary);
+  }
+
+  ion-radio {
+    --color: var(--faildaily-border);
+    --color-checked: var(--faildaily-primary);
+  }
+
+  /* ✅ NOUVEAU : Styles pour les overlays (popover, select, modal) */
+  .select-interface-options {
+    background: var(--faildaily-surface);
+    color: var(--faildaily-text-primary);
+  }
+
+  .action-sheet-wrapper {
+    background: var(--faildaily-surface);
+    color: var(--faildaily-text-primary);
+    
+    .action-sheet-title {
+      color: var(--faildaily-text-primary);
+    }
+    
+    .action-sheet-button {
+      color: var(--faildaily-text-primary);
+    }
+    
+    .action-sheet-cancel {
+      background: var(--faildaily-surface-alt);
+    }
+  }
+
+  /* ✅ NOUVEAU : Styles pour les text, span et éléments inline */
+  ion-text {
+    color: var(--faildaily-text-primary);
+    
+    &[color="medium"] {
+      --color: var(--faildaily-text-secondary);
+    }
+    
+    &[color="light"] {
+      --color: var(--faildaily-text-light);
+    }
+  }
+
+  /* ✅ NOUVEAU : Styles pour les listes et items */
+  ion-list-header {
+    color: var(--faildaily-text-primary);
+  }
+
+  ion-note {
+    color: var(--faildaily-text-light);
+  }
+
+  /* ✅ NOUVEAU : Override des couleurs système Ionic */
+  .ios, .md {
+    --ion-item-background: var(--faildaily-surface);
+    --ion-item-color: var(--faildaily-text-primary);
+  }
+
+  /* Corrections spécifiques pour les problèmes de contraste mode sombre */
+  .reaction-button {
+    color: var(--faildaily-text-secondary) !important;
+  }
+
+  .reaction-button.reacted {
+    color: var(--faildaily-primary) !important;
+  }
+
+  .fail-title {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  .fail-description {
+    color: var(--faildaily-text-secondary) !important;
+  }
+
+  .fail-meta {
+    color: var(--faildaily-text-light) !important;
+  }
+
+  .comments-section {
+    background: var(--faildaily-surface-alt) !important;
+  }
+
+  .comment-item {
+    background: var(--faildaily-surface) !important;
+    color: var(--faildaily-text-primary) !important;
+    border: 1px solid var(--faildaily-border) !important;
+  }
+
+  /* Assurer le contraste sur tous les éléments texte */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  p, span, div {
+    color: inherit !important;
+  }
+
+  /* Buttons avec bon contraste mode sombre */
+  ion-button {
+    --color: #ffffff !important;
+    --background: var(--faildaily-primary) !important;
+  }
+
+  ion-button.button-clear {
+    --color: var(--faildaily-primary) !important;
+    --background: transparent !important;
+  }
+
+  ion-button.button-outline {
+    --color: var(--faildaily-primary) !important;
+    --border-color: var(--faildaily-primary) !important;
+    --background: transparent !important;
+  }
+
+  /* Items et listes mode sombre */
+  ion-item {
+    --background: var(--faildaily-surface) !important;
+    --color: var(--faildaily-text-primary) !important;
+    --border-color: var(--faildaily-border) !important;
+  }
+
+  ion-label {
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Inputs avec placeholder visible mode sombre */
+  ion-input {
+    --color: var(--faildaily-text-primary) !important;
+    --placeholder-color: var(--faildaily-text-light) !important;
+  }
+
+  ion-textarea {
+    --color: var(--faildaily-text-primary) !important;
+    --placeholder-color: var(--faildaily-text-light) !important;
+  }
+
+  /* Content avec fond approprié */
+  ion-content {
+    --background: var(--faildaily-background) !important;
+    --color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Corrections spécifiques pour pages badges et profile mode sombre */
+  .badges-container,
+  .profile-container {
+    .comfort-text,
+    .handwriting,
+    .encouragement-text {
+      color: var(--faildaily-text-secondary) !important;
+    }
+
+    .badge-name,
+    .badge-description,
+    .level-number,
+    .stat-value,
+    .fail-title {
+      color: var(--faildaily-text-primary) !important;
+    }
+
+    .badge-count,
+    .progress-text,
+    .category-name {
+      color: var(--faildaily-text-secondary) !important;
+    }
+
+    .rarity-tag,
+    .unlock-date,
+    .fail-meta {
+      color: var(--faildaily-text-light) !important;
+    }
+
+    /* Sections de page avec fond visible mode sombre */
+    .welcome-section,
+    .level-section,
+    .stats-section,
+    .badges-section,
+    .recent-fails-section,
+    .actions-section,
+    .next-objectives,
+    .category-section {
+      background: var(--faildaily-surface) !important;
+      border: 1px solid var(--faildaily-border) !important;
+      color: var(--faildaily-text-primary) !important;
+    }
+
+    /* Cartes de badges mode sombre */
+    .badge-card,
+    .stat-card,
+    .fail-preview {
+      background: var(--faildaily-surface-alt) !important;
+      color: var(--faildaily-text-primary) !important;
+      border: 1px solid var(--faildaily-border) !important;
+    }
+
+    /* Titres h1, h2, h3 visibles mode sombre */
+    h1, h2, h3, h4, h5, h6 {
+      color: var(--faildaily-text-primary) !important;
+    }
+
+    /* Progress bars avec bon contraste mode sombre */
+    ion-progress-bar {
+      --background: var(--faildaily-surface-alt) !important;
+      --progress-background: var(--faildaily-primary) !important;
+    }
+
+    /* Debug info visible mode sombre */
+    .debug-info {
+      background: var(--faildaily-surface-alt) !important;
+      color: var(--faildaily-text-primary) !important;
+      border: 1px solid var(--faildaily-border) !important;
+    }
+
+    .debug-summary p,
+    .debug-barème li {
+      color: var(--faildaily-text-secondary) !important;
+    }
+  }
+
+  /* Corrections pour les badges spécifiquement mode sombre */
+  .badge-icon-container,
+  .icon-circle {
+    background: var(--faildaily-surface) !important;
+  }
+
+  .badge-background {
+    opacity: 0.1 !important;
+  }
+
+  /* Dropdown et sélecteurs mode sombre */
+  .category-dropdown,
+  .dropdown-menu {
+    background: var(--faildaily-surface) !important;
+    border: 1px solid var(--faildaily-border) !important;
+    color: var(--faildaily-text-primary) !important;
+  }
+
+  /* Textes spécifiques aux fails mode sombre */
+  .fail-description,
+  .fail-category,
+  .fail-date {
+    color: var(--faildaily-text-secondary) !important;
+  }
+}
+
+/* Transitions fluides pour le changement de thème */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

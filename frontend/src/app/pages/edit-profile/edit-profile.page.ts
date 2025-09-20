@@ -11,6 +11,7 @@ import {
 import { addIcons } from 'ionicons';
 import { createOutline, informationCircleOutline, mailOutline, optionsOutline, personOutline, refreshOutline, saveOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 import { User } from '../../models/user.model';
 import { firstValueFrom } from 'rxjs';
 
@@ -75,6 +76,7 @@ export class EditProfilePage implements OnInit {
     constructor(
         private formBuilder: FormBuilder,
         private authService: AuthService,
+        private themeService: ThemeService,
         private router: Router,
         private alertController: AlertController,
         private actionSheetController: ActionSheetController,
@@ -86,6 +88,13 @@ export class EditProfilePage implements OnInit {
         });
 
         this.editForm = this.createForm();
+
+        // ✅ Écouter les changements du toggle darkMode
+        this.editForm.get('darkMode')?.valueChanges.subscribe(isDarkMode => {
+            if (isDarkMode !== undefined) {
+                this.themeService.setDarkMode(isDarkMode);
+            }
+        });
     }
 
     async ngOnInit() {
@@ -145,11 +154,14 @@ export class EditProfilePage implements OnInit {
             this.currentUser = user || null;
 
             if (this.currentUser) {
+                // Récupérer l'état actuel du thème
+                const currentDarkMode = this.themeService.getCurrentMode();
+                
                 this.profileForm = {
                     displayName: this.currentUser.displayName || '',
                     email: this.currentUser.email || '',
                     bio: this.currentUser.preferences?.bio || '',
-                    darkMode: this.currentUser.preferences?.theme === 'dark',
+                    darkMode: currentDarkMode, // Utiliser l'état actuel du service
                     encouragementNotifications: this.currentUser.preferences?.notifications?.encouragement ?? true,
                     reminderFrequency: this.currentUser.preferences?.notifications?.reminderFrequency || 'weekly'
                 };

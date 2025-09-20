@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { IonApp, IonRouterOutlet } from '@ionic/angular/standalone';
 import { AuthService } from './services/auth.service';
+import { ThemeService } from './services/theme.service';
 import { FocusManagementService } from './services/focus-management.service';
 import { DebugService } from './services/debug.service';
 import { FocusManagementDirective } from './directives/focus-management.directive';
@@ -14,6 +15,7 @@ import { environment } from '../environments/environment';
 export class AppComponent implements OnInit {
   constructor(
     private authService: AuthService,
+    private themeService: ThemeService,
     private focusManagementService: FocusManagementService,
     private debugService: DebugService
   ) { }
@@ -21,6 +23,9 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     // Initialiser l'authentification au démarrage
     console.log('AppComponent initialized');
+
+    // ✅ Initialiser le service de thème dès le démarrage
+    console.log('🌙 ThemeService initialized');
 
     // S'assurer que l'AuthService est bien initialisé
     this.authService.currentUser$.subscribe(user => {

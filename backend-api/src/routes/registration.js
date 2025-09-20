@@ -79,7 +79,7 @@ router.get('/check-email', async (req, res) => {
  */
 router.get('/check-display-name', async (req, res) => {
   try {
-    const { displayName } = req.query;
+    const { displayName, excludeUserId } = req.query;
 
     if (!displayName) {
       return res.status(400).json({
@@ -88,10 +88,16 @@ router.get('/check-display-name', async (req, res) => {
       });
     }
 
-    const users = await executeQuery(
-      'SELECT id FROM profiles WHERE display_name = ?',
-      [displayName]
-    );
+    // ✅ Si on exclut un utilisateur, ne pas compter son propre nom comme pris
+    let query = 'SELECT id FROM profiles WHERE display_name = ?';
+    let params = [displayName];
+
+    if (excludeUserId) {
+      query += ' AND user_id != ?';
+      params.push(excludeUserId);
+    }
+
+    const users = await executeQuery(query, params);
 
     res.json({
       success: true,

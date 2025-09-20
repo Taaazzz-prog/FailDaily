@@ -926,6 +926,7 @@ export class AuthService {
 
       // Récupérer le profil mis à jour
       const updatedProfile = await this.mysqlService.getProfile(currentUser.id);
+      console.log('🔍 AuthService: Profil récupéré après mise à jour:', updatedProfile);
 
       let updatedUser: User = currentUser;
       if (updatedProfile) {
@@ -940,6 +941,12 @@ export class AuthService {
             bio: updatedProfile.data?.bio
           }
         };
+
+        console.log('🔍 AuthService: Utilisateur mis à jour:', {
+          bioAnten: currentUser.preferences?.bio,
+          bioApres: updatedUser.preferences?.bio,
+          bioFromApi: updatedProfile.data?.bio
+        });
 
         this.setCurrentUser(updatedUser);
       }
