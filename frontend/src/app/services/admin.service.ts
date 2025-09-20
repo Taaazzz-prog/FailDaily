@@ -458,17 +458,25 @@ export class AdminService {
     }    // Nouvelle méthode pour récupérer les utilisateurs actifs
     private async getActiveUsers(): Promise<any[]> {
         try {
-            // Récupérer les connexions récentes (dernière heure = 1, pas 0.5)
-            const recentLogins = await this.MysqlService.getActivityLogsByType('auth', 1, 100);
+            // Récupérer tous les logs récents et filtrer côté frontend pour éviter l'endpoint by-type problématique
+            const logsResponse = await this.MysqlService.adminLogsList({ limit: 100 });
+            const allRecentLogs = logsResponse.logs || [];
+            
+            // Filtrer pour ne garder que les connexions récentes (1 heure)
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            const recentLogins = allRecentLogs.filter((log: any) => 
+                log.action === 'user_login' && 
+                new Date(log.timestamp || log.created_at) > oneHourAgo
+            );
 
             // Extraire les IDs utilisateurs uniques
-            const activeUserIds = [...new Set(recentLogins.map(log => log.user_id).filter(Boolean))];
+            const activeUserIds = [...new Set(recentLogins.map((log: any) => log.user_id).filter(Boolean))];
 
             // Récupérer les profils des utilisateurs actifs
             const activeUsers = await Promise.all(
-                activeUserIds.map(async (userId) => {
+                activeUserIds.map(async (userId: any) => {
                     try {
-                        return await this.MysqlService.getProfile(userId);
+                        return await this.MysqlService.getProfile(userId as string);
                     } catch {
                         return null;
                     }
