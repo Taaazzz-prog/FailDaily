@@ -1094,8 +1094,7 @@ router.get('/logs/list', authenticateToken, requireStrictAdmin, async (req, res)
     if (userId) { sql += ' AND sl.user_id = ?'; params.push(userId); }
     if (start) { sql += ' AND sl.created_at >= ?'; params.push(start); }
     if (end) { sql += ' AND sl.created_at <= ?'; params.push(end); }
-    sql += ' ORDER BY sl.created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    sql += ` ORDER BY sl.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
 
     const rows = await executeQuery(sql, params);
     res.json({ success: true, logs: rows, pagination: { limit, offset, count: rows.length } });
