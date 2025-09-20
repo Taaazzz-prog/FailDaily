@@ -53,22 +53,38 @@ body {
     color: var(--text-primary);
     background-color: var(--bg-primary);
     scroll-behavior: smooth;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Amélioration du text wrapping global */
+h1, h2, h3, h4, h5, h6 {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+@media (max-width: 768px) {
+    .legal-article h3 {
+        font-size: 1.25rem !important;
+        line-height: 1.3;
+    }
 }
 
 .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 var(--spacing-lg);
+    padding: 0 var(--spacing-md);
 }
 
-/* Header */
+/* Header - Mobile First avec Menu Hamburger */
 .main-header {
     background: var(--bg-gradient);
     color: var(--text-inverse);
-    padding: var(--spacing-lg) 0;
+    padding: var(--spacing-md) 0;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
     box-shadow: var(--shadow-md);
 }
 
@@ -76,71 +92,195 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-wrap: wrap;
-    gap: var(--spacing-lg);
 }
 
 .logo-section {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: 2px;
 }
 
 .logo {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
 }
 
 .logo-icon {
-    font-size: 2rem;
+    font-size: 1.25rem;
 }
 
 .logo h1 {
-    font-size: 2rem;
+    font-size: 1.25rem;
     font-weight: 700;
     margin: 0;
 }
 
 .subtitle {
-    font-size: 0.875rem;
+    font-size: 0.7rem;
     opacity: 0.9;
     font-weight: 300;
+    line-height: 1;
 }
 
-.main-nav {
+/* Bouton Hamburger */
+.hamburger-btn {
     display: flex;
-    gap: var(--spacing-lg);
-    flex-wrap: wrap;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.hamburger-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.hamburger-line {
+    width: 20px;
+    height: 2px;
+    background: white;
+    margin: 2px 0;
+    transition: all 0.3s ease;
+    border-radius: 1px;
+}
+
+/* Animation du bouton hamburger */
+.hamburger-btn.active .hamburger-line:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger-btn.active .hamburger-line:nth-child(3) {
+    transform: rotate(-45deg) translate(7px, -6px);
+}
+
+/* Navigation Mobile */
+.main-nav {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 280px;
+    height: 100vh;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 80px 0 20px 0;
+    transition: right 0.3s ease;
+    box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+}
+
+.main-nav.active {
+    right: 0;
 }
 
 .nav-link {
     color: var(--text-inverse);
     text-decoration: none;
     font-weight: 500;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--border-radius);
+    font-size: 1rem;
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
+    display: block;
 }
 
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    padding-left: calc(var(--spacing-xl) + 10px);
+}
+
+/* Overlay quand menu ouvert */
+body.menu-open::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+}
+
+/* Desktop - Menu normal */
+@media (min-width: 768px) {
+    .hamburger-btn {
+        display: none;
+    }
+    
+    .main-nav {
+        position: static;
+        width: auto;
+        height: auto;
+        background: none;
+        display: flex;
+        flex-direction: row;
+        padding: 0;
+        gap: var(--spacing-lg);
+        box-shadow: none;
+    }
+    
+    .nav-link {
+        border-bottom: none;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: var(--border-radius);
+        font-size: 0.9rem;
+    }
+    
+    .nav-link:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-1px);
+        padding-left: var(--spacing-sm);
+    }
+    
+    .logo-icon {
+        font-size: 2rem;
+    }
+    
+    .logo h1 {
+        font-size: 2rem;
+    }
+    
+    .subtitle {
+        font-size: 0.875rem;
+    }
+    
+    .main-header {
+        padding: var(--spacing-lg) 0;
+    }
+}
+
+/* Nav Link Hover - Global */
 .nav-link:hover {
     background-color: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
 }
 
-/* Hero Section */
+/* Hero Section - Mobile First */
 .hero-section {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     color: var(--text-inverse);
-    padding: var(--spacing-3xl) 0;
+    padding: var(--spacing-xl) 0;
     text-align: center;
 }
 
 .hero-title {
-    font-size: 3.5rem;
+    font-size: 2rem;
     font-weight: 700;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: var(--spacing-md);
     line-height: 1.2;
+    padding: 0 var(--spacing-md);
 }
 
 .gradient-text {
@@ -151,19 +291,45 @@ body {
 }
 
 .hero-description {
-    font-size: 1.25rem;
-    margin-bottom: var(--spacing-2xl);
-    max-width: 600px;
+    font-size: 1rem;
+    margin-bottom: var(--spacing-xl);
+    max-width: 90%;
     margin-left: auto;
     margin-right: auto;
     opacity: 0.95;
+    line-height: 1.5;
 }
 
 .hero-stats {
     display: flex;
     justify-content: center;
-    gap: var(--spacing-xl);
+    gap: var(--spacing-md);
     flex-wrap: wrap;
+    padding: 0 var(--spacing-md);
+}
+
+/* Desktop Hero */
+@media (min-width: 768px) {
+    .hero-section {
+        padding: var(--spacing-3xl) 0;
+    }
+    
+    .hero-title {
+        font-size: 3.5rem;
+        margin-bottom: var(--spacing-lg);
+        padding: 0;
+    }
+    
+    .hero-description {
+        font-size: 1.25rem;
+        margin-bottom: var(--spacing-2xl);
+        max-width: 600px;
+    }
+    
+    .hero-stats {
+        gap: var(--spacing-xl);
+        padding: 0;
+    }
 }
 
 .stat-item {
@@ -190,8 +356,8 @@ body {
 
 .quick-nav-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-lg);
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
 }
 
 .quick-nav-card {
@@ -259,10 +425,13 @@ body {
 }
 
 .section-titles h2 {
-    font-size: 2.5rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary-color);
     margin-bottom: var(--spacing-sm);
+    line-height: 1.2;
+    word-wrap: break-word;
+    hyphens: auto;
 }
 
 .section-subtitle {
@@ -277,8 +446,12 @@ body {
 
 .content-grid {
     display: grid;
-    grid-template-columns: 1fr 300px;
-    gap: var(--spacing-2xl);
+    grid-template-columns: 1fr;
+    gap: var(--spacing-xl);
+}
+
+.content-sidebar {
+    order: -1;
 }
 
 .content-main {
@@ -858,87 +1031,98 @@ body {
     font-size: 0.875rem;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Responsive Mobile-First */
+
+/* Base styles déjà optimisés pour mobile ci-dessus */
+
+/* Tablet and up (min-width: 768px) */
+@media (min-width: 768px) {
     .container {
-        padding: 0 var(--spacing-md);
-    }
-    
-    .hero-title {
-        font-size: 2.5rem;
-    }
-    
-    .hero-description {
-        font-size: 1.125rem;
-    }
-    
-    .hero-stats {
-        gap: var(--spacing-lg);
+        padding: 0 var(--spacing-lg);
     }
     
     .content-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 300px;
     }
     
     .content-sidebar {
-        order: -1;
+        order: 0; /* Annuler l'order: -1 pour desktop */
     }
     
-    .header-content {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .main-nav {
-        justify-content: center;
+    .content-main {
+        max-width: 800px; /* Limiter la largeur pour la lisibilité */
     }
     
     .section-header {
-        flex-direction: column;
-        text-align: center;
+        flex-direction: row;
+        text-align: left;
     }
     
     .section-titles h2 {
-        font-size: 2rem;
+        font-size: 2.5rem;
     }
     
     .process-steps {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
     
     .cookie-buttons {
-        flex-direction: column;
-    }
-    
-    .cookie-buttons button {
-        width: 100%;
-    }
-}
-
-@media (max-width: 480px) {
-    .hero-title {
-        font-size: 2rem;
-    }
-    
-    .hero-stats {
-        flex-direction: column;
-        gap: var(--spacing-md);
+        flex-direction: row;
     }
     
     .quick-nav-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
     
     .contact-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
     
     .rights-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     }
     
     .response-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .help-numbers {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+/* Desktop (min-width: 1024px) */
+@media (min-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr 350px;
+    }
+    
+    .content-sidebar {
+        order: 0; /* S'assurer que la sidebar reste à droite */
+    }
+    
+    .content-main {
+        max-width: 900px; /* Largeur optimale pour desktop */
+    }
+    
+    .quick-nav-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .help-numbers {
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+}
+
+/* Large Desktop (min-width: 1440px) */
+@media (min-width: 1440px) {
+    .content-main {
+        max-width: 1000px; /* Largeur optimale pour grands écrans */
+    }
+    
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
     }
 }
 

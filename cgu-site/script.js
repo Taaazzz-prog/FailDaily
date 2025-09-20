@@ -1,6 +1,9 @@
 // JavaScript pour le site CGU FailDaily
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Menu hamburger
+    initHamburgerMenu();
+    
     // Navigation smooth scroll
     initSmoothScrolling();
     
@@ -16,6 +19,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // Accordéons pour mobile
     initMobileAccordions();
 });
+
+/**
+ * Menu hamburger pour mobile
+ */
+function initHamburgerMenu() {
+    const hamburgerBtn = document.getElementById('hamburgerBtn');
+    const mainNav = document.getElementById('mainNav');
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    if (!hamburgerBtn || !mainNav) return;
+    
+    // Toggle menu
+    hamburgerBtn.addEventListener('click', function() {
+        const isOpen = hamburgerBtn.classList.contains('active');
+        
+        if (isOpen) {
+            closeMenu();
+        } else {
+            openMenu();
+        }
+    });
+    
+    // Fermer le menu quand on clique sur un lien
+    navLinks.forEach(link => {
+        link.addEventListener('click', closeMenu);
+    });
+    
+    // Fermer le menu avec Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && hamburgerBtn.classList.contains('active')) {
+            closeMenu();
+        }
+    });
+    
+    // Fermer le menu en cliquant en dehors
+    document.addEventListener('click', function(e) {
+        if (!hamburgerBtn.contains(e.target) && !mainNav.contains(e.target)) {
+            closeMenu();
+        }
+    });
+    
+    function openMenu() {
+        hamburgerBtn.classList.add('active');
+        mainNav.classList.add('active');
+        document.body.classList.add('menu-open');
+        hamburgerBtn.setAttribute('aria-expanded', 'true');
+    }
+    
+    function closeMenu() {
+        hamburgerBtn.classList.remove('active');
+        mainNav.classList.remove('active');
+        document.body.classList.remove('menu-open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+    }
+}
 
 /**
  * Navigation smooth scroll
@@ -468,46 +526,95 @@ function initMobileAccordions() {
         
         articles.forEach(article => {
             const title = article.querySelector('h3');
-            if (title) {
+            if (title && !title.hasAttribute('data-accordion-init')) {
                 title.style.cursor = 'pointer';
-                title.addEventListener('click', () => {
-                    article.classList.toggle('collapsed');
-                });
+                title.setAttribute('data-accordion-init', 'true');
+                
+                // Fonction de toggle améliorée
+                const toggleAccordion = () => {
+                    const isCollapsed = article.classList.contains('collapsed');
+                    
+                    if (isCollapsed) {
+                        // Ouvrir
+                        article.classList.remove('collapsed');
+                        article.style.maxHeight = '';
+                        article.style.overflow = '';
+                    } else {
+                        // Fermer
+                        article.classList.add('collapsed');
+                    }
+                };
+                
+                title.addEventListener('click', toggleAccordion);
+                
+                // Initialiser l'état collapsed par défaut (sauf le premier)
+                const allArticles = Array.from(articles);
+                const articleIndex = allArticles.indexOf(article);
+                if (articleIndex > 0) {
+                    article.classList.add('collapsed');
+                }
             }
         });
         
-        // Styles pour les accordéons
-        const style = document.createElement('style');
-        style.textContent = `
-            @media (max-width: 768px) {
-                .legal-article.collapsed {
-                    max-height: 80px;
-                    overflow: hidden;
-                    position: relative;
+        // Styles améliorés pour les accordéons
+        if (!document.getElementById('accordion-styles')) {
+            const style = document.createElement('style');
+            style.id = 'accordion-styles';
+            style.textContent = `
+                @media (max-width: 768px) {
+                    .legal-article {
+                        transition: all 0.3s ease;
+                        margin-bottom: var(--spacing-lg);
+                        border-radius: var(--border-radius);
+                        overflow: hidden;
+                    }
+                    
+                    .legal-article.collapsed {
+                        max-height: 60px;
+                        overflow: hidden;
+                        position: relative;
+                        border: 1px solid var(--border-color);
+                    }
+                    
+                    .legal-article.collapsed::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 20px;
+                        background: linear-gradient(transparent, var(--bg-primary));
+                        pointer-events: none;
+                    }
+                    
+                    .legal-article h3 {
+                        position: relative;
+                        padding-right: 30px;
+                        user-select: none;
+                    }
+                    
+                    .legal-article h3::after {
+                        content: ' ▼';
+                        position: absolute;
+                        right: 0;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        font-size: 0.8em;
+                        transition: transform 0.3s ease;
+                        color: var(--primary-color);
+                    }
+                    
+                    .legal-article.collapsed h3::after {
+                        transform: translateY(-50%) rotate(-90deg);
+                    }
+                    
+                    .legal-article h3:hover {
+                        color: var(--primary-color);
+                    }
                 }
-                
-                .legal-article.collapsed::after {
-                    content: '';
-                    position: absolute;
-                    bottom: 0;
-                    left: 0;
-                    right: 0;
-                    height: 30px;
-                    background: linear-gradient(transparent, var(--bg-primary));
-                }
-                
-                .legal-article h3::after {
-                    content: ' ▼';
-                    font-size: 0.8em;
-                    transition: transform 0.3s ease;
-                }
-                
-                .legal-article.collapsed h3::after {
-                    transform: rotate(-90deg);
-                }
-            }
-        `;
-        document.head.appendChild(style);
+            `;
+            document.head.appendChild(style);
+        }
     }
 }
 

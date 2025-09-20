@@ -28,7 +28,16 @@
                     </div>
                     <span class="subtitle">Documents Légaux & CGU</span>
                 </div>
-                <nav class="main-nav">
+                
+                <!-- Bouton hamburger (mobile) -->
+                <button class="hamburger-btn" id="hamburgerBtn" aria-label="Menu">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
+                
+                <!-- Navigation (desktop + mobile overlay) -->
+                <nav class="main-nav" id="mainNav">
                     <a href="#cgu" class="nav-link">CGU</a>
                     <a href="#privacy" class="nav-link">Confidentialité</a>
                     <a href="#rgpd" class="nav-link">RGPD</a>
@@ -151,23 +160,43 @@
                             </div>
 
                             <div class="legal-article">
-                                <h3>4. Règles d'usage</h3>
+                                <h3>4. Obligations et règles d'usage</h3>
                                 <div class="warning-box">
-                                    <h4>🚫 Il est strictement interdit de publier du contenu :</h4>
+                                    <h4>🚫 Contenu strictement interdit</h4>
+                                    <p>Il est interdit de publier du contenu :</p>
                                     <ul class="legal-list">
-                                        <li>Haineux, discriminatoire ou offensant</li>
-                                        <li>Contenant des informations personnelles d'autrui</li>
+                                        <li>Haineux, discriminatoire, harcelant ou offensant</li>
+                                        <li>Incitant à la violence ou à l'automutilation</li>
                                         <li>À caractère pornographique ou violent</li>
-                                        <li>Constituant du spam ou de la publicité</li>
-                                        <li>Encourageant l'automutilation ou le suicide</li>
+                                        <li>Contenant des informations personnelles d'autrui</li>
+                                        <li>Constituant du spam, de la publicité non autorisée</li>
+                                        <li>Violant des droits d'auteur</li>
                                     </ul>
                                 </div>
+                                
+                                <p><strong>L'utilisateur s'engage à :</strong></p>
+                                <ul class="legal-list">
+                                    <li>Utiliser FailDaily de manière respectueuse et bienveillante</li>
+                                    <li>Respecter la charte de bienveillance de la communauté</li>
+                                    <li>Ne pas porter atteinte à l'intégrité de la plateforme</li>
+                                    <li>Signaler tout contenu inapproprié</li>
+                                    <li>Protéger ses identifiants de connexion</li>
+                                </ul>
                             </div>
 
                             <div class="legal-article">
-                                <h3>5. Modération</h3>
-                                <p>Nous nous réservons le droit de <strong>modérer, supprimer ou signaler</strong> tout contenu inapproprié.</p>
-                                <p>Les sanctions peuvent inclure :</p>
+                                <h3>5. Modération et sanctions</h3>
+                                <p>FailDaily se réserve le droit de <strong>modérer, supprimer ou signaler</strong> tout contenu inapproprié.</p>
+                                
+                                <p><strong>Actions de modération possibles :</strong></p>
+                                <ul class="legal-list">
+                                    <li><strong>Modérer</strong> tout contenu avant ou après publication</li>
+                                    <li><strong>Supprimer</strong> tout contenu non conforme</li>
+                                    <li><strong>Suspendre ou résilier</strong> un compte en cas de violation</li>
+                                    <li><strong>Conserver</strong> les données nécessaires aux enquêtes judiciaires</li>
+                                </ul>
+                                
+                                <p><strong>Sanctions applicables :</strong></p>
                                 <ul class="legal-list">
                                     <li><span class="badge warning">Avertissement</span></li>
                                     <li><span class="badge danger">Suppression de contenu</span></li>
@@ -184,53 +213,17 @@
                             <div class="legal-article">
                                 <h3>7. Résiliation</h3>
                                 <p>L'utilisateur peut <strong>supprimer son compte à tout moment</strong> depuis les paramètres de l'application.</p>
-                                    <li>Respecter la charte de bienveillance de la communauté</li>
-                                </ul>
                             </div>
 
                             <div class="legal-article">
-                                <h3>4. Obligations de l'utilisateur</h3>
-                                <div class="warning-box">
-                                    <h4>⚠️ Contenu interdit</h4>
-                                    <p>Sont strictement interdits :</p>
-                                    <ul>
-                                        <li>Contenus haineux, discriminatoires ou harcelants</li>
-                                        <li>Incitation à la violence ou à l'automutilation</li>
-                                        <li>Contenus à caractère pornographique</li>
-                                        <li>Violation de droits d'auteur</li>
-                                        <li>Spam ou contenu publicitaire non autorisé</li>
-                                    </ul>
-                                </div>
-                                
-                                <p>L'utilisateur s'engage à :</p>
-                                <ul class="legal-list">
-                                    <li>Utiliser FailDaily de manière respectueuse et bienveillante</li>
-                                    <li>Ne pas porter atteinte à l'intégrité de la plateforme</li>
-                                    <li>Signaler tout contenu inapproprié</li>
-                                    <li>Protéger ses identifiants de connexion</li>
-                                </ul>
-                            </div>
-
-                            <div class="legal-article">
-                                <h3>5. Modération et sanctions</h3>
-                                <p>FailDaily se réserve le droit de :</p>
-                                <ul class="legal-list">
-                                    <li><strong>Modérer</strong> tout contenu avant ou après publication</li>
-                                    <li><strong>Supprimer</strong> tout contenu non conforme</li>
-                                    <li><strong>Suspendre ou résilier</strong> un compte en cas de violation</li>
-                                    <li><strong>Conserver</strong> les données nécessaires aux enquêtes judiciaires</li>
-                                </ul>
-                            </div>
-
-                            <div class="legal-article">
-                                <h3>6. Propriété intellectuelle</h3>
+                                <h3>8. Propriété intellectuelle</h3>
                                 <p>L'utilisateur conserve ses droits sur le contenu qu'il publie, mais accorde à FailDaily une licence d'utilisation nécessaire au fonctionnement du service.</p>
                                 
                                 <p>La plateforme FailDaily (design, code, marques) est protégée par le droit d'auteur.</p>
                             </div>
 
                             <div class="legal-article">
-                                <h3>7. Responsabilité et garanties</h3>
+                                <h3>9. Responsabilité et garanties</h3>
                                 <p>FailDaily fournit la plateforme "en l'état" et ne peut garantir :</p>
                                 <ul class="legal-list">
                                     <li>L'absence d'interruption du service</li>
@@ -245,14 +238,14 @@
                             </div>
 
                             <div class="legal-article">
-                                <h3>8. Modification des CGU</h3>
+                                <h3>10. Modification des CGU</h3>
                                 <p>Les présentes CGU peuvent être modifiées à tout moment. Les utilisateurs seront informés des modifications importantes par email ou notification in-app.</p>
                                 
                                 <p>L'utilisation continue de FailDaily après modification vaut acceptation des nouvelles conditions.</p>
                             </div>
 
                             <div class="legal-article">
-                                <h3>9. Droit applicable et juridiction</h3>
+                                <h3>11. Droit applicable et juridiction</h3>
                                 <p>Les présentes CGU sont régies par le <strong>droit français</strong>.</p>
                                 <p>En cas de litige, les tribunaux français seront seuls compétents.</p>
                             </div>
@@ -407,51 +400,7 @@
                             </div>
 
                             <div class="legal-article">
-                                <h3>7. Contact pour vos droits</h3>
-                                <div class="contact-methods">
-                                    <div class="contact-method">
-                                        <span class="contact-icon">📧</span>
-                                        <div>
-                                            <strong>Email RGPD</strong>
-                                            <p><a href="mailto:privacy@faildaily.com">privacy@faildaily.com</a></p>
-                                        </div>
-                                    </div>
-                                    <div class="contact-method">
-                                        <span class="contact-icon">⏱️</span>
-                                        <div>
-                                            <strong>Délai de réponse</strong>
-                                            <p>Maximum 30 jours</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                    <li><strong>Assurer la sécurité</strong> (détection de fraude, modération)</li>
-                                    <li><strong>Respecter nos obligations légales</strong> (conservation pour enquêtes)</li>
-                                    <li><strong>Communiquer</strong> (notifications importantes, support)</li>
-                                </ul>
-                                
-                                <div class="highlight-box">
-                                    <h4>🚫 Nous ne vendons jamais vos données</h4>
-                                    <p>FailDaily s'engage à ne jamais vendre, louer ou céder vos données personnelles à des tiers à des fins commerciales.</p>
-                                </div>
-                            </div>
-
-                            <div class="legal-article">
-                                <h3>4. Partage des données</h3>
-                                <p>Vos données peuvent être partagées uniquement dans les cas suivants :</p>
-                                <ul class="legal-list">
-                                    <li><strong>Prestataires techniques</strong> : Hébergement, analyse (avec contrats de sous-traitance)</li>
-                                    <li><strong>Autorités légales</strong> : Sur réquisition judiciaire uniquement</li>
-                                    <li><strong>Transfert d'entreprise</strong> : En cas de rachat (avec information préalable)</li>
-                                </ul>
-                                
-                                <div class="info-box">
-                                    <h4>🇪🇺 Transferts hors UE</h4>
-                                    <p>Aucun transfert de données hors Union Européenne sans garanties appropriées (clauses contractuelles types, décision d'adéquation).</p>
-                                </div>
-                            </div>
-
-                            <div class="legal-article">
-                                <h3>5. Sécurité des données</h3>
+                                <h3>7. Sécurité des données</h3>
                                 <p>FailDaily met en œuvre des mesures techniques et organisationnelles appropriées :</p>
                                 <ul class="legal-list">
                                     <li><strong>Chiffrement</strong> : HTTPS, chiffrement base de données</li>
@@ -463,7 +412,7 @@
                             </div>
 
                             <div class="legal-article">
-                                <h3>6. Vos droits RGPD</h3>
+                                <h3>8. Vos droits RGPD</h3>
                                 <p>Conformément au RGPD, vous disposez des droits suivants :</p>
                                 <div class="rights-grid">
                                     <div class="right-item">
@@ -498,6 +447,36 @@
                                     <p>Réponse sous <strong>30 jours maximum</strong></p>
                                 </div>
                             </div>
+
+                            <div class="legal-article">
+                                <h3>9. Contact pour vos droits</h3>
+                                <div class="contact-methods">
+                                    <div class="contact-method">
+                                        <span class="contact-icon">📧</span>
+                                        <div>
+                                            <strong>Email RGPD</strong>
+                                            <p><a href="mailto:privacy@faildaily.com">privacy@faildaily.com</a></p>
+                                        </div>
+                                    </div>
+                                    <div class="contact-method">
+                                        <span class="contact-icon">⏱️</span>
+                                        <div>
+                                            <strong>Délai de réponse</strong>
+                                            <p>Maximum 30 jours</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                    <li><strong>Assurer la sécurité</strong> (détection de fraude, modération)</li>
+                                    <li><strong>Respecter nos obligations légales</strong> (conservation pour enquêtes)</li>
+                                    <li><strong>Communiquer</strong> (notifications importantes, support)</li>
+                                </ul>
+                                
+                                <div class="highlight-box">
+                                    <h4>🚫 Nous ne vendons jamais vos données</h4>
+                                    <p>FailDaily s'engage à ne jamais vendre, louer ou céder vos données personnelles à des tiers à des fins commerciales.</p>
+                                </div>
+                            </div>
+
                         </div>
                         
                         <div class="content-sidebar">
