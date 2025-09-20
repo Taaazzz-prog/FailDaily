@@ -61,11 +61,11 @@
               "optimization": {
                 "scripts": true,
                 "styles": {
-                  "minify": true,
-                  "inlineCritical": false
+                  "minify": false,
+                  "inlineCritical": true
                 },
                 "fonts": {
-                  "inline": false
+                  "inline": true
                 }
               },
               "sourceMap": false,

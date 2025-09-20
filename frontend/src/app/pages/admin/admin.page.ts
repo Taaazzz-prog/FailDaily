@@ -147,7 +147,7 @@ export class AdminPage implements OnInit, OnDestroy {
 
     async onSegmentChanged(event: any) {
         this.selectedSegment = event.detail.value;
-        console.log('🔄 Segment changed to:', this.selectedSegment);
+        this.debugService.addLog('info', 'AdminPage', `🔄 Segment changed to: ${this.selectedSegment}`);
 
         try {
             switch (this.selectedSegment) {
@@ -167,7 +167,7 @@ export class AdminPage implements OnInit, OnDestroy {
                     await this.loadRealTimeData();
                     break;
                 default:
-                    console.log('🟡 Segment non géré:', this.selectedSegment);
+                    this.debugService.addLog('warn', 'AdminPage', `🟡 Segment non géré: ${this.selectedSegment}`);
             }
         } catch (error) {
             console.error('🔴 Erreur lors du changement de segment:', error);
