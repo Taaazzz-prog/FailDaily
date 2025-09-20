@@ -188,5 +188,34 @@ export class DebugService {
     // Méthode pour désactiver en production
     setEnabled(enabled: boolean) {
         this.isEnabled = enabled;
+        
+        // En production, si on active le debug pour un admin, 
+        // on réactive aussi temporairement console.* pour cette session
+        if (enabled && window.location.hostname !== 'localhost') {
+            this.restoreConsoleForAdmin();
+        }
+    }
+
+    // Méthode pour restaurer les console.* pour les admins en production
+    private restoreConsoleForAdmin() {
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn,
+            info: console.info,
+            debug: console.debug
+        };
+
+        // Vérifier si les console.* ont été désactivés (remplacés par noop)
+        if (console.log.toString().includes('function(){}') || 
+            console.log.toString().includes('[native code]') === false) {
+            
+            // Restaurer console.log avec un préfixe admin
+            (window as any).console.log = (...args: any[]) => {
+                originalConsole.log('[ADMIN]', ...args);
+            };
+            
+            console.log('🔧 Console restauré pour admin en production');
+        }
     }
 }
