@@ -459,7 +459,7 @@ export class AdminService {
     private async getActiveUsers(): Promise<any[]> {
         try {
             // Récupérer les connexions récentes (dernière heure = 1, pas 0.5)
-            const recentLogins = await this.MysqlService.getActivityLogsByType('connexions', 1, 100);
+            const recentLogins = await this.MysqlService.getActivityLogsByType('auth', 1, 100);
 
             // Extraire les IDs utilisateurs uniques
             const activeUserIds = [...new Set(recentLogins.map(log => log.user_id).filter(Boolean))];
