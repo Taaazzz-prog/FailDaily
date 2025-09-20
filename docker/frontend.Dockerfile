@@ -17,8 +17,8 @@ COPY frontend/.browserslistrc ./
 COPY frontend/.editorconfig ./
 COPY frontend/.eslintrc.json ./
 
-# Build simple (une seule configuration pour dev et prod)
-RUN npm run build
+# Build pour Docker (production sans optimisations CSS agressives)
+RUN npm run build:docker
 
 # Serve with Nginx
 FROM nginx:alpine

@@ -8,6 +8,7 @@
     "ng": "ng",
     "start": "ionic serve --proxy-config proxy.conf.json",
     "build": "ng build",
+    "build:docker": "ng build --configuration=production --optimization=false --source-map=false",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",

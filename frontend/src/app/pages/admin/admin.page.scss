@@ -1,20 +1,18 @@
 // ========================================
-// 🔧 STYLES ADMIN PRODUCTION-SAFE
+// 🎨 ADMIN STYLES - Compatible Local & Production  
 // ========================================
-// Fix pour production: styles CSS de base garantis même si variables Ionic échouent
 
 ion-segment {
     margin: 8px;
-    // Fallback si var() échoue en production
-    background: #f4f5f8 !important;
-    border-radius: 8px !important;
+    background: var(--ion-color-light, #f4f5f8);
+    border-radius: 8px;
     
     ion-segment-button {
-        font-weight: 500 !important;
+        font-weight: 500;
         
         &.segment-button-checked {
-            background: #3880ff !important;
-            color: white !important;
+            background: var(--ion-color-primary, #3880ff);
+            color: var(--ion-color-primary-contrast, white);
         }
     }
 }
@@ -22,24 +20,20 @@ ion-segment {
 .stat-card {
     text-align: center;
     padding: 16px;
-    // Fallbacks CSS pour production
-    background: #f4f5f8 !important;
     background: var(--ion-color-light, #f4f5f8);
     border-radius: 8px;
     margin: 8px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 
     h3 {
         font-size: 2em;
         font-weight: bold;
         margin: 0;
-        color: #3880ff !important;
         color: var(--ion-color-primary, #3880ff);
     }
 
     p {
         margin: 4px 0 0 0;
-        color: #92949c !important;
         color: var(--ion-color-medium, #92949c);
         font-size: 0.9em;
     }
@@ -49,36 +43,34 @@ ion-segment {
 .stats-card {
     margin: 4px;
     transition: transform 0.2s ease;
-    // 🔧 PRODUCTION FIX: Assurer cliquabilité
-    cursor: pointer !important;
-    pointer-events: auto !important;
+    cursor: pointer;
+    pointer-events: auto;
     
     &:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     ion-card-content {
-        padding: 16px !important;
+        padding: 16px;
         
         h2 {
             margin: 8px 0;
             font-size: 1.8em;
             font-weight: bold;
-            color: #3880ff !important;
+            color: var(--ion-color-primary, #3880ff);
         }
         
         p {
             margin: 0;
             font-size: 0.85em;
-            color: #92949c !important;
             color: var(--ion-color-medium, #92949c);
         }
         
         ion-icon {
             margin-bottom: 8px;
-            font-size: 2em !important;
-            color: #3880ff !important;
+            font-size: 2em;
+            color: var(--ion-color-primary, #3880ff);
         }
     }
 }
