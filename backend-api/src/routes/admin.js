@@ -1055,10 +1055,10 @@ router.get('/logs/by-type', authenticateToken, requireStrictAdmin, async (req, r
          FROM system_logs sl
          LEFT JOIN users u ON u.id = sl.user_id
          LEFT JOIN profiles p ON p.user_id = sl.user_id
-        WHERE sl.created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)
+        WHERE sl.created_at >= DATE_SUB(NOW(), INTERVAL ${hours} HOUR)
         ORDER BY sl.created_at DESC
         LIMIT ?`,
-      [hours, Math.min(limit * 5, 1000)]
+      [Math.min(limit * 5, 1000)]
     );
 
     function categorize(row) {
