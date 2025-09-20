@@ -1,6 +1,7 @@
 // Configuration pour l'environnement de production
 export const environment = {
   production: true,
+  enableDebugLogs: false, // ✅ Logs de debug DÉSACTIVÉS en production
 
   // Configuration API pour production
   api: {

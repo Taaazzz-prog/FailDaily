@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
 const { logSystem } = require('../utils/logger');
+const secureLogger = require('../utils/secureLogger');
 const crypto = require('crypto');
 
 // Fonction utilitaire pour obtenir les informations de l'utilisateur et de la requête
@@ -740,7 +741,9 @@ const requestPasswordReset = async (req, res) => {
         'INSERT INTO password_reset_tokens (id, user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, NOW())',
         [id, userId, token, expiresAt]
       );
-      console.log(`🔑 Token de reset généré pour ${email}: ${token} (exp: ${expiresAt.toISOString()})`);
+      
+      // ✅ Log sécurisé : utilisation du logger sécurisé
+      secureLogger.tokenLog(email, token, expiresAt.toISOString());
       // Envoi de l'email (si SMTP configuré)
       try {
         const { sendPasswordResetEmail } = require('../utils/mailer');

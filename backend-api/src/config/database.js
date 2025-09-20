@@ -8,6 +8,7 @@
 
 const mysql = require('mysql2/promise');
 require('dotenv').config({ quiet: true });
+const secureLogger = require('../utils/secureLogger');
 
 // Configuration de la base de données
 const dbConfig = {
@@ -74,9 +75,8 @@ async function executeQuery(query, params = [], opts = {}) {
     const isTest = process.env.NODE_ENV === 'test';
     const disabled = String(error?.message || '').startsWith('DB_DISABLED');
     if (!(isTest && disabled)) {
-      console.error('❌ Erreur SQL:', error.message);
-      console.error('📝 Requête:', query);
-      console.error('📋 Paramètres:', params);
+      // ✅ Utilisation du logger sécurisé
+      secureLogger.errorSQL('❌ Erreur SQL: ' + error.message, query, params);
     }
     throw error;
   }

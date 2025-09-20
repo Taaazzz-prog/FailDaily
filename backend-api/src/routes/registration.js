@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { executeQuery, executeTransaction } = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
+const secureLogger = require('../utils/secureLogger');
 
 const router = express.Router();
 
@@ -251,7 +252,8 @@ router.post('/register', async (req, res) => {
 
     // Bloquer < 13 ans
     if (age < 13) {
-      console.log(`❌ Inscription bloquée - Âge insuffisant: ${age} ans (${email})`);
+      // ✅ Log sécurisé
+      secureLogger.emailLog('Inscription bloquée - Âge insuffisant', email, `${age} ans`);
       return res.status(400).json({
         success: false,
         message: 'Âge minimum requis: 13 ans',
@@ -342,11 +344,13 @@ router.post('/register', async (req, res) => {
       // Exécuter toutes les requêtes dans une transaction
       await executeTransaction(queries);
 
-      console.log(`✅ Utilisateur inscrit: ${email} (ID: ${userId})`);
+      // ✅ Log sécurisé
+      secureLogger.emailLog('Utilisateur inscrit', email, `(ID: ${userId})`);
 
       // Pour les mineurs (13-16 ans), ne pas créer de token et envoyer email parental
       if (registrationCompleted === 0) {
-        console.log(`📧 Envoi email autorisation parentale pour: ${email} (${age} ans)`);
+        // ✅ Log sécurisé
+        secureLogger.emailLog('Envoi email autorisation parentale', email, `(${age} ans)`);
         
         // TODO: Implémenter l'envoi d'email parental
         // if (parentEmail) {
@@ -463,7 +467,8 @@ router.post('/resend-verification', authenticateToken, async (req, res) => {
 
     // Ici on pourrait implémenter l'envoi d'email
     // Pour l'instant, on simule
-    console.log(`📧 Email de vérification envoyé à: ${user.email}`);
+    // ✅ Log sécurisé
+    secureLogger.emailLog('Email de vérification envoyé', user.email);
 
     res.json({
       success: true,

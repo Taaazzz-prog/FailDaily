@@ -3,6 +3,7 @@
 
 export const environment = {
   production: false, // Mode développement
+  enableDebugLogs: true, // ✅ Logs de debug activés en développement
 
   // Configuration MySQL Database (local)
   database: {
