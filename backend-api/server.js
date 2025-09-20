@@ -113,7 +113,14 @@ app.get('/health', (req, res) => {
     version: '1.0.0'
   });
 });
-app.get('/api/health', (req, res) => res.redirect(307, '/health'));
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
 app.get('/api/info', (req, res) => {
   res.json({
     name: 'FailDaily API',
