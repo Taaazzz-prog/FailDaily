@@ -1055,8 +1055,8 @@ router.get('/logs/by-type', authenticateToken, requireStrictAdmin, async (req, r
          FROM system_logs sl
          LEFT JOIN users u ON u.id = sl.user_id
          LEFT JOIN profiles p ON p.user_id = sl.user_id
-        WHERE sl.created_at >= DATE_SUB(NOW(), INTERVAL ${hours} HOUR)
-        ORDER BY sl.created_at DESC
+        WHERE sl.timestamp >= DATE_SUB(NOW(), INTERVAL ${hours} HOUR)
+        ORDER BY sl.timestamp DESC
         LIMIT ?`,
       [Math.min(limit * 5, 1000)]
     );
@@ -1081,7 +1081,7 @@ router.get('/logs/by-type', authenticateToken, requireStrictAdmin, async (req, r
       user_email: r.email || null,
       ip_address: null,
       user_agent: null,
-      created_at: r.created_at,
+      created_at: r.timestamp || r.created_at,
       level: r.level,
       action: r.action || null,
       details: r.details ? (() => { try { return JSON.parse(r.details); } catch { return null; } })() : null
