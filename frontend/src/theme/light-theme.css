@@ -1,35 +1,41 @@
 /* ===== THÈME CLAIR FAILDAILY ===== */
 
 :root {
-  /* Couleurs principales FailDaily mode clair */
-  --faildaily-primary: #FF6B6B;
-  --faildaily-primary-shade: #E85A5A;
-  --faildaily-primary-tint: #FF7B7B;
+  /* Couleurs principales FailDaily mode clair - VRAIE CHARTE ORIGINALE */
+  --faildaily-primary: #6366f1;
+  --faildaily-primary-shade: #5856d6;
+  --faildaily-primary-tint: #7c7ce8;
   
-  --faildaily-secondary: #4ECDC4;
-  --faildaily-secondary-shade: #45B5AD;
-  --faildaily-secondary-tint: #60D0C9;
+  --faildaily-secondary: #10b981;
+  --faildaily-secondary-shade: #059669;
+  --faildaily-secondary-tint: #34d399;
   
-  --faildaily-tertiary: #FFE66D;
-  --faildaily-tertiary-shade: #E6CF62;
-  --faildaily-tertiary-tint: #FFEA7C;
+  --faildaily-tertiary: #f59e0b;
+  --faildaily-tertiary-shade: #d97706;
+  --faildaily-tertiary-tint: #fbbf24;
 
-  /* Couleurs de background mode clair */
-  --faildaily-background: #FFFFFF;
-  --faildaily-background-alt: #F8F9FA;
-  --faildaily-surface: #FFFFFF;
-  --faildaily-surface-alt: #F1F3F4;
+  /* Couleurs de background mode clair - VRAIE CHARTE ORIGINALE FAILDAILY */
+  --faildaily-background: #dbeafe;          /* Fond principal bleu pastel original */
+  --faildaily-background-alt: #e0e7ff;      /* Fond alternatif lavande */
+  --faildaily-surface: #ffffff;             /* Surface des cartes */
+  --faildaily-surface-alt: #f8fafc;         /* Surface alternative très claire */
 
-  /* Couleurs de texte mode clair */
-  --faildaily-text-primary: #1A1A1A;
-  --faildaily-text-secondary: #4A4A4A;
-  --faildaily-text-light: #757575;
+  /* Couleurs de texte mode clair - VRAIE CHARTE ORIGINALE */
+  --faildaily-text-primary: #1e293b;        /* Texte principal moderne */
+  --faildaily-text-secondary: #64748b;      /* Texte secondaire */
+  --faildaily-text-light: #94a3b8;          /* Texte atténué */
 
-  /* Couleurs d'état mode clair */
-  --faildaily-success: #00B894;
-  --faildaily-warning: #FDCB6E;
-  --faildaily-danger: #E17055;
-  --faildaily-info: #74B9FF;
+  /* Couleurs d'état mode clair - VRAIE CHARTE ORIGINALE */
+  --faildaily-success: #10b981;
+  --faildaily-warning: #f59e0b;
+  --faildaily-danger: #ef4444;
+  --faildaily-info: #3b82f6;
+
+  /* Couleurs des réactions FailDaily */
+  --reaction-courage: #ef4444;
+  --reaction-laugh: #f59e0b;
+  --reaction-empathy: #3b82f6;
+  --reaction-support: #10b981;
 
   /* Ombres mode clair */
   --faildaily-shadow: rgba(45, 52, 54, 0.1);
@@ -39,34 +45,34 @@
   --faildaily-border: rgba(45, 52, 54, 0.1);
   --faildaily-border-strong: rgba(45, 52, 54, 0.2);
 
-  /* Variables Ionic pour mode clair */
+  /* Variables Ionic pour mode clair - VRAIE CHARTE ORIGINALE */
   --ion-color-primary: var(--faildaily-primary);
-  --ion-color-primary-rgb: 255, 107, 107;
+  --ion-color-primary-rgb: 99, 102, 241;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
   --ion-color-primary-shade: var(--faildaily-primary-shade);
   --ion-color-primary-tint: var(--faildaily-primary-tint);
 
   --ion-color-secondary: var(--faildaily-secondary);
-  --ion-color-secondary-rgb: 78, 205, 196;
+  --ion-color-secondary-rgb: 16, 185, 129;
   --ion-color-secondary-contrast: #ffffff;
   --ion-color-secondary-contrast-rgb: 255, 255, 255;
   --ion-color-secondary-shade: var(--faildaily-secondary-shade);
   --ion-color-secondary-tint: var(--faildaily-secondary-tint);
 
   --ion-color-tertiary: var(--faildaily-tertiary);
-  --ion-color-tertiary-rgb: 255, 230, 109;
-  --ion-color-tertiary-contrast: #000000;
-  --ion-color-tertiary-contrast-rgb: 0, 0, 0;
+  --ion-color-tertiary-rgb: 245, 158, 11;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
   --ion-color-tertiary-shade: var(--faildaily-tertiary-shade);
   --ion-color-tertiary-tint: var(--faildaily-tertiary-tint);
 
-  /* Couleurs Ionic pour background mode clair */
+  /* Couleurs Ionic pour background mode clair - VRAIE CHARTE ORIGINALE */
   --ion-background-color: var(--faildaily-background);
-  --ion-background-color-rgb: 255, 255, 255;
+  --ion-background-color-rgb: 219, 234, 254;
 
   --ion-text-color: var(--faildaily-text-primary);
-  --ion-text-color-rgb: 26, 26, 26;
+  --ion-text-color-rgb: 30, 41, 59;
 
   /* Variables Ionic pour composants mode clair */
   --ion-toolbar-background: var(--faildaily-surface);
@@ -82,22 +88,22 @@
   --ion-item-background: var(--faildaily-surface);
   --ion-item-color: var(--faildaily-text-primary);
   
-  --ion-list-background: var(--faildaily-surface-alt);
+  --ion-list-background: var(--faildaily-background-alt);
   --ion-list-color: var(--faildaily-text-primary);
 
-  /* Variables step pour dégradés mode clair */
-  --ion-color-step-50: #f8f9fa;
-  --ion-color-step-100: #f1f3f4;
-  --ion-color-step-150: #e8eaed;
-  --ion-color-step-200: #e0e0e0;
-  --ion-color-step-250: #d7d7d7;
-  --ion-color-step-300: #cccccc;
-  --ion-color-step-350: #c1c1c1;
-  --ion-color-step-400: #b3b3b3;
-  --ion-color-step-450: #a6a6a6;
-  --ion-color-step-500: #999999;
-  --ion-color-step-550: #8c8c8c;
-  --ion-color-step-600: #808080;
+  /* Variables step pour dégradés mode clair - CHARTE ORIGINALE */
+  --ion-color-step-50: #fefcfb;
+  --ion-color-step-100: #fdf9f6;
+  --ion-color-step-150: #fbf5f0;
+  --ion-color-step-200: #f9f1ea;
+  --ion-color-step-250: #f7ede4;
+  --ion-color-step-300: #f5e9de;
+  --ion-color-step-350: #f3e5d8;
+  --ion-color-step-400: #f1e1d2;
+  --ion-color-step-450: #efdccc;
+  --ion-color-step-500: #edd8c6;
+  --ion-color-step-550: #ebd4c0;
+  --ion-color-step-600: #e9d0ba;
   --ion-color-step-650: #737373;
   --ion-color-step-700: #666666;
   --ion-color-step-750: #5a5a5a;
@@ -422,4 +428,63 @@ body:not(.dark) {
   .fail-date {
     color: var(--faildaily-text-secondary) !important;
   }
+}
+
+/* ===== STYLES DES RÉACTIONS FAILDAILY ===== */
+
+/* Styles pour les boutons de réaction */
+.reaction-button {
+  transition: all var(--app-transition-fast) ease;
+  
+  &.active {
+    transform: scale(1.1);
+  }
+  
+  &.pulse {
+    animation: reaction-pulse 0.6s ease-in-out;
+  }
+  
+  &.courage.active {
+    --ion-color-primary: var(--reaction-courage);
+    color: var(--reaction-courage) !important;
+  }
+  
+  &.laugh.active {
+    --ion-color-primary: var(--reaction-laugh);
+    color: var(--reaction-laugh) !important;
+  }
+  
+  &.empathy.active {
+    --ion-color-primary: var(--reaction-empathy);
+    color: var(--reaction-empathy) !important;
+  }
+  
+  &.support.active {
+    --ion-color-primary: var(--reaction-support);
+    color: var(--reaction-support) !important;
+  }
+}
+
+/* Animation pulse pour les réactions */
+@keyframes reaction-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Variables d'espacement et animation (de la charte originale) */
+:root {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+
+  --animation-fast: 0.2s;
+  --animation-normal: 0.3s;
+  --animation-slow: 0.5s;
 }

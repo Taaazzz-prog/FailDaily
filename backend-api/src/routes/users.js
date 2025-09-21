@@ -5,6 +5,46 @@ const { authenticateToken } = require('../middleware/auth');
 
 // ====== ROUTES UTILISATEURS (4 endpoints manquants) ======
 
+// GET /api/users/me/badges - Badges de l'utilisateur connecté (AVANT /:userId/badges)
+router.get('/me/badges', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log('🏆 Récupération des badges pour l\'utilisateur connecté:', userId);
+    
+    // Récupérer les badges de l'utilisateur depuis la table badges
+    const badges = await executeQuery(`
+      SELECT 
+        id,
+        name,
+        description,
+        icon,
+        category,
+        rarity,
+        badge_type,
+        unlocked_at,
+        created_at
+      FROM badges
+      WHERE user_id = ?
+      ORDER BY unlocked_at DESC
+    `, [userId]);
+    
+    console.log(`✅ ${badges.length} badges trouvés pour l'utilisateur connecté`);
+    
+    res.json({
+      success: true,
+      badges: badges || []
+    });
+  } catch (error) {
+    console.error('❌ Erreur récupération badges utilisateur connecté:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des badges'
+    });
+  }
+});
+
+// ====== ROUTES UTILISATEURS (4 endpoints manquants) ======
+
 // GET /api/users/:userId/stats - Statistiques utilisateur
 router.get('/:userId/stats', authenticateToken, async (req, res) => {
   try {
@@ -94,7 +134,7 @@ router.get('/:userId/stats', authenticateToken, async (req, res) => {
 router.get('/:userId/badges', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log('🏆 Récupération des badges pour l\'utilisateur:', userId);
+    console.log('🏆 Récupération des badges pour l\'utilisateur connecté:', userId);
     
     // Récupérer les badges de l'utilisateur depuis user_badges + badge_definitions
     const badges = await executeQuery(`
@@ -193,6 +233,80 @@ router.get('/:userId/fails', authenticateToken, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des fails'
+    });
+  }
+});
+
+// POST /api/users/:userId/courage-points - Ajouter des points de courage
+router.post('/:userId/courage-points', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { points, reason } = req.body;
+    
+    console.log(`🏆 Ajout de ${points} points pour l'utilisateur ${userId} - Raison: ${reason}`);
+    
+    // Validation
+    if (!points || typeof points !== 'number') {
+      return res.status(400).json({
+        success: false,
+        message: 'Le nombre de points est requis et doit être un nombre'
+      });
+    }
+    
+    // Vérifier que l'utilisateur existe
+    const userExists = await executeQuery(
+      'SELECT id FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (!userExists || userExists.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Utilisateur non trouvé'
+      });
+    }
+    
+    // Vérifier si l'utilisateur a déjà des points
+    const existingPoints = await executeQuery(
+      'SELECT points_total FROM user_points WHERE user_id = ?',
+      [userId]
+    );
+    
+    if (existingPoints && existingPoints.length > 0) {
+      // Mettre à jour les points existants
+      await executeQuery(
+        'UPDATE user_points SET points_total = points_total + ?, updated_at = NOW() WHERE user_id = ?',
+        [points, userId]
+      );
+    } else {
+      // Créer un nouvel enregistrement de points
+      await executeQuery(
+        'INSERT INTO user_points (user_id, points_total, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+        [userId, points]
+      );
+    }
+    
+    // Enregistrer l'événement si la table existe
+    try {
+      await executeQuery(
+        'INSERT INTO user_point_events (user_id, points_change, reason, created_at) VALUES (?, ?, ?, NOW())',
+        [userId, points, reason || 'Points ajoutés']
+      );
+    } catch (eventError) {
+      console.warn('⚠️ Impossible d\'enregistrer l\'événement de points:', eventError.message);
+    }
+    
+    res.json({
+      success: true,
+      message: `${points} points ajoutés avec succès`,
+      points_added: points
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur ajout points de courage:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de l\'ajout des points'
     });
   }
 });

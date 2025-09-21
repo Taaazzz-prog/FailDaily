@@ -97,7 +97,38 @@ app.use(limiter);
 app.use(process.env.NODE_ENV === 'development' ? morgan('dev') : morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Middleware pour servir les uploads avec fallback vers images par défaut
+app.use('/uploads', (req, res, next) => {
+  const originalPath = path.join(__dirname, 'uploads', req.path);
+  
+  // Vérifier si le fichier existe
+  if (require('fs').existsSync(originalPath)) {
+    express.static(path.join(__dirname, 'uploads'))(req, res, next);
+  } else {
+    // Déterminer l'image par défaut selon le type
+    let defaultImage = null;
+    
+    if (req.path.startsWith('/avatars/')) {
+      defaultImage = '/avatars/default-avatar.png';
+    } else if (req.path.startsWith('/fails/')) {
+      defaultImage = '/fails/default-fail.png';
+    }
+    
+    if (defaultImage) {
+      const defaultPath = path.join(__dirname, 'uploads', defaultImage);
+      if (require('fs').existsSync(defaultPath)) {
+        console.log(`📷 Fallback: ${req.path} → ${defaultImage}`);
+        res.sendFile(defaultPath);
+        return;
+      }
+    }
+    
+    // Si aucun fallback disponible, continuer le traitement normal (404)
+    express.static(path.join(__dirname, 'uploads'))(req, res, next);
+  }
+});
+
 // Logging des requêtes (après parsing, avant routes)
 try { app.use(require('./src/middleware/requestLogger')()); } catch {}
 

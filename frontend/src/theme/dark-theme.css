@@ -384,47 +384,6 @@
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
-/* Variables de couleurs mode clair (défaut) */
-:root {
-  /* Couleurs principales FailDaily */
-  --faildaily-primary: #FF6B6B;
-  --faildaily-primary-shade: #E85A5A;
-  --faildaily-primary-tint: #FF7B7B;
-  
-  --faildaily-secondary: #4ECDC4;
-  --faildaily-secondary-shade: #45B5AD;
-  --faildaily-secondary-tint: #60D0C9;
-  
-  --faildaily-tertiary: #FFE66D;
-  --faildaily-tertiary-shade: #E6CF62;
-  --faildaily-tertiary-tint: #FFEA7C;
-
-  /* Couleurs de background */
-  --faildaily-background: #FFEAA7;
-  --faildaily-background-alt: #FDCB6E;
-  --faildaily-surface: #FFFFFF;
-  --faildaily-surface-alt: #F8F9FA;
-
-  /* Couleurs de texte */
-  --faildaily-text-primary: #2D3436;
-  --faildaily-text-secondary: #636E72;
-  --faildaily-text-light: #B2BEC3;
-
-  /* Couleurs d'état */
-  --faildaily-success: #00B894;
-  --faildaily-warning: #FDCB6E;
-  --faildaily-danger: #E17055;
-  --faildaily-info: #74B9FF;
-
-  /* Ombres */
-  --faildaily-shadow: rgba(45, 52, 54, 0.1);
-  --faildaily-shadow-strong: rgba(45, 52, 54, 0.25);
-
-  /* Bordures */
-  --faildaily-border: rgba(45, 52, 54, 0.1);
-  --faildaily-border-strong: rgba(45, 52, 54, 0.2);
-}
-
 /* Variables de couleurs mode sombre */
 .dark {
   /* Couleurs principales FailDaily - légèrement désaturées */

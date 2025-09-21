@@ -11,5 +11,10 @@ export interface Badge {
   // Nouveaux champs pour le système de requirements basé sur ta BDD
   requirementType?: string;
   requirementValue?: string;
+  // Structure provenant de l'API backend
+  requirements?: {
+    type: string;
+    value: number;
+  };
 }
 

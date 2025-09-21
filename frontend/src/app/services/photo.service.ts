@@ -90,7 +90,8 @@ export class PhotoService {
             });
 
             if (image.dataUrl) {
-                return await this.savePhotoToDevice(image);
+                // Retourner directement le DataURL pour l'éditeur d'image
+                return image.dataUrl;
             }
 
             throw new Error('Impossible de capturer la photo');
@@ -115,7 +116,8 @@ export class PhotoService {
             });
 
             if (image.dataUrl) {
-                return await this.savePhotoToDevice(image);
+                // Retourner directement le DataURL pour l'éditeur d'image
+                return image.dataUrl;
             }
 
             throw new Error('Impossible de sélectionner la photo');
@@ -157,28 +159,6 @@ export class PhotoService {
 
         const { data } = await alert.onDidDismiss();
         return data || DEFAULT_AVATAR;
-    }
-
-    /**
-     * Sauvegarder une photo sur l'appareil
-     */
-    private async savePhotoToDevice(photo: Photo): Promise<string> {
-        try {
-            const fileName = `profile_${Date.now()}.jpg`;
-
-            // Sauvegarder le fichier
-            const savedFile = await Filesystem.writeFile({
-                path: fileName,
-                data: photo.dataUrl!,
-                directory: Directory.Data
-            });
-
-            // Retourner le chemin local
-            return savedFile.uri;
-        } catch (error) {
-            console.error('Erreur lors de la sauvegarde:', error);
-            throw error;
-        }
     }
 
     /**

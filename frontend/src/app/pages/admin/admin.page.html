@@ -382,7 +382,7 @@
             <ion-list>
                 <ion-item *ngFor="let user of allUsers">
                     <ion-avatar slot="start">
-                        <img [src]="user.avatar_url || '/assets/profil/base.png'" alt="Avatar">
+                        <img [src]="user.avatar_url || '/assets/profil/base.png'" alt="Avatar" appImageFallback="avatar">
                     </ion-avatar>
                     <ion-label>
                         <h3>{{ user.display_name || user.username }}</h3>
@@ -842,7 +842,7 @@
                     <ion-item *ngFor="let user of activeUsersList">
                         <ion-avatar slot="start">
                             <img [src]="user.avatar_url || '/assets/profil/base.png'" alt="Avatar"
-                                onerror="this.src='/assets/profil/base.png'">
+                                appImageFallback="avatar">
                         </ion-avatar>
                         <ion-label>
                             <h3>{{ user.display_name || user.username || 'Utilisateur' }}</h3>

@@ -535,11 +535,11 @@ export class BadgeService {
       const allAvailableBadges = await this.getAllAvailableBadges();
 
       // Trouver les badges non débloqués et leurs statistiques
-      const unlockedBadges = allAvailableBadges.filter(badge =>
+      const lockedBadges = allAvailableBadges.filter(badge =>
         !userBadgeIds.includes(badge.id)
       );
       
-      console.log(`🔍 DEBUG: ${userBadgeIds.length} badges débloqués, ${unlockedBadges.length} badges non débloqués sur ${allAvailableBadges.length} total`);
+      console.log(`🔍 DEBUG: ${userBadgeIds.length} badges débloqués, ${lockedBadges.length} badges non débloqués sur ${allAvailableBadges.length} total`);
 
       const challenges: Array<{
         name: string;
@@ -550,15 +550,20 @@ export class BadgeService {
         progress: number;
       }> = [];
 
-      for (const badge of unlockedBadges) {
+      for (const badge of lockedBadges) {
         const progress = await this.getBadgeProgressNew(badge, userStats);
 
-        // DEBUG: Afficher tous les badges non débloqués pour le moment
-        // SEULEMENT inclure les badges déjà entamés (progress > 0)
-        // Les badges non commencés restent "secrets"
+        // Inclure les badges en cours ou les prochains logiques
+        // Afficher si : progrès > 0 OU si c'est un badge proche du progrès actuel
         console.log(`🔍 Badge "${badge.name}": current=${progress.current}, required=${progress.required}, progress=${progress.progress}`);
         
-        if (progress.current >= 0) { // Temporairement changé de > 0 à >= 0 pour debug
+        // Logique d'affichage intelligente :
+        // 1. Si du progrès existe (> 0) : toujours afficher
+        // 2. Si pas de progrès mais badge proche (écart raisonnable) : afficher aussi
+        const shouldDisplay = progress.current > 0 || 
+                             (progress.current === 0 && progress.required <= userStats.failsCount + 15);
+        
+        if (shouldDisplay) {
           challenges.push({
             name: badge.name,
             description: badge.description,
@@ -585,17 +590,19 @@ export class BadgeService {
    * Nouvelle méthode pour calculer le progress d'un badge avec le système requirement_type/requirement_value
    */
   private async getBadgeProgressNew(badge: Badge, userStats: any): Promise<{ current: number, required: number, progress: number }> {
-    if (!badge.requirementType || !badge.requirementValue) {
-      // Fallback vers l'ancien système
-      return await this.getBadgeProgress(badge.id);
+    if (!badge.requirements || !badge.requirements.type || !badge.requirements.value) {
+      console.warn('⚠️ Badge sans requirements:', badge.name);
+      return { current: 0, required: 1, progress: 0 };
     }
 
-    const required = parseInt(badge.requirementValue, 10);
+    const required = typeof badge.requirements.value === 'string' ? 
+                     parseInt(badge.requirements.value, 10) : 
+                     badge.requirements.value;
     let current = 0;
 
-    switch (badge.requirementType) {
+    switch (badge.requirements.type) {
       case 'fail_count':
-        current = userStats.totalFails || 0;
+        current = userStats.totalFails || userStats.failsCount || 0;
         break;
       case 'reaction_given':
       case 'like_given':

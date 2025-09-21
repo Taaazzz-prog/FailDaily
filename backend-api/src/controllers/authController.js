@@ -470,12 +470,26 @@ const getProfile = async (req, res) => {
         u.id, u.email, u.role, u.account_status, u.created_at,
         p.display_name, p.avatar_url, p.bio,
         p.registration_completed, p.legal_consent, p.age_verification,
-        COALESCE(up.points_total, 0) as points_total
+        COALESCE(up.points_total, 0) as points_total,
+        COALESCE(fail_stats.fail_count, 0) as fails_count,
+        COALESCE(badge_stats.badge_count, 0) as badges_count
       FROM users u
       LEFT JOIN profiles p ON u.id = p.user_id
       LEFT JOIN user_points up ON up.user_id = u.id
+      LEFT JOIN (
+        SELECT user_id, COUNT(*) as fail_count
+        FROM fails
+        WHERE user_id = ?
+        GROUP BY user_id
+      ) fail_stats ON u.id = fail_stats.user_id
+      LEFT JOIN (
+        SELECT user_id, COUNT(*) as badge_count
+        FROM badges
+        WHERE user_id = ?
+        GROUP BY user_id
+      ) badge_stats ON u.id = badge_stats.user_id
       WHERE u.id = ?
-    `, [userId]);
+    `, [userId, userId, userId]);
 
     if (userProfile.length === 0) {
       return res.status(404).json({
@@ -500,7 +514,12 @@ const getProfile = async (req, res) => {
         legalConsent: profile.legal_consent ? JSON.parse(profile.legal_consent) : null,
         ageVerification: profile.age_verification ? JSON.parse(profile.age_verification) : null,
         createdAt: profile.created_at,
-        couragePoints: profile.points_total
+        couragePoints: profile.points_total,
+        stats: {
+          failsCount: profile.fails_count,
+          totalFails: profile.fails_count,
+          badgesCount: profile.badges_count
+        }
       };
     res.json({ success: true, user: userObj, data: userObj });
 

@@ -7,13 +7,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule, AlertController, ToastController } from '@ionic/angular';
 import { interval, Subscription } from 'rxjs';
+import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
 @Component({
     selector: 'app-admin',
     templateUrl: './admin.page.html',
     styleUrls: ['./admin.page.scss'],
     standalone: true,
-    imports: [CommonModule, FormsModule, IonicModule]
+    imports: [CommonModule, FormsModule, IonicModule, ImageFallbackDirective]
 })
 export class AdminPage implements OnInit, OnDestroy {
     selectedSegment = 'dashboard';

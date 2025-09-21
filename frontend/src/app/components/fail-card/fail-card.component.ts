@@ -10,6 +10,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { MysqlService } from '../../services/mysql.service';
 import { CommentsThreadComponent } from '../comments-thread/comments-thread.component';
 import { ToastController, PopoverController, ViewWillEnter } from '@ionic/angular';
+import { ImageFallbackDirective } from '../../directives/image-fallback.directive';
 
 @Component({
   selector: 'app-fail-card',
@@ -19,7 +20,8 @@ import { ToastController, PopoverController, ViewWillEnter } from '@ionic/angula
     CommonModule, 
     IonicModule,
     TimeAgoPipe, 
-    CommentsThreadComponent
+    CommentsThreadComponent,
+    ImageFallbackDirective
   ]
 })
 export class FailCardComponent implements OnInit, ViewWillEnter {

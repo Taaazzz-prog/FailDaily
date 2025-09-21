@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
@@ -6,7 +6,7 @@ import {
   IonButton, IonIcon, IonGrid, IonRow, IonCol, IonItem, IonLabel, IonRange
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { cameraOutline, imagesOutline, personCircleOutline, refreshOutline, saveOutline, closeOutline, repeatOutline } from 'ionicons/icons';
+import { cameraOutline, imagesOutline, personCircleOutline, refreshOutline, saveOutline, closeOutline, repeatOutline, locateOutline } from 'ionicons/icons';
 import { AuthService } from '../../services/auth.service';
 import { MysqlService } from '../../services/mysql.service';
 import { PhotoService } from '../../services/photo.service';
@@ -24,7 +24,7 @@ import { Filesystem } from '@capacitor/filesystem';
     IonButton, IonIcon, IonGrid, IonRow, IonCol, IonItem, IonLabel, IonRange
   ]
 })
-export class ChangePhotoPage implements OnInit {
+export class ChangePhotoPage implements OnInit, AfterViewInit {
   currentAvatar = '';
   previewDataUrl: string | null = null;
   defaultAvatars = DEFAULT_AVATARS;
@@ -32,9 +32,16 @@ export class ChangePhotoPage implements OnInit {
   // Editor state
   zoom = signal(1.0);
   rotation = signal(0); // degrees
+  panX = signal(0); // horizontal offset
+  panY = signal(0); // vertical offset
 
   private imgEl: HTMLImageElement | null = null;
   private canvasSize = 300;
+  
+  // Touch/mouse interaction state
+  private isDragging = false;
+  private lastTouchX = 0;
+  private lastTouchY = 0;
 
   constructor(
     private router: Router,
@@ -43,12 +50,87 @@ export class ChangePhotoPage implements OnInit {
     private photoService: PhotoService,
     private toastController: ToastController
   ) {
-    addIcons({ cameraOutline, imagesOutline, personCircleOutline, refreshOutline, saveOutline, closeOutline, repeatOutline });
+    addIcons({ cameraOutline, imagesOutline, personCircleOutline, refreshOutline, saveOutline, closeOutline, repeatOutline, locateOutline });
   }
 
   async ngOnInit() {
     const u = this.authService.getCurrentUser();
     this.currentAvatar = u?.avatar || '';
+  }
+
+  ngAfterViewInit() {
+    // Initialize canvas after view is loaded
+    setTimeout(() => {
+      this.setupCanvasInteractions();
+      this.redraw();
+    }, 100);
+  }
+
+  private setupCanvasInteractions() {
+    const canvas = document.getElementById('avatarCanvas') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    // Mouse events
+    canvas.addEventListener('mousedown', (e) => this.onInteractionStart(e.clientX, e.clientY));
+    canvas.addEventListener('mousemove', (e) => this.onInteractionMove(e.clientX, e.clientY));
+    canvas.addEventListener('mouseup', () => this.onInteractionEnd());
+    canvas.addEventListener('mouseleave', () => this.onInteractionEnd());
+
+    // Touch events for mobile
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      this.onInteractionStart(touch.clientX, touch.clientY);
+    });
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const touch = e.touches[0];
+      this.onInteractionMove(touch.clientX, touch.clientY);
+    });
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      this.onInteractionEnd();
+    });
+  }
+
+  private onInteractionStart(clientX: number, clientY: number) {
+    this.isDragging = true;
+    this.lastTouchX = clientX;
+    this.lastTouchY = clientY;
+    
+    // Change cursor to grabbing
+    const canvas = document.getElementById('avatarCanvas') as HTMLCanvasElement;
+    if (canvas) canvas.style.cursor = 'grabbing';
+  }
+
+  private onInteractionMove(clientX: number, clientY: number) {
+    if (!this.isDragging || !this.imgEl) return;
+
+    const deltaX = clientX - this.lastTouchX;
+    const deltaY = clientY - this.lastTouchY;
+
+    // Update pan position with sensitivity adjustment
+    const sensitivity = 1.0;
+    const newPanX = this.panX() + deltaX * sensitivity;
+    const newPanY = this.panY() + deltaY * sensitivity;
+
+    // Limit pan to reasonable bounds (half canvas size)
+    const maxPan = this.canvasSize / 2;
+    this.panX.set(Math.max(-maxPan, Math.min(maxPan, newPanX)));
+    this.panY.set(Math.max(-maxPan, Math.min(maxPan, newPanY)));
+
+    this.lastTouchX = clientX;
+    this.lastTouchY = clientY;
+
+    this.redraw();
+  }
+
+  private onInteractionEnd() {
+    this.isDragging = false;
+    
+    // Reset cursor to grab
+    const canvas = document.getElementById('avatarCanvas') as HTMLCanvasElement;
+    if (canvas) canvas.style.cursor = 'grab';
   }
 
   async chooseFromCamera() {
@@ -78,6 +160,9 @@ export class ChangePhotoPage implements OnInit {
   onDefaultAvatarClick(avatar: string) {
     this.previewDataUrl = avatar; // show preview directly
     this.imgEl = null; // bypass editor for assets; save uses direct URL
+    this.panX.set(0); // Reset pan
+    this.panY.set(0);
+    this.redraw(); // Update canvas immediately
   }
 
   async importFromFile() {
@@ -117,6 +202,8 @@ export class ChangePhotoPage implements OnInit {
     this.previewDataUrl = dataUrl;
     this.zoom.set(1.0);
     this.rotation.set(0);
+    this.panX.set(0);
+    this.panY.set(0);
 
     this.imgEl = new Image();
     // CORS safe for same-origin; data URLs OK
@@ -136,7 +223,20 @@ export class ChangePhotoPage implements OnInit {
 
   rotateLeft() { this.rotation.set((this.rotation() - 90 + 360) % 360); this.redraw(); }
   rotateRight() { this.rotation.set((this.rotation() + 90) % 360); this.redraw(); }
-  resetEditor() { this.zoom.set(1.0); this.rotation.set(0); this.redraw(); }
+  
+  centerImage() { 
+    this.panX.set(0); 
+    this.panY.set(0); 
+    this.redraw(); 
+  }
+  
+  resetEditor() { 
+    this.zoom.set(1.0); 
+    this.rotation.set(0); 
+    this.panX.set(0); 
+    this.panY.set(0); 
+    this.redraw(); 
+  }
 
   private redraw() {
     const canvas = document.getElementById('avatarCanvas') as HTMLCanvasElement | null;
@@ -161,13 +261,15 @@ export class ChangePhotoPage implements OnInit {
       return;
     }
 
-    // Draw image centered with zoom and rotation
+    // Draw image centered with zoom, rotation and pan
     const img = this.imgEl;
     const scale = this.zoom();
     const angle = (this.rotation() * Math.PI) / 180;
+    const offsetX = this.panX();
+    const offsetY = this.panY();
 
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.translate(canvas.width / 2 + offsetX, canvas.height / 2 + offsetY);
     ctx.rotate(angle);
 
     // compute scale to cover square
@@ -194,7 +296,7 @@ export class ChangePhotoPage implements OnInit {
   async save() {
     try {
       // If default avatar path selected
-      if (!this.imgEl && this.previewDataUrl && this.previewDataUrl.startsWith('assets/')) {
+      if (!this.imgEl && this.previewDataUrl && (this.previewDataUrl.startsWith('assets/') || this.previewDataUrl.startsWith('/assets/'))) {
         await this.authService.updateUserProfile({ avatarUrl: this.previewDataUrl });
         this.router.navigate(['/tabs/profile']);
         return;

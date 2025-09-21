@@ -39,7 +39,7 @@ export class ImageUrlService {
    */
   getAvatarUrl(avatarPath: string | null | undefined): string {
     if (!avatarPath) {
-      return '/assets/profil/base.png';
+      return '/assets/profil/anonymous.png'; // Avatar anonyme par défaut
     }
     return this.getFullImageUrl(avatarPath);
   }
@@ -49,8 +49,22 @@ export class ImageUrlService {
    */
   getFailImageUrl(imagePath: string | null | undefined): string {
     if (!imagePath) {
-      return '';
+      return '/assets/profil/base.png'; // Image par défaut pour les fails
     }
     return this.getFullImageUrl(imagePath);
+  }
+
+  /**
+   * Retourne une image de fallback selon le type
+   */
+  getFallbackImage(type: 'avatar' | 'fail'): string {
+    switch (type) {
+      case 'avatar':
+        return '/assets/profil/anonymous.png';
+      case 'fail':
+        return '/assets/profil/base.png';
+      default:
+        return '/assets/profil/base.png';
+    }
   }
 }

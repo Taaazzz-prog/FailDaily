@@ -41,9 +41,12 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.backend.rule=Host(`localhost`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.backend.entrypoints=web"
-      - "traefik.http.routers.backend.priority=100"
+      - "traefik.http.routers.backend-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.backend-api.entrypoints=web"
+      - "traefik.http.routers.backend-api.priority=100"
+      - "traefik.http.routers.backend-uploads.rule=Host(`localhost`) && PathPrefix(`/uploads`)"
+      - "traefik.http.routers.backend-uploads.entrypoints=web"
+      - "traefik.http.routers.backend-uploads.priority=90"
       - "traefik.http.services.backend.loadbalancer.server.port=3000"
     env_file:
       - .env
