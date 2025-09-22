@@ -139,8 +139,8 @@ class DebugController {
         `SELECT 
           COUNT(DISTINCT b.id) as total_badges,
           COUNT(ub.id) as total_earned,
-          COUNT(CASE WHEN ub.earned_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as earned_24h
-        FROM badges b
+          COUNT(CASE WHEN ub.unlocked_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as earned_24h
+        FROM badge_definitions b
         LEFT JOIN user_badges ub ON b.id = ub.badge_id`,
         []
       );
@@ -277,7 +277,7 @@ class DebugController {
 
       // Test système de badges
       try {
-        await executeQuery('SELECT COUNT(*) FROM badges LIMIT 1', []);
+        await executeQuery('SELECT COUNT(*) FROM user_badges LIMIT 1', []);
         healthChecks.badges_system = true;
       } catch {
         issues.push('Système de badges non accessible');

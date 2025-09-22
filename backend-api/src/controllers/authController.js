@@ -484,7 +484,7 @@ const getProfile = async (req, res) => {
       ) fail_stats ON u.id = fail_stats.user_id
       LEFT JOIN (
         SELECT user_id, COUNT(*) as badge_count
-        FROM badges
+        FROM user_badges
         WHERE user_id = ?
         GROUP BY user_id
       ) badge_stats ON u.id = badge_stats.user_id

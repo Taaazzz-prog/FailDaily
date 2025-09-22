@@ -11,21 +11,22 @@ router.get('/me/badges', authenticateToken, async (req, res) => {
     const userId = req.user.id;
     console.log('🏆 Récupération des badges pour l\'utilisateur connecté:', userId);
     
-    // Récupérer les badges de l'utilisateur depuis la table badges
+    // Récupérer les badges de l'utilisateur depuis user_badges avec jointure sur badge_definitions
     const badges = await executeQuery(`
       SELECT 
-        id,
-        name,
-        description,
-        icon,
-        category,
-        rarity,
-        badge_type,
-        unlocked_at,
-        created_at
-      FROM badges
-      WHERE user_id = ?
-      ORDER BY unlocked_at DESC
+        bd.id,
+        bd.name,
+        bd.description,
+        bd.icon,
+        bd.category,
+        bd.rarity,
+        bd.requirement_type as badge_type,
+        ub.unlocked_at,
+        ub.created_at
+      FROM user_badges ub
+      JOIN badge_definitions bd ON ub.badge_id = bd.id
+      WHERE ub.user_id = ?
+      ORDER BY ub.unlocked_at DESC
     `, [userId]);
     
     console.log(`✅ ${badges.length} badges trouvés pour l'utilisateur connecté`);

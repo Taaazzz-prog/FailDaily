@@ -97,15 +97,27 @@ export class BadgeService {
   private async loadUserBadges(userId: string): Promise<void> {
     try {
       const badgeIds = await this.mysqlService.getUserBadgesNew(userId);
-      console.log('Badges récupérés de la DB:', badgeIds);
+      console.log('🔍 DEBUG Badges IDs récupérés de la DB:', badgeIds);
 
       // Récupérer TOUS les badges disponibles (BDD + fallback)
       const allAvailableBadges = await this.getAllAvailableBadges();
+      console.log('🔍 DEBUG All available badges count:', allAvailableBadges.length);
+      console.log('🔍 DEBUG Sample available badge IDs:', allAvailableBadges.slice(0, 5).map(b => ({ id: b.id, name: b.name })));
 
-      const userBadges = allAvailableBadges.filter(badge =>
-        badgeIds.includes(badge.id)
-      );
-      console.log('Badges filtrés:', userBadges);
+      const userBadges = allAvailableBadges.filter(badge => {
+        const isIncluded = badgeIds.includes(badge.id);
+        if (isIncluded) {
+          console.log(`✅ Badge trouvé: ${badge.id} (${badge.name})`);
+        } else if (badgeIds.length > 0) {
+          // Log seulement pour quelques badges pour debug
+          const isFirstFail = badge.name === "Premier Pas" || badge.id === "first-fail";
+          if (isFirstFail) {
+            console.log(`❌ Badge "Premier Pas" non trouvé: badge.id="${badge.id}", badgeIds=${JSON.stringify(badgeIds)}`);
+          }
+        }
+        return isIncluded;
+      });
+      console.log('🔍 DEBUG Badges filtrés:', userBadges.length, userBadges.map(b => b.name));
 
       this.userBadgesSubject.next(userBadges);
     } catch (error) {
@@ -139,8 +151,13 @@ export class BadgeService {
           description: dbBadge.description,
           icon: dbBadge.icon || 'trophy-outline',
           category: dbBadge.category || BadgeCategory.SPECIAL,
-          rarity: 'common' as const, // Valeur par défaut
-          // Ajouter les infos de requirement pour le nouveau système
+          rarity: (dbBadge as any).rarity || 'common',
+          // Structure requirements correcte pour le système de progress
+          requirements: dbBadge.requirements ? {
+            type: dbBadge.requirements.type,
+            value: dbBadge.requirements.value
+          } : undefined,
+          // Rétrocompatibilité
           requirementType: dbBadge.requirements?.type,
           requirementValue: dbBadge.requirements?.value
         } as Badge));
@@ -558,10 +575,14 @@ export class BadgeService {
         console.log(`🔍 Badge "${badge.name}": current=${progress.current}, required=${progress.required}, progress=${progress.progress}`);
         
         // Logique d'affichage intelligente :
-        // 1. Si du progrès existe (> 0) : toujours afficher
-        // 2. Si pas de progrès mais badge proche (écart raisonnable) : afficher aussi
-        const shouldDisplay = progress.current > 0 || 
-                             (progress.current === 0 && progress.required <= userStats.failsCount + 15);
+        // 1. Exclure les badges complètement débloqués (current >= required)
+        // 2. Afficher si du progrès existe (0 < current < required)
+        // 3. Afficher les badges proches même sans progrès (pour donner des objectifs)
+        const isCompleted = progress.current >= progress.required;
+        const hasProgress = progress.current > 0 && progress.current < progress.required;
+        const isNearbyGoal = progress.current === 0 && progress.required <= (userStats.total_fails || userStats.totalFails || 0) + 15;
+        
+        const shouldDisplay = !isCompleted && (hasProgress || isNearbyGoal);
         
         if (shouldDisplay) {
           challenges.push({
@@ -595,6 +616,8 @@ export class BadgeService {
       return { current: 0, required: 1, progress: 0 };
     }
 
+    console.log(`🔍 DEBUG userStats pour "${badge.name}":`, JSON.stringify(userStats, null, 2));
+
     const required = typeof badge.requirements.value === 'string' ? 
                      parseInt(badge.requirements.value, 10) : 
                      badge.requirements.value;
@@ -602,48 +625,48 @@ export class BadgeService {
 
     switch (badge.requirements.type) {
       case 'fail_count':
-        current = userStats.totalFails || userStats.failsCount || 0;
+        current = userStats.total_fails || userStats.totalFails || userStats.failsCount || 0;
         break;
       case 'reaction_given':
       case 'like_given':
-        current = userStats.totalReactions || 0;
+        current = userStats.total_reactions_given || userStats.totalReactions || 0;
         break;
       case 'comment_count':
-        current = userStats.totalComments || 0;
+        current = userStats.total_comments || userStats.totalComments || 0;
         break;
       case 'courage_reactions':
-        current = userStats.courageReactions || 0;
+        current = userStats.courage_reactions || userStats.courageReactions || 0;
         break;
       case 'support_reactions':
-        current = userStats.supportReactions || 0;
+        current = userStats.support_reactions || userStats.supportReactions || 0;
         break;
       case 'empathy_reactions':
-        current = userStats.empathyReactions || 0;
+        current = userStats.empathy_reactions || userStats.empathyReactions || 0;
         break;
       case 'laugh_reactions':
-        current = userStats.laughReactions || 0;
+        current = userStats.laugh_reactions || userStats.laughReactions || 0;
         break;
       case 'streak_days':
-        current = userStats.currentStreak || 0;
+        current = userStats.streak || userStats.currentStreak || 0;
         break;
       case 'login_days':
-        current = userStats.totalLoginDays || 0;
+        current = userStats.login_days || userStats.totalLoginDays || 0;
         break;
       case 'active_days':
-        current = userStats.activeDays || 0;
+        current = userStats.active_days || userStats.activeDays || 0;
         break;
       case 'categories_used':
-        current = userStats.categoriesUsed || 0;
+        current = userStats.categories_used || userStats.categoriesUsed || 0;
         break;
       case 'max_reactions_single':
-        current = userStats.maxReactionsOnFail || 0;
+        current = userStats.max_reactions_single || userStats.maxReactionsOnFail || 0;
         break;
       case 'badges_unlocked':
-        current = userStats.badgesUnlocked || 0;
+        current = userStats.total_badges || userStats.badgesUnlocked || 0;
         break;
       case 'badges_percentage':
         const totalBadges = userStats.totalAvailableBadges || 100;
-        current = Math.round(((userStats.badgesUnlocked || 0) / totalBadges) * 100);
+        current = Math.round(((userStats.total_badges || userStats.badgesUnlocked || 0) / totalBadges) * 100);
         break;
       default:
         current = 0;

@@ -1089,17 +1089,23 @@ export class MysqlService {
         return [];
       }
       
-      const response: any = await this.http.get(`${this.apiUrl}/users/${userId}/badges/ids`, {
+      // Utiliser l'endpoint /me/badges plus efficace
+      const response: any = await this.http.get(`${this.apiUrl}/users/me/badges`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
-      if (response.success) {
-        return response.badgeIds;
+      if (response.success && response.badges) {
+        // Extraire les IDs des badges (structure: l'API retourne bd.id qui est l'identifiant du badge_definitions)
+        const badgeIds = response.badges.map((badge: any) => badge.id);
+        console.log('🔍 DEBUG getUserBadgesNew - Raw response badges:', response.badges);
+        console.log('🔍 DEBUG getUserBadgesNew - Extracted badge IDs:', badgeIds);
+        return badgeIds;
       } else {
+        console.warn('⚠️ Aucun badge trouvé ou réponse invalide');
         return [];
       }
     } catch (error: any) {
-      console.warn('⚠️ Erreur récupération IDs badges:', error);
+      console.warn('⚠️ Erreur récupération badges utilisateur:', error);
       return [];
     }
   }
