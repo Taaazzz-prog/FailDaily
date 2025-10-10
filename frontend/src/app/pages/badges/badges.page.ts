@@ -62,6 +62,7 @@ export class BadgesPage implements OnInit {
 
     // Filtres et UI
     viewMode: 'overview' | 'category' | 'unlocked' = 'overview'; // Mode d'affichage
+    selectedCategory: string = 'all'; // Catégorie sélectionnée pour le filtrage
 
     // Messages d'encouragement pour les badges
     private encouragementMessages = [
