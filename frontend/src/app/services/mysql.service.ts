@@ -1042,23 +1042,7 @@ export class MysqlService {
     return basePoints * delta;
   }
 
-  async debugCouragePoints(userId: string): Promise<any> {
-    try {
-      const response: any = await this.http.get(`${this.apiUrl}/users/${userId}/courage-points/debug`, {
-        headers: this.getAuthHeaders()
-      }).toPromise();
-
-      if (response.success) {
-        return response.debug;
-      } else {
-        throw new Error(response.message || 'Erreur lors du debug des points');
-      }
-    } catch (error: any) {
-      console.error('❌ Erreur debug points de courage:', error);
-      throw error;
-    }
-  }
-
+  
   private async addCouragePointsForFailCreation(userId: string): Promise<void> {
     try {
       await this.http.post(`${this.apiUrl}/users/${userId}/courage-points`, {
@@ -1069,19 +1053,6 @@ export class MysqlService {
       console.log('✅ 10 points de courage ajoutés pour la création du fail');
     } catch (error) {
       console.warn('⚠️ Erreur ajout points création fail:', error);
-    }
-  }
-
-  async testAddCouragePoints(userId: string, points: number = 10): Promise<void> {
-    try {
-      await this.http.post(`${this.apiUrl}/users/${userId}/courage-points`, {
-        points,
-        reason: 'Test ajout points'
-      }, { headers: this.getAuthHeaders() }).toPromise();
-
-      console.log(`✅ ${points} points de courage ajoutés en test`);
-    } catch (error) {
-      console.warn('⚠️ Erreur test ajout points:', error);
     }
   }
 

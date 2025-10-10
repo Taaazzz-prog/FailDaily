@@ -123,10 +123,6 @@ export class ProfilePage implements OnInit, OnDestroy {
         }
     ];
 
-    // Debug des points de courage
-    courageDebugInfo: any = null;
-    showDebug = false; // Pour afficher/masquer le debug
-
     // Messages d'encouragement rotatifs
     private encouragementMessages = [
         "Chaque échec est un pas vers la réussite ! 🌟",
@@ -290,37 +286,6 @@ export class ProfilePage implements OnInit, OnDestroy {
     getRandomEncouragement(): string {
         const randomIndex = Math.floor(Math.random() * this.encouragementMessages.length);
         return this.encouragementMessages[randomIndex];
-    }
-
-    // ✅ NOUVEAU : Debug des points de courage
-    async debugCouragePoints() {
-        const user = this.authService.getCurrentUser();
-        if (!user?.id) return;
-
-        console.log('🔍 Lancement du debug des points de courage...');
-        this.courageDebugInfo = await this.mysqlService.debugCouragePoints(user.id);
-        this.showDebug = true;
-    }
-
-    toggleDebug() {
-        this.showDebug = !this.showDebug;
-    }
-
-    hideDebug() {
-        this.showDebug = false;
-        this.courageDebugInfo = null;
-    }
-
-    // ✅ NOUVEAU : Tester l'ajout de points manuellement (pour debug)
-    async testAddCouragePoints() {
-        const user = this.authService.getCurrentUser();
-        if (!user?.id) return;
-
-        await this.mysqlService.testAddCouragePoints(user.id, 10);
-        console.log('✅ +10 points de test ajoutés');
-
-        // Rafraîchir le debug
-        await this.debugCouragePoints();
     }
 
     getProgressLevel(couragePoints: number): { level: number; progress: number; nextLevel: number } {
