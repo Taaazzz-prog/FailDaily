@@ -91,7 +91,10 @@ export class AuthService {
         }
       });
     }
-    
+
+    this.eventBus.on(AppEvents.FAIL_POSTED).subscribe(() => {
+      void this.refreshCurrentUserFromBackend('fail_posted');
+    });
   }
 
   private isBrowser(): boolean {
@@ -255,6 +258,56 @@ export class AuthService {
     }
   }
 
+  private resolveCouragePoints(profile: any): number {
+    const data = profile?.data ?? profile?.user ?? profile;
+    if (!data) {
+      return 0;
+    }
+    if (typeof data.couragePoints === 'number') {
+      return data.couragePoints;
+    }
+    if (typeof data.points_total === 'number') {
+      return data.points_total;
+    }
+    const stats = data.stats;
+    if (stats) {
+      if (typeof stats.couragePoints === 'number') {
+        return stats.couragePoints;
+      }
+      if (typeof stats.points_total === 'number') {
+        return stats.points_total;
+      }
+    }
+    return 0;
+  }
+
+  private async refreshCurrentUserFromBackend(context: string): Promise<void> {
+    const current = this.currentUserSubject.value;
+    if (!current?.id) {
+      return;
+    }
+
+    try {
+      const profile = await this.mysqlService.getProfile(current.id);
+      const stats = profile?.data?.stats || {};
+
+      const updatedUser: User = {
+        ...current,
+        couragePoints: this.resolveCouragePoints(profile),
+        totalFails: typeof stats.totalFails === 'number'
+          ? stats.totalFails
+          : (typeof stats.failCount === 'number' ? stats.failCount : current.totalFails),
+        badges: Array.isArray(stats.badges) ? stats.badges : current.badges
+      };
+
+      this.setCurrentUser(updatedUser);
+      this.eventBus.emit(AppEvents.USER_PROFILE_UPDATED, updatedUser);
+      console.log(`🔄 AuthService: Profil utilisateur rafraîchi (${context})`);
+    } catch (error) {
+      console.warn(`⚠️ AuthService: Impossible de rafraîchir le profil (${context})`, error);
+    }
+  }
+
 
 
   /**
@@ -355,7 +408,7 @@ export class AuthService {
         avatar: profile?.data?.avatarUrl || DEFAULT_AVATAR,
         joinDate: new Date(profile?.data?.createdAt || currentUser.joinDate),
         totalFails: profile?.data?.stats?.totalFails || 0,
-        couragePoints: profile?.data?.stats?.couragePoints || 0,
+        couragePoints: this.resolveCouragePoints(profile),
         badges: profile?.data?.stats?.badges || [],
         role: currentUser.role || UserRole.USER,
         emailConfirmed: profile?.data?.emailConfirmed || false,
@@ -445,7 +498,7 @@ export class AuthService {
             avatar: profile?.data?.avatarUrl || 'assets/anonymous-avatar.svg',
             joinDate: new Date(profile?.data?.createdAt || mysqlServiceUser.created_at),
             totalFails: profile?.data?.stats?.totalFails || 0,
-            couragePoints: profile?.data?.stats?.couragePoints || 0,
+            couragePoints: this.resolveCouragePoints(profile),
             badges: profile?.data?.stats?.badges || [],
             role: (mysqlServiceUser.role as UserRole) || UserRole.USER,
             emailConfirmed: profile?.data?.emailConfirmed || false,
@@ -521,7 +574,7 @@ export class AuthService {
           avatar: profile?.data?.avatarUrl || 'assets/anonymous-avatar.svg',
           joinDate: new Date(profile?.data?.createdAt || result.data.user.created_at),
           totalFails: profile?.data?.stats?.totalFails || 0,
-          couragePoints: profile?.data?.stats?.couragePoints || 0,
+          couragePoints: this.resolveCouragePoints(profile),
           badges: profile?.data?.stats?.badges || [],
           role: (result.data.user.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
           emailConfirmed: profile?.data?.emailConfirmed || false,

@@ -231,12 +231,16 @@
                     <ion-icon name="chevron-forward" slot="end"></ion-icon>
                 </ion-button>
 
+                @if (currentUser$ | async; as user) {
+                @if (hasAdminAccess(user)) {
                 <ion-button expand="block" fill="outline" class="imperfect-element settings-btn" routerLink="/admin"
                     color="warning">
                     <ion-icon name="settings-outline" slot="start"></ion-icon>
                     🛠️ Panel Admin
                     <ion-icon name="chevron-forward" slot="end"></ion-icon>
                 </ion-button>
+                }
+                }
 
                 <!-- Liens rapides vers documents importants -->
                 <div class="quick-links">

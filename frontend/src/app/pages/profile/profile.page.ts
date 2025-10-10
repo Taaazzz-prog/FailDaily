@@ -21,6 +21,7 @@ import { MysqlService } from '../../services/mysql.service';
 import { PhotoService } from '../../services/photo.service';
 import { EventBusService, AppEvents } from '../../services/event-bus.service';
 import { User } from '../../models/user.model';
+import { UserRole } from '../../models/user-role.model';
 import { Fail } from '../../models/fail.model';
 import { Badge } from '../../models/badge.model';
 import { Observable, combineLatest, map, Subscription } from 'rxjs';
@@ -439,6 +440,13 @@ export class ProfilePage implements OnInit, OnDestroy {
             case 'legendary': return 'warning';
             default: return 'medium';
         }
+    }
+
+    hasAdminAccess(user: User | null | undefined): boolean {
+        if (!user) {
+            return false;
+        }
+        return user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
     }
 
     trackByFailId(index: number, fail: Fail): string {
