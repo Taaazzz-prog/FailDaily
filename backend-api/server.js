@@ -8,6 +8,7 @@ const path = require('path');
 require('dotenv').config({ quiet: true });
 
 const database = require('./src/config/database');
+const { testLogsConnection } = require('./src/config/database-logs');
 
 // Routes (obligatoires)
 const authRoutes = require('./src/routes/auth');
@@ -42,6 +43,9 @@ const { authenticateToken } = require('./src/middleware/auth');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Traefik / reverse proxy support
+app.set('trust proxy', 1);
+
 // Validation des variables d'environnement (dev/prod)
 function validateEnvironment() {
   const env = process.env.NODE_ENV || 'development';
@@ -73,6 +77,7 @@ app.use(cors({
     'http://localhost:4200',  // Frontend dev server
     'http://localhost:8100',  // Ionic serve
     'http://localhost:8101',  // Ionic capacitor serve
+    'http://localhost:3001',  // Backend direct access
     'http://localhost',       // Production locale
     'https://faildaily.com',  // Production
     'https://www.faildaily.com',  // Production avec www
@@ -88,7 +93,7 @@ const limiter = rateLimit({
   max: process.env.NODE_ENV === 'test'
     ? 10000
     : process.env.NODE_ENV === 'development'
-    ? 1000  // Plus de requêtes autorisées en développement
+    ? 10000  // Augmentation majeure pour développement (5000 → 10000)
     : (Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100),
   message: { error: 'Trop de requêtes, veuillez réessayer plus tard', code: 'RATE_LIMIT_EXCEEDED' }
 });
@@ -236,6 +241,15 @@ async function startServer() {
         console.warn('⚠️ Base de données indisponible. Démarrage en mode dégradé (dev/test).');
       }
     }
+    
+    // Test connexion base logs
+    try {
+      await testLogsConnection();
+      console.log('✅ Connexion base logs validée');
+    } catch (error) {
+      console.warn('⚠️ Base logs indisponible. Fallback vers fichiers activé.');
+    }
+    
     app.listen(PORT, () => {
       console.log('🚀 FailDaily API Server démarré !');
       console.log(`📡 Serveur: http://localhost:${PORT}`);

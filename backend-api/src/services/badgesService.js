@@ -1,6 +1,76 @@
 const { executeQuery } = require('../config/database');
 const { sendPushToUser } = require('../utils/push');
 
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function normalizeLoginDayValue(value) {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+  }
+
+  const stringValue = String(value).trim();
+  if (!stringValue) return null;
+
+  const timestamp = Date.parse(`${stringValue}T00:00:00Z`);
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+async function getDistinctLoginDayValues(userId) {
+  try {
+    const rows = await executeQuery(
+      `SELECT DATE(created_at) AS login_day
+       FROM request_logs
+       WHERE user_id = ?
+         AND method = 'POST'
+         AND url = '/api/auth/login'
+         AND status_code BETWEEN 200 AND 299
+       GROUP BY DATE(created_at)
+       ORDER BY DATE(created_at) ASC`,
+      [userId],
+      { textProtocol: true }
+    );
+
+    const values = rows
+      .map((row) => normalizeLoginDayValue(row.login_day))
+      .filter((value) => value !== null);
+
+    return Array.from(new Set(values)).sort((a, b) => a - b);
+  } catch (error) {
+    if (error?.code === 'ER_NO_SUCH_TABLE') {
+      console.warn('⚠️ Table request_logs indisponible pour le calcul des logins:', error.message);
+      return [];
+    }
+    throw error;
+  }
+}
+
+function calculateMaxConsecutiveDays(dayValues) {
+  if (!Array.isArray(dayValues) || dayValues.length === 0) {
+    return 0;
+  }
+
+  let maxStreak = 0;
+  let currentStreak = 0;
+  let previousDay = null;
+
+  for (const dayValue of dayValues) {
+    if (previousDay !== null && dayValue - previousDay === ONE_DAY_MS) {
+      currentStreak += 1;
+    } else {
+      currentStreak = 1;
+    }
+
+    if (currentStreak > maxStreak) {
+      maxStreak = currentStreak;
+    }
+
+    previousDay = dayValue;
+  }
+
+  return maxStreak;
+}
+
 // Charger les seuils configurables pour certains badges
 async function getBadgeThresholds() {
   try {
@@ -96,10 +166,15 @@ async function checkBadgeRequirement(userId, badgeDefinition) {
         return (rows[0]?.c || 0) >= requirement_value;
       }
 
-      case 'login_days':
+      case 'login_days': {
+        const dayValues = await getDistinctLoginDayValues(userId);
+        return dayValues.length >= requirement_value;
+      }
+
       case 'streak_days': {
-        const rows = await executeQuery('SELECT DATEDIFF(NOW(), created_at) AS days FROM users WHERE id = ?', [userId]);
-        return (rows[0]?.days || 0) >= requirement_value;
+        const dayValues = await getDistinctLoginDayValues(userId);
+        const longestStreak = calculateMaxConsecutiveDays(dayValues);
+        return longestStreak >= requirement_value;
       }
 
       case 'total_laughs':
@@ -262,22 +337,30 @@ async function checkBadgeRequirement(userId, badgeDefinition) {
 
       case 'features_used': {
         // Comptabiliser des fonctionnalités réellement disponibles pour approcher requirement_value (=10)
-        const checks = await Promise.all([
-          executeQuery('SELECT EXISTS(SELECT 1 FROM fails WHERE user_id = ?) AS e', [userId]),                      // 1: fail créé
-          executeQuery('SELECT EXISTS(SELECT 1 FROM comments WHERE user_id = ?) AS e', [userId]),                  // 2: commentaire posté
-          executeQuery('SELECT EXISTS(SELECT 1 FROM reactions WHERE user_id = ?) AS e', [userId]),                 // 3: réaction donnée
-          executeQuery('SELECT EXISTS(SELECT 1 FROM profiles WHERE user_id = ? AND avatar_url IS NOT NULL AND avatar_url <> "") AS e', [userId]), // 4: avatar défini
-          executeQuery('SELECT EXISTS(SELECT 1 FROM profiles WHERE user_id = ? AND bio IS NOT NULL AND bio <> "") AS e', [userId]),              // 5: bio renseignée
-          executeQuery('SELECT EXISTS(SELECT 1 FROM user_push_tokens WHERE user_id = ?) AS e', [userId]),          // 6: push enregistré
-          executeQuery('SELECT EXISTS(SELECT 1 FROM fails WHERE user_id = ? AND image_url IS NOT NULL AND image_url <> "") AS e', [userId]),     // 7: upload image
-          executeQuery('SELECT EXISTS(SELECT 1 FROM profiles WHERE user_id = ? AND username IS NOT NULL AND username <> "") AS e', [userId]),     // 8: username défini
-          executeQuery(`SELECT EXISTS(
-            SELECT 1 FROM reactions r JOIN fails f ON f.id = r.fail_id WHERE f.user_id = ? AND r.user_id <> ?
-          ) AS e`, [userId, userId]),                                                                             // 9: réaction reçue
-          executeQuery('SELECT EXISTS(SELECT 1 FROM user_points WHERE user_id = ? AND points_total > 0) AS e', [userId]) // 10: points acquis
-        ]);
-        const used = checks.reduce((acc, r) => acc + (r[0]?.e ? 1 : 0), 0);
-        return used >= Math.min(requirement_value, 10);
+        try {
+          const checks = await Promise.all([
+            executeQuery('SELECT EXISTS(SELECT 1 FROM fails WHERE user_id = ?) AS e', [userId]),                      // 1: fail créé
+            executeQuery('SELECT EXISTS(SELECT 1 FROM comments WHERE user_id = ?) AS e', [userId]),                  // 2: commentaire posté
+            executeQuery('SELECT EXISTS(SELECT 1 FROM reactions WHERE user_id = ?) AS e', [userId]),                 // 3: réaction donnée
+            executeQuery('SELECT EXISTS(SELECT 1 FROM profiles WHERE user_id = ? AND avatar_url IS NOT NULL AND avatar_url <> "") AS e', [userId]), // 4: avatar défini
+            executeQuery('SELECT EXISTS(SELECT 1 FROM profiles WHERE user_id = ? AND bio IS NOT NULL AND bio <> "") AS e', [userId]),              // 5: bio renseignée
+            executeQuery('SELECT EXISTS(SELECT 1 FROM user_push_tokens WHERE user_id = ?) AS e', [userId]),          // 6: push enregistré
+            executeQuery('SELECT EXISTS(SELECT 1 FROM fails WHERE user_id = ? AND image_url IS NOT NULL AND image_url <> "") AS e', [userId]),     // 7: upload image
+            executeQuery('SELECT EXISTS(SELECT 1 FROM profiles WHERE user_id = ? AND username IS NOT NULL AND username <> "") AS e', [userId]),     // 8: username défini
+            executeQuery(`SELECT EXISTS(
+              SELECT 1 FROM reactions r JOIN fails f ON f.id = r.fail_id WHERE f.user_id = ? AND r.user_id <> ?
+            ) AS e`, [userId, userId]),                                                                             // 9: réaction reçue
+            executeQuery('SELECT EXISTS(SELECT 1 FROM user_points WHERE user_id = ? AND points_total > 0) AS e', [userId]) // 10: points acquis
+          ]);
+          const used = checks.reduce((acc, r) => acc + (r[0]?.e ? 1 : 0), 0);
+          return used >= Math.min(requirement_value, 10);
+        } catch (error) {
+          if (error?.code === 'ER_NO_SUCH_TABLE') {
+            console.warn('⚠️ Table manquante pour le badge features_used:', error.message);
+            return false;
+          }
+          throw error;
+        }
       }
 
       case 'positive_days': {
@@ -329,4 +412,3 @@ module.exports = {
   checkAndUnlockBadges,
   checkBadgeRequirement
 };
-

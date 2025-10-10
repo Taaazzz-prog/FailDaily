@@ -1,7 +1,14 @@
 // Karma configuration file, see link for more information
 // https://karma-runner.github.io/1.0/config/configuration-file.html
 
-module.exports = function (config) {
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const require = createRequire(import.meta.url);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+export default function (config) {
   config.set({
     basePath: '',
     frameworks: ['jasmine', '@angular-devkit/build-angular'],
@@ -25,7 +32,7 @@ module.exports = function (config) {
       suppressAll: true // removes the duplicated traces
     },
     coverageReporter: {
-      dir: require('path').join(__dirname, './coverage/app'),
+      dir: join(__dirname, './coverage/app'),
       subdir: '.',
       reporters: [
         { type: 'html' },
@@ -41,4 +48,4 @@ module.exports = function (config) {
     singleRun: false,
     restartOnFileChange: true
   });
-};
+}

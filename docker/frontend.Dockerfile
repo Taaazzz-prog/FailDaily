@@ -2,7 +2,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copier les fichiers de package
+# Copier les fichiers de package depuis le contexte racine
 COPY frontend/package*.json ./
 COPY frontend/ionic.config.json ./
 COPY frontend/angular.json ./
@@ -18,6 +18,7 @@ COPY frontend/.editorconfig ./
 COPY frontend/.eslintrc.json ./
 
 # Build pour Docker (production sans optimisations CSS agressives)
+ENV NODE_OPTIONS="--max_old_space_size=4096"
 RUN npm run build:docker
 
 # Serve with Nginx

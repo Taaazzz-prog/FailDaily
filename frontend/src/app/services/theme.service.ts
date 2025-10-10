@@ -13,30 +13,25 @@ export class ThemeService {
   }
 
   private initializeTheme(): void {
-    // Récupérer la préférence sauvegardée
-    const savedTheme = localStorage.getItem('darkMode');
-    
+    // ⚠️ FORCE LE THÈME CLAIR PAR DÉFAUT (Fix collision VS Code)
     let isDarkMode = false;
     
-    if (savedTheme !== null) {
-      // Utiliser la préférence sauvegardée
-      isDarkMode = savedTheme === 'true';
+    // Récupérer la préférence sauvegardée SEULEMENT si explicitement définie
+    const savedTheme = localStorage.getItem('darkMode');
+    
+    if (savedTheme === 'true') {
+      // Utiliser le mode sombre SEULEMENT si explicitement demandé
+      isDarkMode = true;
     } else {
-      // Utiliser la préférence système par défaut
-      isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // Par défaut, TOUJOURS utiliser le thème clair
+      isDarkMode = false;
     }
 
+    console.log('🌙 ThemeService init - Force thème clair par défaut');
     this.setDarkMode(isDarkMode);
 
-    // Écouter les changements de préférence système
-    if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        // Seulement si l'utilisateur n'a pas défini de préférence explicite
-        if (localStorage.getItem('darkMode') === null) {
-          this.setDarkMode(e.matches);
-        }
-      });
-    }
+    // ⚠️ DÉSACTIVER l'écoute des préférences système pour éviter conflits
+    // L'utilisateur doit manuellement choisir le thème sombre
   }
 
   setDarkMode(isDarkMode: boolean): void {
@@ -67,18 +62,24 @@ export class ThemeService {
       // Ajouter la classe dark
       body.classList.add('dark');
       html.classList.add('dark');
+      body.classList.remove('force-light-theme');
       
       // Ionic specific
       body.setAttribute('color-theme', 'dark');
     } else {
-      // Supprimer la classe dark
+      // Supprimer la classe dark et FORCER le thème clair
       body.classList.remove('dark');
       html.classList.remove('dark');
+      body.classList.add('force-light-theme'); // Force le thème clair
       
       // Ionic specific
       body.setAttribute('color-theme', 'light');
+      
+      // Force les variables CSS pour le thème clair
+      body.style.setProperty('--ion-background-color', '#dbeafe', 'important');
+      body.style.setProperty('--ion-text-color', '#1e293b', 'important');
     }
 
-    console.log('🌙 Theme applied:', isDarkMode ? 'dark' : 'light');
+    console.log('🌙 Theme applied:', isDarkMode ? 'dark' : 'light (forced)');
   }
 }

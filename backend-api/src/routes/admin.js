@@ -2,6 +2,9 @@ const express = require('express');
 const os = require('os');
 const router = express.Router();
 const { executeQuery, testConnection } = require('../config/database');
+const LogsService = require('../services/logsService');
+const { logToSeparateDatabase } = require('../utils/logsHelper');
+const { v4: uuidv4 } = require('uuid');
 const { authenticateToken } = require('../middleware/auth');
 
 // Require admin role helper (moderators allowed for legacy endpoints)
@@ -415,10 +418,17 @@ router.post('/fails/:id/moderate', authenticateToken, requireAdmin, async (req, 
       return res.status(400).json({ success: false, message: 'Action inconnue' });
     }
 
-    await executeQuery(
-      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
-      ['info', 'Moderation decision on fail', JSON.stringify({ failId: id, action }), req.user.id, 'moderation_decision']
-    );
+    // Log vers la base logs séparée
+    await LogsService.saveLog({
+      id: uuidv4(),
+      level: 'info',
+      message: 'Moderation decision on fail',
+      details: { failId: id, action },
+      user_id: req.user.id,
+      action: 'moderation_decision',
+      ip_address: req.ip || '',
+      user_agent: req.get('User-Agent') || ''
+    });
 
     res.json({ success: true, message: 'Décision de modération appliquée', failId: id, action });
   } catch (error) {
@@ -444,9 +454,13 @@ router.post('/users/delete-all', authenticateToken, requireStrictAdmin, async (r
       await executeQuery("DELETE FROM profiles WHERE user_id NOT IN (SELECT id FROM users)");
       await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
 
-      await executeQuery(
-        'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-        [require('crypto').randomUUID(), 'warning', 'auth_delete_all', 'Tous les utilisateurs non super_admin supprimés', JSON.stringify({ by: req.user.id }), req.user.id]
+      await logToSeparateDatabase(
+        'warning', 
+        'Tous les utilisateurs non super_admin supprimés',
+        { by: req.user.id }, 
+        req.user.id, 
+        'auth_delete_all',
+        req
       );
 
       res.json({ success: true, message: 'Utilisateurs supprimés (hors super_admin)' });
@@ -594,9 +608,13 @@ router.put('/users/:id/parental-approve', authenticateToken, requireStrictAdmin,
     );
 
     // Log action
-    await executeQuery(
-      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
-      ['info', 'Parental approval granted', JSON.stringify({ targetUserId: id }), req.user.id, 'parental_approve']
+    await logToSeparateDatabase(
+      'info',
+      'Parental approval granted',
+      { targetUserId: id },
+      req.user.id,
+      'parental_approve',
+      req
     );
 
     res.json({ success: true, message: 'Compte activé suite à validation parentale', userId: id });
@@ -630,9 +648,13 @@ router.put('/users/:id/parental-revoke', authenticateToken, requireStrictAdmin, 
     await executeQuery('UPDATE users SET account_status = ? WHERE id = ?', ['pending', id]);
     await executeQuery('UPDATE profiles SET registration_completed = 0, age_verification = ?, updated_at = NOW() WHERE user_id = ?', [JSON.stringify(av), id]);
 
-    await executeQuery(
-      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
-      ['warning', 'Parental approval revoked', JSON.stringify({ targetUserId: id }), req.user.id, 'parental_revoke']
+    await logToSeparateDatabase(
+      'warning',
+      'Parental approval revoked',
+      { targetUserId: id },
+      req.user.id,
+      'parental_revoke',
+      req
     );
 
     res.json({ success: true, message: 'Validation parentale révoquée: compte repassé en attente', userId: id });
@@ -666,9 +688,13 @@ router.put('/users/:id/parental-reject', authenticateToken, requireStrictAdmin, 
     await executeQuery('UPDATE users SET account_status = ? WHERE id = ?', ['pending', id]);
     await executeQuery('UPDATE profiles SET registration_completed = 0, age_verification = ?, updated_at = NOW() WHERE user_id = ?', [JSON.stringify(av), id]);
 
-    await executeQuery(
-      'INSERT INTO system_logs (id, level, message, details, user_id, action, created_at) VALUES (UUID(),?,?,?,?,?,NOW())',
-      ['warning', 'Parental approval rejected', JSON.stringify({ targetUserId: id }), req.user.id, 'parental_reject']
+    await logToSeparateDatabase(
+      'warning',
+      'Parental approval rejected',
+      { targetUserId: id },
+      req.user.id,
+      'parental_reject',
+      req
     );
 
     res.json({ success: true, message: 'Validation parentale refusée: compte en attente', userId: id });
@@ -1256,9 +1282,13 @@ router.post('/tables/:tableName/truncate', authenticateToken, requireStrictAdmin
       
       // Logger l'action (sauf si on vide les tables de logs elles-mêmes)
       if (!['system_logs', 'activity_logs'].includes(tableName)) {
-        await executeQuery(
-          'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-          [require('crypto').randomUUID(), 'warning', 'table_truncate', `Table ${tableName} vidée par admin`, JSON.stringify({ tableName, isAuthTable }), req.user.id]
+        await logToSeparateDatabase(
+          'warning',
+          `Table ${tableName} vidée par admin`,
+          { tableName, isAuthTable },
+          req.user.id,
+          'table_truncate',
+          req
         );
       }
 
@@ -1319,9 +1349,13 @@ router.post('/tables/bulk-truncate', authenticateToken, requireStrictAdmin, asyn
       // Logger l'action (sauf si on a vidé les tables de logs)
       const logTablesInvolved = tables.some(table => ['system_logs', 'activity_logs'].includes(table));
       if (!logTablesInvolved) {
-        await executeQuery(
-          'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-          [require('crypto').randomUUID(), 'warning', 'bulk_truncate', `Vidage en masse de ${successCount}/${tables.length} tables`, JSON.stringify({ tables, results, isAuthTables }), req.user.id]
+        await logToSeparateDatabase(
+          'warning',
+          `Vidage en masse de ${successCount}/${tables.length} tables`,
+          { tables, results, isAuthTables },
+          req.user.id,
+          'bulk_truncate',
+          req
         );
       }
 
@@ -1407,9 +1441,13 @@ router.post('/reset/complete', authenticateToken, requireStrictAdmin, async (req
       try { await executeQuery("DELETE FROM profiles WHERE user_id NOT IN (SELECT id FROM users)"); } catch {}
       await executeQuery('SET FOREIGN_KEY_CHECKS = 1');
 
-      await executeQuery(
-        'INSERT INTO system_logs (id, level, action, message, details, user_id, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())',
-        [require('crypto').randomUUID(), 'warning', 'reset_complete', 'Reset complet effectué', JSON.stringify({ results }), req.user.id]
+      await logToSeparateDatabase(
+        'warning',
+        'Reset complet effectué',
+        { results },
+        req.user.id,
+        'reset_complete',
+        req
       );
 
       res.json({ success: true, message: 'Reset complet terminé', results });

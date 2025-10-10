@@ -64,7 +64,9 @@ class FailsController {
         });
       }
 
-      if (description && description.length > 2000) {
+      const normalizedDescription = typeof description === 'string' ? description.trim() : '';
+
+      if (normalizedDescription.length > 2000) {
         return res.status(400).json({
           success: false,
           message: 'La description ne peut pas dépasser 2000 caractères'
@@ -90,7 +92,7 @@ class FailsController {
         failId,
         userId,
         title.trim(),
-        description ? description.trim() : null,
+        normalizedDescription,
         category,
         countryCode,
         is_anonyme,
@@ -440,18 +442,49 @@ class FailsController {
         });
       }
 
+      const sanitizedUpdate = { ...updateData };
+
+      if (Object.prototype.hasOwnProperty.call(sanitizedUpdate, 'title')) {
+        if (!sanitizedUpdate.title || sanitizedUpdate.title.trim().length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Le titre est obligatoire'
+          });
+        }
+        if (sanitizedUpdate.title.length > 200) {
+          return res.status(400).json({
+            success: false,
+            message: 'Le titre ne peut pas dépasser 200 caractères'
+          });
+        }
+        sanitizedUpdate.title = sanitizedUpdate.title.trim();
+      }
+
+      if (Object.prototype.hasOwnProperty.call(sanitizedUpdate, 'description')) {
+        const desc = typeof sanitizedUpdate.description === 'string'
+          ? sanitizedUpdate.description.trim()
+          : '';
+        if (desc.length > 2000) {
+          return res.status(400).json({
+            success: false,
+            message: 'La description ne peut pas dépasser 2000 caractères'
+          });
+        }
+        sanitizedUpdate.description = desc;
+      }
+
       // Construire la requête de mise à jour
       const allowedFields = ['title', 'description', 'category', 'is_anonyme', 'imageUrl'];
       const updateFields = [];
       const updateValues = [];
 
       allowedFields.forEach(field => {
-        if (Object.prototype.hasOwnProperty.call(updateData, field)) {
+        if (Object.prototype.hasOwnProperty.call(sanitizedUpdate, field)) {
           const dbField = field === 'is_anonyme' ? 'is_anonyme' :
                          field === 'imageUrl' ? 'image_url' : field;
           
           updateFields.push(`${dbField} = ?`);
-          updateValues.push(updateData[field]);
+          updateValues.push(sanitizedUpdate[field]);
         }
       });
 
@@ -478,7 +511,7 @@ class FailsController {
       const mappedFail = mapFailRow(updatedFail);
 
       console.log(`✅ Fail mis à jour: ${id}`);
-      await logSystem({ level: 'info', action: 'fail_update', message: 'Fail updated', details: { failId: id, fields: Object.keys(updateData || {}) }, userId });
+      await logSystem({ level: 'info', action: 'fail_update', message: 'Fail updated', details: { failId: id, fields: Object.keys(sanitizedUpdate || {}) }, userId });
 
       res.json({
         success: true,
@@ -780,51 +813,47 @@ class FailsController {
   static async awardBadgeIfNotExists(userId, requirementType, requirementValue) {
     try {
       // Trouver le badge correspondant
-      const badge = await executeQuery(
+      const badges = await executeQuery(
         'SELECT id, name FROM badge_definitions WHERE requirement_type = ? AND requirement_value = ?',
         [requirementType, requirementValue]
       );
-      
-      if (badge.length === 0) {
+
+      if (!badges || badges.length === 0) {
         console.log(`⚠️ Aucun badge trouvé pour ${requirementType}:${requirementValue}`);
         return;
       }
-      
-      const badgeId = badge[0].id;
-      const badgeName = badge[0].name;
-      
-      // Vérifier si l'utilisateur a déjà ce badge
-      const existingBadge = await executeQuery(
-        'SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?',
-        [userId, badgeId]
-      );
-      
-      if (existingBadge.length > 0) {
-        console.log(`ℹ️ Badge "${badgeName}" déjà possédé par l'utilisateur ${userId}`);
-        return;
-      }
-      
-      // Générer un UUID pour user_badges
-      const { v4: uuidv4 } = require('uuid');
-      const userBadgeId = uuidv4();
-      
-      // Attribuer le badge
-      await executeQuery(
-        'INSERT INTO user_badges (id, user_id, badge_id, unlocked_at, created_at) VALUES (?, ?, ?, NOW(), NOW())',
-        [userBadgeId, userId, badgeId]
-      );
-      
-      console.log(`🎉 Badge "${badgeName}" attribué à l'utilisateur ${userId}!`);
 
-      // Notification push (si activée)
-      try {
-        const { sendPushToUser } = require('../utils/push');
-        await sendPushToUser(userId, {
-          title: '🏆 Badge débloqué',
-          body: `${badgeName}`,
-          data: { type: 'badge_unlocked', badgeId }
-        });
-      } catch (e) { /* ignorer erreur push */ }
+      for (const candidate of badges) {
+        const badgeId = candidate.id;
+        const badgeName = candidate.name;
+
+        const existingBadge = await executeQuery(
+          'SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ? LIMIT 1',
+          [userId, badgeId]
+        );
+
+        if (existingBadge.length > 0) {
+          console.log(`ℹ️ Badge "${badgeName}" déjà possédé par l'utilisateur ${userId}`);
+          continue;
+        }
+
+        const { v4: uuidv4 } = require('uuid');
+        await executeQuery(
+          'INSERT INTO user_badges (id, user_id, badge_id, unlocked_at, created_at) VALUES (?, ?, ?, NOW(), NOW())',
+          [uuidv4(), userId, badgeId]
+        );
+
+        console.log(`🎉 Badge "${badgeName}" attribué à l'utilisateur ${userId}!`);
+
+        try {
+          const { sendPushToUser } = require('../utils/push');
+          await sendPushToUser(userId, {
+            title: '🏆 Badge débloqué',
+            body: `${badgeName}`,
+            data: { type: 'badge_unlocked', badgeId }
+          });
+        } catch (e) { /* ignorer erreur push */ }
+      }
       
     } catch (error) {
       console.error('❌ Erreur attribution badge:', error);

@@ -7,40 +7,53 @@
 
 const express = require('express');
 const router = express.Router();
-const { executeQuery } = require('../config/database');
+const LogsService = require('../services/logsService');
+const { logsPool } = require('../config/database-logs');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
+
+// Helper pour exécuter des requêtes sur la base logs
+async function executeLogsQuery(query, params = []) {
+  let connection;
+  try {
+    connection = await logsPool.getConnection();
+    const [results] = await connection.execute(query, params);
+    return results;
+  } catch (error) {
+    console.error('❌ Erreur requête logs:', error.message);
+    throw error;
+  } finally {
+    if (connection) connection.release();
+  }
+}
 
 /**
  * GET /api/logs/system
  * Récupère les logs système
  */
-router.get('/system', authenticateToken, async (req, res) => {
+router.get('/system', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { limit = 100, level = 'all' } = req.query;
+    const { limit = 100, level = 'all', action, userId } = req.query;
     
-    let query = `
-      SELECT 
-        id,
-        level,
-        message,
-        details,
-        user_id,
-        action,
-        created_at
-      FROM system_logs
-    `;
-    
-    const params = [];
+    // Construction des filtres pour le nouveau service
+    const filters = {
+      limit: parseInt(limit) || 100,
+      offset: 0
+    };
     
     if (level !== 'all') {
-      query += ' WHERE level = ?';
-      params.push(level);
+      filters.level = level;
     }
     
-    query += ' ORDER BY created_at DESC LIMIT ?';
-    params.push(parseInt(limit));
+    if (action) {
+      filters.action = action;
+    }
     
-    const logs = await executeQuery(query, params);
+    if (userId) {
+      filters.userId = userId;
+    }
+    
+    // Utilisation du nouveau service de logs
+    const logs = await LogsService.getLogs(filters);
     
     res.json({
       success: true,
@@ -61,26 +74,19 @@ router.get('/system', authenticateToken, async (req, res) => {
  * GET /api/logs/user/:userId
  * Récupère les logs d'un utilisateur spécifique
  */
-router.get('/user/:userId', authenticateToken, async (req, res) => {
+router.get('/user/:userId', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params;
     const { limit = 50 } = req.query;
     
-    const query = `
-      SELECT 
-        id,
-        level,
-        message,
-        details,
-        action,
-        created_at
-      FROM system_logs
-      WHERE user_id = ?
-      ORDER BY created_at DESC
-      LIMIT ?
-    `;
+    // Utilisation du nouveau service avec filtre utilisateur
+    const filters = {
+      limit: parseInt(limit) || 50,
+      offset: 0,
+      userId: userId
+    };
     
-    const logs = await executeQuery(query, [userId, parseInt(limit)]);
+    const logs = await LogsService.getLogs(filters);
     
     res.json({
       success: true,
@@ -99,38 +105,62 @@ router.get('/user/:userId', authenticateToken, async (req, res) => {
 });
 
 /**
+ * GET /api/logs/stats
+ * Récupère les statistiques des logs
+ */
+router.get('/stats', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { period = '24h' } = req.query;
+    
+    const stats = await LogsService.getLogStats(period);
+    
+    res.json({
+      success: true,
+      stats: stats,
+      period: period
+    });
+    
+  } catch (error) {
+    console.error('❌ Erreur récupération stats logs:', error);
+    res.status(500).json({
+      error: 'Erreur lors de la récupération des statistiques',
+      code: 'LOGS_STATS_ERROR'
+    });
+  }
+});
+
+/**
  * POST /api/logs/system
  * Ajoute un log système
  */
-router.post('/system', authenticateToken, async (req, res) => {
+router.post('/system', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { level, message, details, action } = req.body;
     const userId = req.user?.id || null;
     
-    const query = `
-      INSERT INTO system_logs (id, level, message, details, user_id, action, created_at)
-      VALUES (UUID(), ?, ?, ?, ?, ?, NOW())
-    `;
-    
-    const result = await executeQuery(query, [
-      String(level || 'info').toLowerCase(),
-      message || '',
-      details ? JSON.stringify(details) : null,
-      userId,
-      action || null
-    ]);
+    // Utilisation du nouveau service de logs
+    const logId = await LogsService.saveLog({
+      id: require('uuid').v4(),
+      level: level || 'info',
+      message: message || '',
+      details: details || {},
+      user_id: userId,
+      action: action || 'manual_log',
+      ip_address: req.ip || '',
+      user_agent: req.get('User-Agent') || ''
+    });
     
     res.json({
       success: true,
       message: 'Log ajouté avec succès',
-      logId: result.insertId
+      logId: logId
     });
     
   } catch (error) {
-    console.error('❌ Erreur ajout log système:', error);
+    console.error('❌ Erreur ajout log manuel:', error);
     res.status(500).json({
       error: 'Erreur lors de l\'ajout du log',
-      code: 'LOG_INSERT_ERROR'
+      code: 'LOG_ADD_ERROR'
     });
   }
 });
@@ -150,11 +180,11 @@ router.delete('/cleanup', authenticateToken, async (req, res) => {
     }
     
     const query = `
-      DELETE FROM system_logs 
+      DELETE FROM activity_logs 
       WHERE created_at < DATE_SUB(NOW(), INTERVAL 30 DAY)
     `;
     
-    const result = await executeQuery(query);
+    const result = await executeLogsQuery(query);
     
     res.json({
       success: true,
@@ -208,14 +238,14 @@ router.post('/comprehensive', (req, res) => {
 router.get('/comprehensive', authenticateToken, async (req, res) => {
   try {
     const { limit = 100, level = null, action = null, sinceHours = 24 } = req.query;
-    let query = `SELECT id, level, message, details, user_id, action, created_at FROM system_logs WHERE 1=1`;
+    let query = `SELECT id, level, message, details, user_id, action, created_at FROM activity_logs WHERE 1=1`;
     const params = [];
     if (level) { query += ' AND level = ?'; params.push(level); }
     if (action) { query += ' AND action = ?'; params.push(action); }
     if (sinceHours) { query += ' AND created_at >= DATE_SUB(NOW(), INTERVAL ? HOUR)'; params.push(parseInt(sinceHours)); }
     query += ' ORDER BY created_at DESC LIMIT ?';
     params.push(parseInt(limit));
-    const logs = await executeQuery(query, params);
+    const logs = await executeLogsQuery(query, params);
     res.json({ success: true, logs });
   } catch (error) {
     console.error('❌ Erreur GET comprehensive logs:', error);
@@ -239,8 +269,8 @@ router.put('/comprehensive/:id', authenticateToken, requireAdmin, async (req, re
     if (message) { fields.push('message = ?'); params.push(message); }
     if (details) { fields.push('details = ?'); params.push(JSON.stringify(details)); }
     params.push(id);
-    const sql = `UPDATE system_logs SET ${fields.join(', ')} WHERE id = ?`;
-    await executeQuery(sql, params);
+    const sql = `UPDATE activity_logs SET ${fields.join(', ')} WHERE id = ?`;
+    await executeLogsQuery(sql, params);
     res.json({ success: true, message: 'Log mis à jour' });
   } catch (error) {
     console.error('❌ Erreur update comprehensive log:', error);

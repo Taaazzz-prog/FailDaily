@@ -31,6 +31,10 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   hidden = false;
   pulseFlags: Record<string, boolean> = { courage: false, laugh: false, empathy: false, support: false };
 
+  private isLoadingReactions = false;
+  private lastReactionLoadTime = 0;
+  private readonly REACTION_LOAD_DEBOUNCE_MS = 3000; // 3 secondes entre les chargements (augmenté)
+
   private encouragementMessages = [
     'Chaque échec est un pas vers la réussite ! 💪',
     'Tu as eu le courage de le partager ! 🌟',
@@ -48,21 +52,42 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
   ) { }
 
   async ngOnInit() {
-    // Récupérer la réaction actuelle de l'utilisateur pour ce fail
-    await this.loadUserReaction();
+    // NE PAS charger les réactions ici - elles sont préchargées par le FailService
+    // Nous allons les récupérer depuis le cache directement
+    await this.loadUserReactionFromCache();
   }
 
   ionViewWillEnter() {
-    // Recharger la réaction utilisateur à chaque fois que la vue devient active
-    this.loadUserReaction();
+    // Rechargement périodique avec debouncing
+    const now = Date.now();
+    if (this.userReactions.length === 0 && (now - this.lastReactionLoadTime) > this.REACTION_LOAD_DEBOUNCE_MS) {
+      this.loadUserReactionFromCache();
+    }
   }
 
-  private async loadUserReaction() {
+  /**
+   * Charge les réactions depuis le cache (préchargées par FailService)
+   * Ne fait PAS d'appel API direct
+   */
+  private async loadUserReactionFromCache() {
+    const now = Date.now();
+    
+    // Debouncing : éviter les appels trop fréquents
+    if (this.isLoadingReactions || (now - this.lastReactionLoadTime) < this.REACTION_LOAD_DEBOUNCE_MS) {
+      return;
+    }
+
+    this.isLoadingReactions = true;
+    this.lastReactionLoadTime = now;
+
     try {
+      // Utiliser directement le cache du MysqlService (déjà préchargé)
       this.userReactions = await this.failService.getUserReactionsForFail(this.fail.id);
     } catch (error) {
-      console.log('Erreur lors du chargement des réactions utilisateur:', error);
+      console.log('Erreur lors du chargement des réactions utilisateur depuis le cache:', error);
       this.userReactions = [];
+    } finally {
+      this.isLoadingReactions = false;
     }
   }
 
@@ -280,7 +305,7 @@ export class FailCardComponent implements OnInit, ViewWillEnter {
       }
 
       // Recharger les réactions de l'utilisateur
-      await this.loadUserReaction();
+      await this.loadUserReactionFromCache();
     } catch (error) {
       console.log('❌ Erreur lors du refresh des données du fail:', error);
     }

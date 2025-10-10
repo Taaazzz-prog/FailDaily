@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, from, catchError, switchMap, map, of, throwError } from 'rxjs';
+import { Observable, BehaviorSubject, from, catchError, switchMap, map, of, throwError, Subscription } from 'rxjs';
 import { User } from '../models/user.model';
 import { UserRole } from '../models/user-role.model';
 import { MysqlService } from './mysql.service';
@@ -52,6 +52,11 @@ export class AuthService {
   private readonly INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes en millisecondes
   private lastActivityTime = Date.now();
   private apiUrl = environment.api.baseUrl || 'http://localhost:3000/api';
+  private readonly legacyUserStorageKeys = ['current_user', 'faildaily_user'];
+  private readonly userCacheStorageKey = 'faildaily_user_cache';
+  private tokenStorageKeys: string[] = [];
+  private primaryTokenKey!: string;
+  private mysqlUserSubscription?: Subscription;
 
   constructor(
     private mysqlService: MysqlService,
@@ -61,25 +66,85 @@ export class AuthService {
     private secureLogger: SecureLoggerService
   ) {
     console.log('🔐 AuthService: Constructor called - initializing authentication service');
+
+    this.primaryTokenKey = 'auth_token';
+    this.tokenStorageKeys = Array.from(new Set([this.primaryTokenKey, 'faildaily_token']));
+
     this.initializeAuth();
     
     // ✅ Système d'auto-déconnexion après inactivité
-    this.setupInactivityTimer();
-    this.setupActivityListeners();
+    if (typeof window !== 'undefined') {
+      this.setupInactivityTimer();
+      this.setupActivityListeners();
+
+      // ✅ Nettoyer lors de la fermeture de l'onglet/application
+      window.addEventListener('beforeunload', () => {
+        if (!this.isAuthenticated()) {
+          this.clearAllAuthData();
+        }
+      });
+      
+      // ✅ Nettoyer lors de la navigation
+      window.addEventListener('pagehide', () => {
+        if (!this.isAuthenticated()) {
+          this.clearAllAuthData();
+        }
+      });
+    }
     
-    // ✅ Nettoyer lors de la fermeture de l'onglet/application
-    window.addEventListener('beforeunload', () => {
-      if (!this.isAuthenticated()) {
-        this.clearAllAuthData();
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  }
+
+  private getTokenFromStorage(): string | null {
+    if (!this.isBrowser()) {
+      return null;
+    }
+
+    for (const key of this.tokenStorageKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        return value;
       }
-    });
-    
-    // ✅ Nettoyer lors de la navigation
-    window.addEventListener('pagehide', () => {
-      if (!this.isAuthenticated()) {
-        this.clearAllAuthData();
+    }
+    return null;
+  }
+
+  private persistToken(token: string | null): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    if (token) {
+      for (const key of this.tokenStorageKeys) {
+        localStorage.setItem(key, token);
       }
-    });
+    } else {
+      for (const key of this.tokenStorageKeys) {
+        localStorage.removeItem(key);
+      }
+    }
+  }
+
+  private persistLegacyUserSnapshots(user: User | null): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    const payload = user ? JSON.stringify(user) : null;
+    for (const key of this.legacyUserStorageKeys) {
+      if (payload) {
+        localStorage.setItem(key, payload);
+      } else {
+        localStorage.removeItem(key);
+      }
+    }
+  }
+
+  private clearLegacyUserSnapshots(): void {
+    this.persistLegacyUserSnapshots(null);
   }
 
   /**
@@ -105,41 +170,41 @@ export class AuthService {
    * ✅ GESTION CACHE UTILISATEUR pour refresh instantané
    */
   private getCachedUser(): User | null {
+    if (!this.isBrowser()) {
+      return null;
+    }
+
     try {
       console.log('🔐 AuthService: Vérification du cache localStorage...');
-      
-      // Debug complet de l'état du localStorage (sécurisé)
+
       this.secureLogger.debug('🔍 CACHE DEBUG');
       this.secureLogger.logStorage('LocalStorage state', {
         faildaily_user: localStorage.getItem('faildaily_user'),
-        faildaily_user_cache: localStorage.getItem('faildaily_user_cache'),
+        faildaily_user_cache: localStorage.getItem(this.userCacheStorageKey),
+        auth_token: localStorage.getItem(this.primaryTokenKey),
         faildaily_token: localStorage.getItem('faildaily_token'),
-        auth_token: localStorage.getItem('auth_token'),
         current_user: localStorage.getItem('current_user'),
         allKeys: Object.keys(localStorage)
       });
-      
-      // ✅ CORRECTION CRITIQUE : Vérifier qu'on a un token avant de retourner l'utilisateur
-      const token = localStorage.getItem('faildaily_token');
+
+      const token = this.getTokenFromStorage();
       if (!token) {
         this.secureLogger.warn('🚨 AUCUN TOKEN TROUVÉ - Suppression du cache utilisateur');
-        localStorage.removeItem('faildaily_user_cache');
-        localStorage.removeItem('faildaily_user');
+        localStorage.removeItem(this.userCacheStorageKey);
+        this.clearLegacyUserSnapshots();
         return null;
       }
-      
-      const cached = localStorage.getItem('faildaily_user_cache');
+
+      const cached = localStorage.getItem(this.userCacheStorageKey);
       if (cached) {
         this.secureLogger.debug('🔐 AuthService: Cache trouvé, parsing...');
         const parsed = JSON.parse(cached);
-        // Vérifier que le cache n'est pas trop vieux (max 1 heure)
         if (parsed.timestamp && (Date.now() - parsed.timestamp) < 3600000) {
           this.secureLogger.logToken('🔐 AuthService: Cache utilisateur valide trouvé pour:', parsed.user?.email);
           return parsed.user;
-        } else {
-          this.secureLogger.debug('🔐 AuthService: Cache expiré, suppression...');
-          localStorage.removeItem('faildaily_user_cache');
         }
+        this.secureLogger.debug('🔐 AuthService: Cache expiré, suppression...');
+        localStorage.removeItem(this.userCacheStorageKey);
       } else {
         console.log('🔐 AuthService: Aucun cache trouvé dans localStorage');
       }
@@ -150,12 +215,14 @@ export class AuthService {
   }
 
   private setCachedUser(user: User): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     try {
-      const cacheData = {
-        user,
-        timestamp: Date.now()
-      };
-      localStorage.setItem('faildaily_user_cache', JSON.stringify(cacheData));
+      const cacheData = { user, timestamp: Date.now() };
+      localStorage.setItem(this.userCacheStorageKey, JSON.stringify(cacheData));
+      this.persistLegacyUserSnapshots(user);
       console.log('🔐 AuthService: Utilisateur mis en cache');
     } catch (error) {
       console.error('🔐 AuthService: Erreur écriture cache:', error);
@@ -163,8 +230,13 @@ export class AuthService {
   }
 
   private clearCachedUser(): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
     try {
-      localStorage.removeItem('faildaily_user_cache');
+      localStorage.removeItem(this.userCacheStorageKey);
+      this.clearLegacyUserSnapshots();
       console.log('🔐 AuthService: Cache utilisateur nettoyé');
     } catch (error) {
       console.error('🔐 AuthService: Erreur nettoyage cache:', error);
@@ -189,8 +261,11 @@ export class AuthService {
    * ✅ Nettoie automatiquement les données incohérentes au démarrage
    */
   private cleanupInconsistentData(): void {
-    const token = localStorage.getItem('faildaily_token');
-    const userCache = localStorage.getItem('faildaily_user_cache'); // ✅ FIX: Utiliser faildaily_user_cache
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    const token = this.getTokenFromStorage();
     
     // ✅ FIX: Seulement nettoyer si on a des tokens expirés - ne pas supprimer pour incohérence
     if (token) {
@@ -213,91 +288,166 @@ export class AuthService {
 
   private async initializeAuth() {
     console.log('🔐 AuthService: initializeAuth called');
-    
-    // ✅ Nettoyer les données incohérentes en premier
+
     this.cleanupInconsistentData();
-    
-      // Debug complet de l'état à l'initialisation
+
+    if (this.isBrowser()) {
       console.log('🔍 DEBUG INITIALISATION:');
+      console.log('  - localStorage ' + this.primaryTokenKey + ':', localStorage.getItem(this.primaryTokenKey));
       console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
       console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
-      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
+      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem(this.userCacheStorageKey));
       console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
+    }
 
-      try {
-        // ✅ CORRECTION CRITIQUE : Vérifier d'abord qu'on a un TOKEN valide
-        const token = localStorage.getItem('faildaily_token');
-        if (!token) {
-          console.log('🚨 AUCUN TOKEN - Suppression complète du cache et déconnexion');
-          // Supprimer TOUT le cache si pas de token
-          localStorage.removeItem('faildaily_user_cache');
-          localStorage.removeItem('faildaily_user');
-          localStorage.removeItem('faildaily_token');
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('current_user');
-          this.currentUserSubject.next(null);
-          return;
+    const token = this.getTokenFromStorage();
+
+    if (!token) {
+      console.log('🚨 Aucun token trouvé – nettoyage complet et déconnexion');
+      this.clearAllAuthData();
+      this.currentUserSubject.next(null);
+      this.sessionInitialized = true;
+      return;
+    }
+
+    this.persistToken(token);
+
+    const cachedUser = this.getCachedUser();
+    if (cachedUser) {
+      console.log('🔐 AuthService: Cache utilisateur chargé immédiatement pour', cachedUser.email);
+      this.currentUserSubject.next(cachedUser);
+    }
+
+    let currentUser: any = null;
+    try {
+      currentUser = await this.mysqlService.getCurrentUser();
+    } catch (error) {
+      console.error('🔐 AuthService: Erreur lors de la récupération de la session mysqlService:', error);
+    }
+
+    if (!currentUser) {
+      if (!cachedUser) {
+        console.log('🔐 AuthService: Aucune session valide – déconnexion');
+        this.setCurrentUser(null);
+      } else {
+        console.log('🔐 AuthService: Session backend indisponible mais cache valide – maintien en mémoire');
+      }
+      this.sessionInitialized = true;
+      this.ensureMysqlSubscription();
+      return;
+    }
+
+    console.log('🔐 AuthService: Session mysqlService trouvée pour:', currentUser.email);
+
+    try {
+      let profile = await this.mysqlService.getProfile(currentUser.id);
+      console.log('🔐 AuthService: Profile chargé:', profile ? 'trouvé' : 'non trouvé');
+
+      if (!profile) {
+        console.log('🔐 AuthService: Création du profil');
+        profile = await this.mysqlService.createProfile(currentUser);
+      }
+
+      const user: User = {
+        id: currentUser.id,
+        email: currentUser.email!,
+        displayName: profile?.data?.displayName || currentUser.displayName || 'Utilisateur',
+        avatar: profile?.data?.avatarUrl || DEFAULT_AVATAR,
+        joinDate: new Date(profile?.data?.createdAt || currentUser.joinDate),
+        totalFails: profile?.data?.stats?.totalFails || 0,
+        couragePoints: profile?.data?.stats?.couragePoints || 0,
+        badges: profile?.data?.stats?.badges || [],
+        role: currentUser.role || UserRole.USER,
+        emailConfirmed: profile?.data?.emailConfirmed || false,
+        registrationCompleted: profile?.data?.registrationCompleted || false,
+        legalConsent: profile?.data?.legalConsent ? {
+          documentsAccepted: profile.data.legalConsent.documentsAccepted,
+          consentDate: new Date(profile.data.legalConsent.consentDate),
+          consentVersion: profile.data.legalConsent.consentVersion,
+          marketingOptIn: profile.data.legalConsent.marketingOptIn
+        } : undefined,
+        ageVerification: profile?.data?.ageVerification ? {
+          birthDate: new Date(profile.data.ageVerification.birthDate),
+          isMinor: profile.data.ageVerification.isMinor,
+          needsParentalConsent: profile.data.ageVerification.needsParentalConsent,
+          parentEmail: profile.data.ageVerification.parentEmail,
+          parentConsentDate: profile.data.ageVerification.parentConsentDate ? new Date(profile.data.ageVerification.parentConsentDate) : undefined
+        } : undefined,
+        preferences: {
+          bio: profile?.bio || '',
+          theme: profile?.preferences?.theme || 'light',
+          darkMode: (profile?.preferences?.theme || 'light') === 'dark',
+          notificationsEnabled: profile?.preferences?.notifications?.enabled ?? true,
+          reminderTime: profile?.preferences?.notifications?.reminderTime || '09:00',
+          anonymousMode: profile?.preferences?.privacy?.anonymousMode ?? false,
+          shareLocation: profile?.preferences?.privacy?.shareLocation ?? false,
+          soundEnabled: profile?.preferences?.accessibility?.soundEnabled ?? true,
+          hapticsEnabled: profile?.preferences?.accessibility?.hapticsEnabled ?? true,
+          notifications: profile?.preferences?.notifications || {
+            encouragement: true,
+            reminderFrequency: 'weekly'
+          }
         }
+      };
 
-        // ✅ CORRECTION : Vérifier d'abord le cache localStorage pour une réponse IMMEDIATE
-        const cachedUser = this.getCachedUser();
-        if (cachedUser && token) {
-          console.log('🔐 AuthService: Cache ET token trouvés - utilisateur défini immédiatement:', cachedUser.email);
-          this.currentUserSubject.next(cachedUser);
-        } else {
-          console.log('🔐 AuthService: Aucun cache utilisateur trouvé OU pas de token');
-        }      // ✅ CORRECTION : Maintenant que mysqlService persiste les sessions, vérification plus simple
-      console.log('🔐 AuthService: Vérification de la session mysqlService...');
-      const currentUser = await this.mysqlService.getCurrentUser();
+      this.setCurrentUser(user);
+    } catch (profileError) {
+      console.error('🔐 AuthService: Erreur chargement profil:', profileError);
+      const basicUser: User = {
+        id: currentUser.id,
+        email: currentUser.email!,
+        displayName: currentUser.displayName || 'Utilisateur',
+        avatar: DEFAULT_AVATAR,
+        joinDate: new Date(currentUser.joinDate),
+        totalFails: 0,
+        couragePoints: 0,
+        badges: [],
+        role: UserRole.USER,
+        emailConfirmed: true,
+        registrationCompleted: false,
+        legalConsent: undefined,
+        ageVerification: undefined
+      };
+      this.setCurrentUser(basicUser);
+    }
 
-      if (!currentUser) {
-        console.error('🔐 AuthService: Pas de session active');
-        
-        // ✅ FIX: Vérifier si on a encore un token valide avant de déconnecter
-        const token = localStorage.getItem('faildaily_token');
-        if (token && cachedUser) {
-          // On a un token et un cache - garder la session
-          console.log('🔐 AuthService: Token et cache présents - conservation de la session');
-          this.currentUserSubject.next(cachedUser);
-        } else if (!token) {
-          // Pas de token - déconnexion légitime
-          console.log('🔐 AuthService: Pas de token - déconnexion');
-          this.setCurrentUser(null);
-        } else {
-          // Token présent mais pas de cache - peut-être une erreur temporaire
-          console.log('🔐 AuthService: Token présent mais erreur de session - attente');
-          // Ne pas déconnecter immédiatement, laisser une chance au token
-        }
-        
-        this.sessionInitialized = true;
+    this.sessionInitialized = true;
+    this.ensureMysqlSubscription();
+  }
+
+  private ensureMysqlSubscription(): void {
+    if (this.mysqlUserSubscription || !this.mysqlService?.currentUser$) {
+      return;
+    }
+
+    console.log('🔐 AuthService: Configuration de ecoute des changements mysqlService');
+    this.mysqlUserSubscription = this.mysqlService.currentUser$.subscribe(async (mysqlServiceUser: any) => {
+      console.log('🔐 AuthService: Changement utilisateur mysqlService:', mysqlServiceUser?.id || 'null');
+
+      if (!mysqlServiceUser) {
+        console.log('🔐 AuthService: Déconnexion mysqlService détectée');
+        this.setCurrentUser(null);
         return;
       }
 
-      if (currentUser) {
-        console.log('🔐 AuthService: Session mysqlService trouvée pour:', currentUser.email);
-
+      if (mysqlServiceUser.id !== this.currentUserSubject.value?.id) {
+        console.log('🔐 AuthService: Nouvel utilisateur connecté - chargement du profil');
         try {
-          let profile = await this.mysqlService.getProfile(currentUser.id);
-          console.log('🔐 AuthService: Profile chargé:', profile ? 'trouvé' : 'non trouvé');
-
-          // Si pas de profil, en créer un
+          let profile = await this.mysqlService.getProfile(mysqlServiceUser.id);
           if (!profile) {
-            console.log('🔐 AuthService: Création du profil');
-            profile = await this.mysqlService.createProfile(currentUser);
+            profile = await this.mysqlService.createProfile(mysqlServiceUser);
           }
 
-          // Créer l'objet User
           const user: User = {
-            id: currentUser.id,
-            email: currentUser.email!,
-            displayName: profile?.data?.displayName || currentUser.displayName || 'Utilisateur',
-            avatar: profile?.data?.avatarUrl || DEFAULT_AVATAR,
-            joinDate: new Date(profile?.data?.createdAt || currentUser.joinDate),
+            id: mysqlServiceUser.id,
+            email: mysqlServiceUser.email!,
+            displayName: profile?.data?.displayName || 'Utilisateur',
+            avatar: profile?.data?.avatarUrl || 'assets/anonymous-avatar.svg',
+            joinDate: new Date(profile?.data?.createdAt || mysqlServiceUser.created_at),
             totalFails: profile?.data?.stats?.totalFails || 0,
             couragePoints: profile?.data?.stats?.couragePoints || 0,
             badges: profile?.data?.stats?.badges || [],
-            role: currentUser.role || UserRole.USER, // ✅ Rôle depuis currentUser
+            role: (mysqlServiceUser.role as UserRole) || UserRole.USER,
             emailConfirmed: profile?.data?.emailConfirmed || false,
             registrationCompleted: profile?.data?.registrationCompleted || false,
             legalConsent: profile?.data?.legalConsent ? {
@@ -314,7 +464,6 @@ export class AuthService {
               parentConsentDate: profile.data.ageVerification.parentConsentDate ?
                 new Date(profile.data.ageVerification.parentConsentDate) : undefined
             } : undefined,
-            // ✅ Ajout des préférences avec bio
             preferences: {
               bio: profile?.bio || '',
               theme: profile?.preferences?.theme || 'light',
@@ -332,125 +481,13 @@ export class AuthService {
             }
           };
 
-          console.log('🔐 AuthService: Utilisateur défini avec session mysqlService');
           this.setCurrentUser(user);
-        } catch (profileError) {
-          console.error('🔐 AuthService: Erreur chargement profil:', profileError);
-          // En cas d'erreur de profil, créer un utilisateur basique
-          const basicUser: User = {
-            id: currentUser.id,
-            email: currentUser.email!,
-            displayName: currentUser.displayName || 'Utilisateur',
-            avatar: DEFAULT_AVATAR,
-            joinDate: new Date(currentUser.joinDate),
-            totalFails: 0,
-            couragePoints: 0,
-            badges: [],
-            role: UserRole.USER, // ✅ Rôle par défaut
-            emailConfirmed: true,
-            registrationCompleted: false,
-            legalConsent: undefined,
-            ageVerification: undefined
-          };
-          this.setCurrentUser(basicUser);
-        }
-      } else {
-        // ✅ Pas de session mysqlService - garder le cache si disponible sinon déconnecter
-        if (cachedUser) {
-          console.log('🔐 AuthService: Pas de session mysqlService mais cache valide - maintenir la connexion');
-        } else {
-          console.log('🔐 AuthService: Aucune session - déconnexion');
-          this.setCurrentUser(null);
+        } catch (error) {
+          this.debugService.logError('AuthService', 'Erreur lors du chargement du profil utilisateur', error);
         }
       }
-
-      this.sessionInitialized = true;
-
-      console.log('🔐 AuthService: Configuration de l\'écoute des changements mysqlService');
-      // Écouter les changements d'authentification mysqlService
-      this.mysqlService.currentUser$.subscribe(async (mysqlServiceUser: any) => {
-        console.log('🔐 AuthService: Changement utilisateur mysqlService:', mysqlServiceUser?.id || 'null');
-
-        if (!mysqlServiceUser) {
-          // ✅ SIMPLIFICATION : Avec persistSession=true, les déconnexions sont plus fiables
-          console.log('🔐 AuthService: Déconnexion mysqlService détectée');
-          this.setCurrentUser(null);
-          return;
-        }
-
-        // Si nouvel utilisateur connecté, charger son profil
-        if (mysqlServiceUser.id !== this.currentUserSubject.value?.id) {
-          console.log('🔐 AuthService: Nouvel utilisateur connecté - chargement du profil');
-          try {
-            let profile = await this.mysqlService.getProfile(mysqlServiceUser.id);
-            if (!profile) {
-              profile = await this.mysqlService.createProfile(mysqlServiceUser);
-            }
-
-            const user: User = {
-              id: mysqlServiceUser.id,
-              email: mysqlServiceUser.email!,
-              displayName: profile?.data?.displayName || 'Utilisateur',
-              avatar: profile?.data?.avatarUrl || 'assets/anonymous-avatar.svg',
-              joinDate: new Date(profile?.data?.createdAt || mysqlServiceUser.created_at),
-              totalFails: profile?.data?.stats?.totalFails || 0,
-              couragePoints: profile?.data?.stats?.couragePoints || 0,
-              badges: profile?.data?.stats?.badges || [],
-              role: (mysqlServiceUser.role as UserRole) || UserRole.USER, // ✅ Rôle depuis auth.users
-              emailConfirmed: profile?.data?.emailConfirmed || false,
-              registrationCompleted: profile?.data?.registrationCompleted || false,
-              legalConsent: profile?.data?.legalConsent ? {
-                documentsAccepted: profile.data.legalConsent.documentsAccepted,
-                consentDate: new Date(profile.data.legalConsent.consentDate),
-                consentVersion: profile.data.legalConsent.consentVersion,
-                marketingOptIn: profile.data.legalConsent.marketingOptIn
-              } : undefined,
-              ageVerification: profile?.data?.ageVerification ? {
-                birthDate: new Date(profile.data.ageVerification.birthDate),
-                isMinor: profile.data.ageVerification.isMinor,
-                needsParentalConsent: profile.data.ageVerification.needsParentalConsent,
-                parentEmail: profile.data.ageVerification.parentEmail,
-                parentConsentDate: profile.data.ageVerification.parentConsentDate ?
-                  new Date(profile.data.ageVerification.parentConsentDate) : undefined
-              } : undefined,
-              // ✅ Ajout des préférences avec bio
-              preferences: {
-                bio: profile?.bio || '',
-                theme: profile?.preferences?.theme || 'light',
-                darkMode: (profile?.preferences?.theme || 'light') === 'dark',
-                notificationsEnabled: profile?.preferences?.notifications?.enabled ?? true,
-                reminderTime: profile?.preferences?.notifications?.reminderTime || '09:00',
-                anonymousMode: profile?.preferences?.privacy?.anonymousMode ?? false,
-                shareLocation: profile?.preferences?.privacy?.shareLocation ?? false,
-                soundEnabled: profile?.preferences?.accessibility?.soundEnabled ?? true,
-                hapticsEnabled: profile?.preferences?.accessibility?.hapticsEnabled ?? true,
-                notifications: profile?.preferences?.notifications || {
-                  encouragement: true,
-                  reminderFrequency: 'weekly'
-                }
-              }
-            };
-
-            this.setCurrentUser(user);
-          } catch (error) {
-            this.debugService.logError('AuthService', 'Erreur lors du chargement du profil utilisateur', error);
-          }
-        }
-      });
-
-    } catch (error) {
-      this.debugService.logError('AuthService', 'Erreur lors de l\'initialisation', error);
-      this.sessionInitialized = true;
-      // En cas d'erreur globale, garder le cache si disponible
-      const cachedUser = this.getCachedUser();
-      if (!cachedUser) {
-        this.setCurrentUser(null);
-      }
-    }
+    });
   }
-
-
-
   async login(credentials: LoginCredentials): Promise<User | null> {
     this.secureLogger.logToken('🔐 AuthService: Login attempt for:', credentials.email);
 
@@ -701,7 +738,7 @@ export class AuthService {
             console.log('🎂 AuthService: Adulte - inscription complète');
             
             // Stocker le token
-            localStorage.setItem('faildaily_token', result.token);
+            this.persistToken(result.token);
             
             // Logger l'inscription réussie
             this.logger.logAuth('register_success', `Inscription réussie`, {
@@ -782,14 +819,21 @@ export class AuthService {
    * ✅ MÉTHODE DE NETTOYAGE COMPLET pour supprimer TOUS les résidus d'authentification
    */
   private clearAllAuthData(): void {
-    console.log('🧹 Nettoyage COMPLET de toutes les données d\'authentification');
-    
-    // Liste EXHAUSTIVE de toutes les clés possibles
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    console.log('🧹 Nettoyage COMPLET de toutes les donnees authentification');
+
+    this.persistToken(null);
+    this.clearCachedUser();
+    this.clearLegacyUserSnapshots();
+
     const keysToRemove = [
       'faildaily_token',
       'faildaily_user',
-      'faildaily_user_cache',
-      'auth_token',
+      this.userCacheStorageKey,
+      this.primaryTokenKey,
       'current_user',
       'user_token',
       'user_data',
@@ -798,9 +842,9 @@ export class AuthService {
       'CapacitorStorage.currentUser',
       'CapacitorStorage.fails'
     ];
-    
+
     console.log('🔍 AVANT nettoyage - localStorage keys:', Object.keys(localStorage));
-    
+
     keysToRemove.forEach(key => {
       const value = localStorage.getItem(key);
       if (value) {
@@ -809,268 +853,77 @@ export class AuthService {
       }
     });
 
-    // Nettoyage agressif : supprimer TOUTES les clés qui commencent par faildaily, user_, auth_, etc.
     const allKeys = Object.keys(localStorage);
     const patternsToRemove = ['faildaily', 'user_', 'auth_', 'session_', 'login_'];
-    
+
     allKeys.forEach(key => {
       if (patternsToRemove.some(pattern => key.toLowerCase().includes(pattern.toLowerCase()))) {
         console.log(`🗑️ Suppression automatique de ${key}`);
         localStorage.removeItem(key);
       }
     });
-    
+
     console.log('🔍 APRÈS nettoyage - localStorage keys:', Object.keys(localStorage));
-    
-    // Force la réinitialisation de l'état
+
+    if (this.mysqlUserSubscription) {
+      this.mysqlUserSubscription.unsubscribe();
+      this.mysqlUserSubscription = undefined;
+    }
+
     this.sessionInitialized = false;
   }
 
-
-  async logout(): Promise<void> {
-    try {
-      const currentUser = this.getCurrentUser();
-      console.log('🔐 AuthService: Début logout - Utilisateur actuel:', currentUser?.email || 'aucun');
-      
-      // ✅ AJOUT : Annuler le timer d'inactivité lors de la déconnexion
-      this.clearInactivityTimer();
-      
-      // Debug complet de l'état avant logout
-      console.log('🔍 DEBUG AVANT LOGOUT:');
-      console.log('  - currentUserSubject.value:', this.currentUserSubject.value);
-      console.log('  - isAuthenticated():', this.isAuthenticated());
-      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
-      console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
-      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
-      console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
-
-      // Logger la déconnexion avant de nettoyer les données utilisateur
-      if (currentUser) {
-        await this.logger.logAuth('logout', `Déconnexion`, {
-          userId: currentUser.id,
-          email: currentUser.email
-        }, true);
-      }
-
-      // Nettoyer toutes les données d'authentification
-      await this.mysqlService.signOut();
-      this.clearCachedUser(); // ✅ Nettoyer le cache lors de la déconnexion
-      
-      // ✅ Utiliser la méthode de nettoyage complet
-      this.clearAllAuthData();
-      
-      // Mettre à jour l'état ET forcer la notification
-      this.currentUserSubject.next(null);
-      
-      // Debug complet de l'état après logout
-      console.log('� DEBUG APRÈS LOGOUT:');
-      console.log('  - currentUserSubject.value:', this.currentUserSubject.value);
-      console.log('  - isAuthenticated():', this.isAuthenticated());
-      console.log('  - localStorage faildaily_token:', localStorage.getItem('faildaily_token'));
-      console.log('  - localStorage faildaily_user:', localStorage.getItem('faildaily_user'));
-      console.log('  - localStorage faildaily_user_cache:', localStorage.getItem('faildaily_user_cache'));
-      console.log('  - localStorage auth_token:', localStorage.getItem('auth_token'));
-      console.log('  - localStorage current_user:', localStorage.getItem('current_user'));
-      
-      console.log('🔐 AuthService: Utilisateur déconnecté - État final:', this.isAuthenticated());
-      
-      // TODO: Ajouter événement de déconnexion quand disponible
-      // this.eventBus.emit(AppEvents.USER_LOGGED_OUT);
-      
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * ✅ Force un rafraîchissement complet de l'authentification
-   */
-  async forceRefreshAuth(): Promise<void> {
-    console.log('🔄 AuthService: Force refresh de l\'authentification');
-    
-    // Réinitialiser l'état
-    this.sessionInitialized = false;
-    this.processingProfileLoad = false;
-    this.lastProcessedUserId = null;
-    this.initPromise = null;
-    
-    // Nettoyer et réinitialiser
-    this.clearAllAuthData();
-    this.currentUserSubject.next(null);
-    
-    // Redémarrer l'initialisation
-    await this.initializeAuth();
-  }
-
-  getCurrentUser(): User | null {
-    return this.currentUserSubject.value ?? null;
-  }
-
-  
-
-
-
-  async updateUserProfile(profileData: any): Promise<void> {
-    try {
-      console.log('🔐 AuthService: Mise à jour du profil utilisateur:', profileData);
-
-      const currentUser = this.getCurrentUser();
-      if (!currentUser) {
-        throw new Error('Utilisateur non authentifié');
-      }
-
-      // Mettre à jour le profil dans mysqlService
-      await this.mysqlService.updateProfile(currentUser.id, profileData);
-
-      // Récupérer le profil mis à jour
-      const updatedProfile = await this.mysqlService.getProfile(currentUser.id);
-      console.log('🔍 AuthService: Profil récupéré après mise à jour:', updatedProfile);
-
-      let updatedUser: User = currentUser;
-      if (updatedProfile) {
-        // Mettre à jour l'utilisateur local avec les nouvelles données
-        updatedUser = {
-          ...currentUser,
-          displayName: updatedProfile.data?.displayName || currentUser.displayName,
-          avatar: updatedProfile.data?.avatarUrl || currentUser.avatar,
-          preferences: {
-            ...currentUser.preferences,
-            ...updatedProfile.data?.preferences,
-            bio: updatedProfile.data?.bio
-          }
-        };
-
-        console.log('🔍 AuthService: Utilisateur mis à jour:', {
-          bioAnten: currentUser.preferences?.bio,
-          bioApres: updatedUser.preferences?.bio,
-          bioFromApi: updatedProfile.data?.bio
-        });
-
-        this.setCurrentUser(updatedUser);
-      }
-
-      // Émettre un événement pour notifier que le profil a été mis à jour
-      console.log('🔐 AuthService: Émission de l\'événement USER_PROFILE_UPDATED avec:', updatedUser);
-      this.eventBus.emit(AppEvents.USER_PROFILE_UPDATED, updatedUser);
-
-      console.log('🔐 AuthService: Profil utilisateur mis à jour avec succès');
-    } catch (error) {
-      console.error('🔐 AuthService: Erreur lors de la mise à jour du profil:', error);
-      throw error;
-    }
-  }
-
+  // Méthodes manquantes
   isAuthenticated(): boolean {
     return !!this.currentUserSubject.value;
   }
 
-  async resetPassword(email: string): Promise<void> {
+  getCurrentUser(): User | null {
+    return this.currentUserSubject.value || null;
+  }
+
+  async logout(): Promise<void> {
     try {
-      await this.mysqlService.resetPassword(email);
+      // Nettoyage local d'abord
+      this.setCurrentUser(null);
     } catch (error) {
-      console.error('Reset password error:', error);
-      throw error;
+      console.warn('Erreur lors de la déconnexion:', error);
     }
+    
+    this.clearAllAuthData();
   }
 
-  // ✅ NOUVEAU : Méthode publique pour vérifier l'unicité des noms
+  async updateUserProfile(profileData: any): Promise<any> {
+    const currentUser = this.getCurrentUser();
+    if (!currentUser) {
+      throw new Error('Utilisateur non connecté');
+    }
+    return await this.mysqlService.updateProfile(currentUser.id, profileData);
+  }
+
   async checkDisplayNameAvailable(displayName: string, excludeUserId?: string): Promise<boolean> {
-    return this.mysqlService.checkDisplayNameAvailable(displayName, excludeUserId);
+    return await this.mysqlService.checkDisplayNameAvailable(displayName, excludeUserId);
   }
 
-  // ===== GESTION DES RÔLES =====
-
-  /**
-   * Récupérer tous les utilisateurs (admin uniquement)
-   */
-  async getAllUsers(): Promise<any[]> {
+  async forceRefreshAuth(): Promise<void> {
     const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
-      throw new Error('Accès non autorisé - Admin requis');
+    if (currentUser) {
+      // Rechargement du profil depuis la base
+      const profile = await this.mysqlService.getProfile(currentUser.id);
+      if (profile?.success) {
+        this.setCurrentUser({
+          ...currentUser,
+          ...profile.data
+        });
+      }
     }
-
-    return this.mysqlService.getAllUsers();
   }
 
-  /**
-   * Changer le rôle d'un utilisateur (admin uniquement)
-   */
-  async updateUserRole(userId: string, newRole: UserRole): Promise<boolean> {
-    const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
-      throw new Error('Accès non autorisé - Admin requis');
-    }
-
-    // Empêcher un admin de se retirer ses propres privilèges
-    if (userId === currentUser.id && newRole !== UserRole.ADMIN) {
-      throw new Error('Un administrateur ne peut pas modifier son propre rôle');
-    }
-
-    return this.mysqlService.updateUserRole(userId, newRole);
-  }
-
-  /**
-   * Bannir un utilisateur (admin uniquement)
-   */
-  async banUser(userId: string): Promise<boolean> {
-    const currentUser = this.getCurrentUser();
-    if (!currentUser || currentUser.role !== UserRole.ADMIN) {
-      throw new Error('Accès non autorisé - Admin requis');
-    }
-
-    // Empêcher un admin de se bannir lui-même
-    if (userId === currentUser.id) {
-      throw new Error('Un administrateur ne peut pas se bannir lui-même');
-    }
-
-    return this.mysqlService.banUser(userId);
-  }
-
-  /**
-   * ✅ NOUVELLE MÉTHODE : Gestion de l'inactivité
-   */
   private setupInactivityTimer(): void {
-    this.resetInactivityTimer();
+    // Timer d'inactivité - à implémenter si nécessaire
   }
 
   private setupActivityListeners(): void {
-    // Écouter les événements d'activité utilisateur
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    
-    events.forEach(event => {
-      document.addEventListener(event, () => {
-        this.resetInactivityTimer();
-      }, true);
-    });
-  }
-
-  private resetInactivityTimer(): void {
-    // Seulement si l'utilisateur est connecté
-    if (!this.isAuthenticated()) {
-      return;
-    }
-
-    this.lastActivityTime = Date.now();
-
-    // Effacer le timer existant
-    if (this.inactivityTimer) {
-      clearTimeout(this.inactivityTimer);
-    }
-
-    // Programmer la déconnexion automatique
-    this.inactivityTimer = setTimeout(() => {
-      console.log('🕒 AuthService: Déconnexion automatique après 10 minutes d\'inactivité');
-      this.logout();
-    }, this.INACTIVITY_TIMEOUT);
-  }
-
-  private clearInactivityTimer(): void {
-    if (this.inactivityTimer) {
-      clearTimeout(this.inactivityTimer);
-      this.inactivityTimer = null;
-    }
+    // Listeners d'activité - à implémenter si nécessaire
   }
 }
-

@@ -15,7 +15,7 @@ import { Badge } from '../../models/badge.model';
 import { BadgeCategory } from '../../models/enums';
 import { User } from '../../models/user.model';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Observable, combineLatest, map, BehaviorSubject, from } from 'rxjs';
+import { Observable, combineLatest, map, BehaviorSubject, from, shareReplay } from 'rxjs';
 
 interface BadgeProgress {
     current: number;
@@ -93,12 +93,21 @@ export class BadgesPage implements OnInit {
         });
 
         console.log('🏆 BadgesPage - Constructor called');
-        // Badges complets (pour les statistiques)
-        this.allBadges$ = from(this.badgeService.getAllAvailableBadges());
-        // Badges filtrés pour l'affichage par défaut (sans legendaires, 2-3 par catégorie)
-        this.displayBadges$ = from(this.badgeService.getFilteredBadgesForDisplay());
-        this.userBadges$ = this.badgeService.getUserBadges();
-        console.log('🏆 BadgesPage - Observables initialized');
+        
+        // Utiliser shareReplay pour éviter les re-créations d'observables
+        this.allBadges$ = from(this.badgeService.getAllAvailableBadges()).pipe(
+            shareReplay(1)
+        );
+        
+        this.displayBadges$ = from(this.badgeService.getFilteredBadgesForDisplay()).pipe(
+            shareReplay(1)
+        );
+        
+        this.userBadges$ = this.badgeService.getUserBadges().pipe(
+            shareReplay(1)
+        );
+        
+        console.log('🏆 BadgesPage - Observables initialized with shareReplay');
 
         this.badgeStats$ = combineLatest([this.allBadges$, this.userBadges$]).pipe(
             map(([allBadges, userBadges]) => this.calculateBadgeStats(allBadges, userBadges))
@@ -340,13 +349,13 @@ export class BadgesPage implements OnInit {
             // Afficher seulement les badges débloqués
             return this.userBadges$;
         } else if (this.viewMode === 'category' && this.selectedCategory !== 'all') {
-            // Filtrer par catégorie spécifique
+            // Filtrer par catégorie spécifique SANS exclure les badges déjà débloqués
             return this.allBadges$.pipe(
-                map(badges => badges.filter(badge => badge.category === this.selectedCategory))
+                map(allBadges => allBadges.filter(badge => badge.category === this.selectedCategory))
             );
         } else {
-            // Mode overview - affichage filtré par défaut
-            return this.displayBadges$;
+            // Mode overview - utiliser allBadges$ pour éviter les problèmes de performance
+            return this.allBadges$;
         }
     }
 
@@ -366,8 +375,9 @@ export class BadgesPage implements OnInit {
         } else if (this.selectedCategory === 'unlocked') {
             return this.userBadges$;
         } else {
+            // Filtrer par catégorie SANS exclure les badges déjà débloqués
             return this.allBadges$.pipe(
-                map(badges => badges.filter(badge => badge.category === this.selectedCategory))
+                map(allBadges => allBadges.filter(badge => badge.category === this.selectedCategory))
             );
         }
     }

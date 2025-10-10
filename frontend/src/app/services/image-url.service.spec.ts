@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { ImageUrlService } from './image-url.service';
 import { environment } from '../../environments/environment';
 
@@ -6,7 +7,9 @@ describe('ImageUrlService', () => {
   let service: ImageUrlService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient()]
+    });
     service = TestBed.inject(ImageUrlService);
   });
 
@@ -26,8 +29,8 @@ describe('ImageUrlService', () => {
     expect(service.getFullImageUrl('assets/profil/face.png')).toBe('/assets/profil/face.png');
   });
 
-  it('getAvatarUrl should fallback to base avatar when null', () => {
-    expect(service.getAvatarUrl(null as any)).toBe('/assets/profil/base.png');
+  it('getAvatarUrl should fallback to anonymous avatar when null', () => {
+    expect(service.getAvatarUrl(null as any)).toBe('/assets/profil/anonymous.png');
   });
 });
 

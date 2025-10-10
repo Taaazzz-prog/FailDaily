@@ -40,6 +40,11 @@ export class NotificationService {
   private unreadCount = new BehaviorSubject<number>(0);
   public unreadCount$ = this.unreadCount.asObservable();
 
+  // Debouncing pour éviter les requêtes excessives
+  private lastLoadTime = 0;
+  private readonly LOAD_DEBOUNCE_MS = 2000; // 2 secondes entre chargements
+  private isLoading = false;
+
   private preferences: NotificationPreferences = {
     pushEnabled: true,
     emailEnabled: true,
@@ -79,8 +84,19 @@ export class NotificationService {
     }
   }
 
-  // Chargement des notifications
+  // Chargement des notifications avec debouncing
   async loadNotifications(): Promise<void> {
+    const now = Date.now();
+    
+    // Debouncing : éviter les appels trop fréquents
+    if (this.isLoading || (now - this.lastLoadTime) < this.LOAD_DEBOUNCE_MS) {
+      console.log('🔄 NotificationService: Chargement ignoré (debounce)');
+      return;
+    }
+    
+    this.isLoading = true;
+    this.lastLoadTime = now;
+    
     try {
       const response: any = await this.http.get(
         `${environment.api.baseUrl}/notifications`,
@@ -93,6 +109,8 @@ export class NotificationService {
       }
     } catch (error) {
       console.error('❌ Erreur chargement notifications:', error);
+    } finally {
+      this.isLoading = false;
     }
   }
 
@@ -381,10 +399,13 @@ export class NotificationService {
   }
 
   private scheduleNotificationCheck(): void {
-    // Vérifier les nouvelles notifications toutes les 30 secondes
+    // Vérifier les nouvelles notifications toutes les 60 secondes (réduit la fréquence)
     setInterval(() => {
-      this.loadNotifications();
-    }, 30000);
+      // Seulement si l'utilisateur est connecté et la fenêtre est active
+      if (document.visibilityState === 'visible') {
+        this.loadNotifications();
+      }
+    }, 60000); // Augmentation à 60 secondes
   }
 
   // Statistiques

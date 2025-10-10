@@ -17,6 +17,7 @@
 /* ✅ THÈMES FAILDAILY */
 @import "./theme/light-theme.css";
 @import "./theme/dark-theme.css";
+@import "./theme/force-light-theme.css"; /* Fix collision couleurs VS Code */
 
 /* Optional CSS utils that can be commented out */
 @import "@ionic/angular/css/padding.css";

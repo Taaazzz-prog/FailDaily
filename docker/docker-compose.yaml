@@ -11,7 +11,7 @@ services:
       - "--entrypoints.web.address=:80"
     ports:
       - "8000:80"      # Port 8000 pour éviter le conflit avec WAMP
-      - "8080:8080"    # Dashboard Traefik
+      - "8090:8080"    # Dashboard Traefik (changé pour éviter conflit)
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -39,6 +39,8 @@ services:
       dockerfile: Dockerfile
     container_name: faildaily_backend
     restart: unless-stopped
+    ports:
+      - "3002:3000"  # Exposition sur port 3002 pour éviter conflit
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.backend-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
@@ -64,8 +66,6 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MYSQL_DATABASE=${DB_NAME}
-      - MYSQL_USER=${DB_USER}
-      - MYSQL_PASSWORD=${DB_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
     ports:

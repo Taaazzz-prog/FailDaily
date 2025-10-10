@@ -110,6 +110,15 @@ const register = async (req, res) => {
       });
     }
 
+    // Validation format email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        error: 'Format d\'email invalide',
+        code: 'INVALID_EMAIL_FORMAT'
+      });
+    }
+
     if (password.length < 6) {
       return res.status(400).json({
         error: 'Le mot de passe doit contenir au moins 6 caractères',

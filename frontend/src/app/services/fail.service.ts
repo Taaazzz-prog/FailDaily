@@ -26,6 +26,10 @@ export class FailService {
   private lastLoadTime = 0;
   private readonly LOAD_DEBOUNCE_MS = 2000; // 2 secondes entre les chargements
 
+  // Cache pour précharger les réactions utilisateur
+  private userReactionsBatchCache = new Map<string, { timestamp: number }>();
+  private readonly BATCH_CACHE_TTL = 30000; // 30 secondes
+
   constructor(
     private mysqlService: MysqlService,
     private authService: AuthService,
@@ -167,11 +171,58 @@ export class FailService {
       
       this.failsSubject.next(formattedFails);
       console.log('FailService: Fails loaded and published to subscribers');
+      
+      // Précharger les réactions utilisateur en arrière-plan
+      this.preloadUserReactions(formattedFails.map(f => f.id));
+      
     } catch (error) {
       console.error('❌ FailService: Erreur lors du chargement des fails:', error);
       this.failsSubject.next([]);
     } finally {
       this.isLoading = false;
+    }
+  }
+
+  /**
+   * Précharge les réactions utilisateur pour plusieurs fails en arrière-plan
+   */
+  private async preloadUserReactions(failIds: string[]): Promise<void> {
+    const user = this.authService.getCurrentUser();
+    if (!user || failIds.length === 0) return;
+
+    const batchKey = failIds.join(',');
+    const now = Date.now();
+    
+    // Vérifier si ce batch a déjà été chargé récemment
+    const cached = this.userReactionsBatchCache.get(batchKey);
+    if (cached && (now - cached.timestamp) < this.BATCH_CACHE_TTL) {
+      return;
+    }
+
+    try {
+      console.log('🔄 Préchargement des réactions utilisateur pour', failIds.length, 'fails...');
+      
+      // Précharger en parallèle mais avec limitation stricte pour éviter le spam
+      const batchSize = 3; // Réduction de la taille des lots (5 → 3)
+      for (let i = 0; i < failIds.length; i += batchSize) {
+        const batch = failIds.slice(i, i + batchSize);
+        await Promise.all(
+          batch.map(failId => 
+            this.mysqlService.getUserReactionsForFail(failId).catch(() => [])
+          )
+        );
+        
+        // Délai plus long entre les batches pour ne pas surcharger
+        if (i + batchSize < failIds.length) {
+          await new Promise(resolve => setTimeout(resolve, 200)); // 100ms → 200ms
+        }
+      }
+      
+      // Marquer comme mis en cache
+      this.userReactionsBatchCache.set(batchKey, { timestamp: now });
+      console.log('✅ Préchargement des réactions terminé');
+    } catch (error) {
+      console.warn('⚠️ Erreur lors du préchargement des réactions:', error);
     }
   }
 

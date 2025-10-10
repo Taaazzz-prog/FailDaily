@@ -243,6 +243,18 @@ router.post('/:userId/courage-points', authenticateToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { points, reason } = req.body;
+    const requesterId = req.user?.id;
+    const requesterRole = String(req.user?.role || '').toLowerCase();
+
+    const isSelf = requesterId === userId;
+    const isPrivileged = ['admin', 'super_admin'].includes(requesterRole);
+
+    if (!isSelf && !isPrivileged) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé'
+      });
+    }
     
     console.log(`🏆 Ajout de ${points} points pour l'utilisateur ${userId} - Raison: ${reason}`);
     

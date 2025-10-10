@@ -1,0 +1,109 @@
+# Configuration Docker Logs Séparés FailDaily
+
+version: '3.8'
+
+services:
+  # Base de données principale (application)
+  db:
+    image: mysql:8.0
+    container_name: faildaily_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: faildaily
+      MYSQL_USER: faildaily_user
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - app_data:/var/lib/mysql
+    ports:
+      - "3308:3306"  # Port différent pour éviter conflit avec MySQL local
+    networks:
+      - app-network
+
+  # Base de données logs (séparée)
+  logs_db:
+    image: mysql:8.0
+    container_name: faildaily_logs_db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${LOGS_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: faildaily_logs
+      MYSQL_USER: logs_user
+      MYSQL_PASSWORD: ${LOGS_DB_PASSWORD}
+    volumes:
+      - logs_data:/var/lib/mysql
+      - ./init-logs-database.sql:/docker-entrypoint-initdb.d/init-logs-database.sql:ro
+    ports:
+      - "3309:3306"  # Port différent pour éviter conflit
+    networks:
+      - app-network
+
+  # Application backend
+  backend:
+    build:
+      context: ../backend-api
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: faildaily_backend
+    environment:
+      # Base principale
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=faildaily_user
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=faildaily
+      
+      # Base logs
+      - LOGS_DB_HOST=logs_db
+      - LOGS_DB_PORT=3306
+      - LOGS_DB_USER=logs_user
+      - LOGS_DB_PASSWORD=${LOGS_DB_PASSWORD}
+      - LOGS_DB_NAME=faildaily_logs
+      
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - db
+      - logs_db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.services.backend.loadbalancer.server.port=3000"
+    networks:
+      - app-network
+
+  # Frontend (inchangé)
+  frontend:
+    build:
+      context: ../
+      dockerfile: docker/frontend.Dockerfile
+    container_name: faildaily_frontend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`localhost`)"
+      - "traefik.http.routers.frontend.entrypoints=web"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    networks:
+      - app-network
+
+  # Traefik (inchangé)
+  traefik:
+    image: traefik:v3.0
+    container_name: faildaily_traefik
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "8000:80"
+      - "8090:8080"    # Dashboard Traefik sur port 8090
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - app-network
+
+volumes:
+  app_data:        # Données application
+  logs_data:       # Données logs séparées
+
+networks:
+  app-network:
+    driver: bridge

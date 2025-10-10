@@ -74,6 +74,9 @@ export class MysqlService {
   private lastProfileUserId: string | null = null;
   
   private logger: any = null;
+  private readonly primaryTokenKey = 'auth_token';
+  private readonly tokenStorageKeys = Array.from(new Set(['auth_token', 'faildaily_token']));
+  private readonly userCacheStorageKey = 'faildaily_user_cache';
 
   constructor() {
     console.log('🔧 MysqlService: Initialisation du service MySQL complet');
@@ -86,9 +89,39 @@ export class MysqlService {
     this.logger = logger;
   }
 
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined' && typeof localStorage !== 'undefined';
+  }
+
+  private getStoredToken(): string | null {
+    if (!this.isBrowser()) {
+      return null;
+    }
+
+    for (const key of this.tokenStorageKeys) {
+      const value = localStorage.getItem(key);
+      if (value) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  private writeTokenToStorage(token: string | null): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    if (token) {
+      this.tokenStorageKeys.forEach(key => localStorage.setItem(key, token));
+    } else {
+      this.tokenStorageKeys.forEach(key => localStorage.removeItem(key));
+    }
+  }
+
   private loadStoredUser(): void {
-    const token = localStorage.getItem('faildaily_token');
-    const userData = localStorage.getItem('faildaily_user_cache');
+    const token = this.getStoredToken();
+    const userData = this.isBrowser() ? localStorage.getItem(this.userCacheStorageKey) : null;
     
     if (token && userData) {
       try {
@@ -107,19 +140,26 @@ export class MysqlService {
   }
 
   private saveAuthData(token: string, user: User): void {
-    // ✅ FIX: Utiliser les mêmes clés que l'AuthService
-    localStorage.setItem('faildaily_token', token);
-    localStorage.setItem('faildaily_user_cache', JSON.stringify({ user, timestamp: Date.now() }));
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    this.writeTokenToStorage(token);
+    const cachePayload = JSON.stringify({ user, timestamp: Date.now() });
+    localStorage.setItem(this.userCacheStorageKey, cachePayload);
+    localStorage.setItem('current_user', JSON.stringify(user));
     this.currentUser.next(user);
     console.log('🔐 MysqlService: Données d\'authentification sauvegardées');
   }
 
   private clearAuthData(): void {
-    // ✅ FIX: Utiliser les mêmes clés que l'AuthService
-    localStorage.removeItem('faildaily_token');
+    if (!this.isBrowser()) {
+      return;
+    }
+
+    this.writeTokenToStorage(null);
     localStorage.removeItem('faildaily_user');
-    localStorage.removeItem('faildaily_user_cache');
-    // Nettoyage des anciennes clés pour compatibilité
+    localStorage.removeItem(this.userCacheStorageKey);
     localStorage.removeItem('auth_token');
     localStorage.removeItem('current_user');
     this.currentUser.next(null);
@@ -127,7 +167,7 @@ export class MysqlService {
   }
 
   private getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('faildaily_token') || localStorage.getItem('auth_token');
+    const token = this.getStoredToken();
     return new HttpHeaders({
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
@@ -150,7 +190,7 @@ export class MysqlService {
   }
 
   private getMultipartHeaders(): HttpHeaders {
-    const token = localStorage.getItem('faildaily_token') || localStorage.getItem('auth_token');
+    const token = this.getStoredToken();
     return new HttpHeaders({
       'Authorization': token ? `Bearer ${token}` : ''
     });
@@ -173,7 +213,7 @@ export class MysqlService {
         return this.currentUser.value;
       }
 
-      const token = localStorage.getItem('faildaily_token');
+      const token = this.getStoredToken();
       if (!token) {
         return null;
       }
@@ -771,6 +811,9 @@ export class MysqlService {
       if (response.success) {
         console.log(`✅ Réaction ${reactionType} ajoutée avec succès`);
         
+        // Vider le cache pour ce fail
+        this.clearUserReactionCache(failId);
+        
         // Mettre à jour les points de courage
         await this.updateCouragePoints(failId, reactionType, 1);
         return response.data || { action: 'added', reactionType, summary: { counts: {}, totalCount: 0, userReaction: reactionType } };
@@ -801,6 +844,9 @@ export class MysqlService {
       if (response.success) {
         console.log(`✅ Réaction ${reactionType} supprimée avec succès`);
         
+        // Vider le cache pour ce fail
+        this.clearUserReactionCache(failId);
+        
         // Mettre à jour les points de courage
         await this.updateCouragePoints(failId, reactionType, -1);
         return response.data || {};
@@ -818,38 +864,82 @@ export class MysqlService {
       const currentUser = this.getCurrentUserSync();
       if (!currentUser) return null;
 
+      const cacheKey = `${currentUser.id}-${failId}`;
+      const now = Date.now();
+      
+      // Vérifier le cache
+      const cached = this.userReactionsCache.get(cacheKey);
+      if (cached && (now - cached.timestamp) < this.USER_REACTIONS_CACHE_TTL) {
+        return cached.data.length > 0 ? cached.data[0] : null;
+      }
+
       // ✅ FIX: Utiliser l'endpoint existant /reactions qui retourne userReaction
       const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/reactions`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
+      let result: string | null = null;
       if (response.success && response.data) {
-        return response.data.userReaction;
+        result = response.data.userReaction;
+        
+        // Mettre en cache (convertir en array pour cohérence)
+        const reactionsArray = result ? [result] : [];
+        this.userReactionsCache.set(cacheKey, { data: reactionsArray, timestamp: now });
       }
-      return null;
+      
+      return result;
     } catch (error: any) {
       console.warn('⚠️ Erreur récupération réaction utilisateur:', error);
       return null;
     }
   }
 
+  // Cache pour les réactions utilisateur avec TTL de 30 secondes
+  private userReactionsCache = new Map<string, { data: string[], timestamp: number }>();
+  private readonly USER_REACTIONS_CACHE_TTL = 60000; // 60 secondes (augmenté pour éviter surcharge)
+
   async getUserReactionsForFail(failId: string): Promise<string[]> {
     try {
       const currentUser = this.getCurrentUserSync();
       if (!currentUser) return [];
+
+      const cacheKey = `${currentUser.id}-${failId}`;
+      const now = Date.now();
+      
+      // Vérifier le cache
+      const cached = this.userReactionsCache.get(cacheKey);
+      if (cached && (now - cached.timestamp) < this.USER_REACTIONS_CACHE_TTL) {
+        return cached.data;
+      }
 
       // ✅ FIX: Utiliser l'endpoint existant /reactions qui retourne toutes les réactions
       const response: any = await this.http.get(`${this.apiUrl}/fails/${failId}/reactions`, {
         headers: this.getAuthHeaders()
       }).toPromise();
 
+      let result: string[] = [];
       if (response.success && response.data && response.data.reactions) {
-        return response.data.reactions.map((r: any) => r.type);
+        result = response.data.reactions.map((r: any) => r.type);
       }
-      return [];
+
+      // Mettre en cache
+      this.userReactionsCache.set(cacheKey, { data: result, timestamp: now });
+      
+      return result;
     } catch (error: any) {
       console.warn('⚠️ Erreur récupération réactions utilisateur:', error);
       return [];
+    }
+  }
+
+  /**
+   * Vider le cache des réactions utilisateur pour un fail spécifique
+   */
+  private clearUserReactionCache(failId: string): void {
+    const currentUser = this.getCurrentUserSync();
+    if (currentUser) {
+      const cacheKey = `${currentUser.id}-${failId}`;
+      this.userReactionsCache.delete(cacheKey);
     }
   }
 

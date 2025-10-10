@@ -1,0 +1,75 @@
+/* =================================================================
+   FORCE THEME CLAIR FAILDAILY - FIX COLLISION COULEURS
+   =================================================================
+   Ce fichier force l'application en thème clair par défaut
+   et corrige les collisions de couleurs avec VS Code/système
+*/
+
+/* Force le thème clair au niveau HTML/BODY */
+html, body {
+  background-color: #dbeafe !important; /* Bleu clair FailDaily */
+  color: #1e293b !important; /* Texte sombre */
+}
+
+/* Force les variables Ionic pour le thème clair */
+html:not(.dark), body:not(.dark) {
+  --ion-background-color: #dbeafe !important;
+  --ion-background-color-rgb: 219, 234, 254 !important;
+  --ion-text-color: #1e293b !important;
+  --ion-text-color-rgb: 30, 41, 59 !important;
+}
+
+/* Force les conteneurs principaux en thème clair */
+ion-app:not(.dark) {
+  background: #dbeafe !important;
+}
+
+ion-content:not(.dark) {
+  --background: #dbeafe !important;
+  --color: #1e293b !important;
+}
+
+/* Annule les préférences système sombres pour FailDaily */
+@media (prefers-color-scheme: dark) {
+  html, body {
+    background-color: #dbeafe !important; /* Force bleu clair même en mode sombre système */
+    color: #1e293b !important;
+  }
+  
+  ion-app {
+    background: #dbeafe !important;
+  }
+  
+  ion-content {
+    --background: #dbeafe !important;
+    --color: #1e293b !important;
+  }
+}
+
+/* Spécifique à VS Code - annule les styles VS Code */
+.vscode-light, .vscode-dark, .vscode-high-contrast {
+  background-color: #dbeafe !important;
+  color: #1e293b !important;
+}
+
+/* Classes utilitaires pour forcer le thème clair */
+.force-light-theme {
+  background-color: #dbeafe !important;
+  color: #1e293b !important;
+}
+
+.force-light-theme ion-content {
+  --background: #dbeafe !important;
+  --color: #1e293b !important;
+}
+
+/* Fix pour les cartes et surfaces */
+.force-light-theme ion-card {
+  --background: #ffffff !important;
+  --color: #1e293b !important;
+}
+
+.force-light-theme ion-item {
+  --background: #ffffff !important;
+  --color: #1e293b !important;
+}

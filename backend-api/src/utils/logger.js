@@ -1,7 +1,8 @@
-const { executeQuery } = require('../config/database');
+const LogsService = require('../services/logsService');
+const { v4: uuidv4 } = require('uuid');
 
 /**
- * Insère un log dans system_logs de façon robuste.
+ * Insère un log dans la base logs séparée de façon robuste.
  * level: 'info' | 'warning' | 'error' | 'debug'
  * action: courte clé d'action (ex: 'user_register', 'fail_create')
  * message: message humain
@@ -10,11 +11,16 @@ const { executeQuery } = require('../config/database');
  */
 async function logSystem({ level = 'info', action = null, message = '', details = null, userId = null } = {}) {
   try {
-    await executeQuery(
-      `INSERT INTO system_logs (id, level, message, details, user_id, action, created_at)
-       VALUES (UUID(), ?, ?, ?, ?, ?, NOW())`,
-      [String(level || 'info').toLowerCase(), message || '', details ? JSON.stringify(details) : null, userId || null, action || null]
-    );
+    await LogsService.saveLog({
+      id: uuidv4(),
+      level: String(level || 'info').toLowerCase(),
+      message: message || '',
+      details: details || {},
+      user_id: userId || null,
+      action: action || 'unknown',
+      ip_address: '',
+      user_agent: ''
+    });
   } catch (e) {
     // Ne jamais casser le flux applicatif pour un log
     console.warn('logSystem failure:', e?.message);
