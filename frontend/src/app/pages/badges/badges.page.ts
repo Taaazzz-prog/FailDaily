@@ -4,6 +4,7 @@ import {
     IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
     IonBadge, IonProgressBar,
     IonRefresher, IonRefresherContent,
+    IonAccordionGroup, IonAccordion, IonItem, IonLabel,
     RefresherCustomEvent
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -48,21 +49,18 @@ interface BadgeStats {
         CommonModule,
         IonHeader, IonToolbar, IonTitle, IonContent, IonIcon, IonButton,
         IonBadge, IonProgressBar,
-        IonRefresher, IonRefresherContent
+        IonRefresher, IonRefresherContent,
+        IonAccordionGroup, IonAccordion, IonItem, IonLabel
     ]
 })
 export class BadgesPage implements OnInit {
     currentUser$ = this.authService.currentUser$;
     allBadges$: Observable<Badge[]>;
-    displayBadges$: Observable<Badge[]>; // Badges filtrés pour l'affichage par défaut
     userBadges$: Observable<Badge[]>;
     badgeStats$: Observable<BadgeStats>;
     nextChallenges$ = new BehaviorSubject<any[]>([]);
 
     // Filtres et UI
-    selectedCategory: BadgeCategory | 'all' | 'unlocked' = 'all';
-    availableCategories = Object.values(BadgeCategory);
-    isDropdownOpen = false;
     viewMode: 'overview' | 'category' | 'unlocked' = 'overview'; // Mode d'affichage
 
     // Messages d'encouragement pour les badges
@@ -96,10 +94,6 @@ export class BadgesPage implements OnInit {
         
         // Utiliser shareReplay pour éviter les re-créations d'observables
         this.allBadges$ = from(this.badgeService.getAllAvailableBadges()).pipe(
-            shareReplay(1)
-        );
-        
-        this.displayBadges$ = from(this.badgeService.getFilteredBadgesForDisplay()).pipe(
             shareReplay(1)
         );
         
@@ -324,41 +318,12 @@ export class BadgesPage implements OnInit {
      */
     setViewMode(mode: 'overview' | 'category' | 'unlocked') {
         this.viewMode = mode;
-
-        if (mode === 'unlocked') {
-            // Afficher seulement les badges débloqués
-            this.selectedCategory = 'unlocked';
-        } else if (mode === 'category') {
-            // Mode catégorie - garder la catégorie sélectionnée
-            if (this.selectedCategory === 'unlocked') {
-                this.selectedCategory = 'all';
-            }
-        } else {
-            // Mode overview - affichage filtré par défaut
-            this.selectedCategory = 'all';
-        }
-
         console.log(`🔄 Mode d'affichage: ${mode}`);
     }
 
     /**
      * Récupère les badges à afficher selon le mode et filtre actuels
      */
-    getBadgesToDisplay(): Observable<Badge[]> {
-        if (this.viewMode === 'unlocked') {
-            // Afficher seulement les badges débloqués
-            return this.userBadges$;
-        } else if (this.viewMode === 'category' && this.selectedCategory !== 'all') {
-            // Filtrer par catégorie spécifique SANS exclure les badges déjà débloqués
-            return this.allBadges$.pipe(
-                map(allBadges => allBadges.filter(badge => badge.category === this.selectedCategory))
-            );
-        } else {
-            // Mode overview - utiliser allBadges$ pour éviter les problèmes de performance
-            return this.allBadges$;
-        }
-    }
-
     /**
      * Récupère les badges débloqués pour l'affichage
      */
@@ -369,66 +334,7 @@ export class BadgesPage implements OnInit {
     /**
      * Récupère les badges par catégorie pour l'affichage filtré
      */
-    getBadgesBySelectedCategory(): Observable<Badge[]> {
-        if (this.selectedCategory === 'all') {
-            return this.getBadgesToDisplay();
-        } else if (this.selectedCategory === 'unlocked') {
-            return this.userBadges$;
-        } else {
-            // Filtrer par catégorie SANS exclure les badges déjà débloqués
-            return this.allBadges$.pipe(
-                map(allBadges => allBadges.filter(badge => badge.category === this.selectedCategory))
-            );
-        }
-    }
-
     // Méthodes pour le dropdown de catégories
-    toggleDropdown() {
-        this.isDropdownOpen = !this.isDropdownOpen;
-    }
-
-    selectCategory(category: BadgeCategory | 'all') {
-        this.selectedCategory = category;
-        this.isDropdownOpen = false; // Fermer le dropdown après sélection
-    }
-
-    getSelectedCategoryIcon(): string {
-        if (this.selectedCategory === 'all') {
-            return 'apps';
-        }
-        return this.getCategoryIcon(this.selectedCategory as BadgeCategory);
-    }
-
-    getSelectedCategoryDisplayName(): string {
-        if (this.selectedCategory === 'all') {
-            return 'Tous les badges';
-        }
-        return this.getCategoryDisplayName(this.selectedCategory as BadgeCategory);
-    }
-
-    getSelectedCategoryBadgeCount(): number {
-        if (this.selectedCategory === 'all') {
-            return this.getAllBadgesCount();
-        }
-        return this.getCategorySpecificBadgeCount(this.selectedCategory as BadgeCategory);
-    }
-
-    getAllBadgesCount(): number {
-        // Utilise userBadges$ pour compter les badges débloqués
-        let count = 0;
-        this.userBadges$.subscribe(badges => count = badges.length).unsubscribe();
-        return count;
-    }
-
-    getCategorySpecificBadgeCount(category: BadgeCategory): number {
-        // Utilise userBadges$ filtrés par catégorie
-        let count = 0;
-        this.userBadges$.subscribe(badges =>
-            count = badges.filter(badge => badge.category === category).length
-        ).unsubscribe();
-        return count;
-    }
-
     shareBadgeCollection() {
         // Logique de partage de la collection
         console.log('Partager la collection de badges');

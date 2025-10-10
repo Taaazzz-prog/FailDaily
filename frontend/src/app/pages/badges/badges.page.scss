@@ -178,6 +178,63 @@
             color: #94a3b8;
         }
     }
+
+    .badge-accordion {
+        margin-top: 1rem;
+
+        ion-accordion {
+            margin-bottom: 14px;
+
+            .category-accordion-header {
+                --padding-start: 14px;
+                --inner-padding-end: 14px;
+                border-radius: 14px;
+                background: white;
+                box-shadow: var(--soft-shadow);
+                align-items: center;
+
+                ion-icon {
+                    font-size: 1.2rem;
+                    color: var(--ion-color-primary);
+                }
+
+                ion-label {
+                    font-weight: 600;
+                    font-family: 'Comfortaa', sans-serif;
+                }
+
+                ion-badge {
+                    --background: var(--pastel-lavender);
+                    --color: var(--ion-color-primary);
+                    font-weight: 600;
+                }
+            }
+
+            .accordion-content {
+                padding: 14px 4px 0;
+            }
+        }
+    }
+
+    .overview-placeholder {
+        margin: 1.5rem 0;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--soft-shadow);
+        text-align: center;
+
+        p {
+            margin-bottom: 0.75rem;
+        }
+
+        ion-button {
+            --border-radius: 20px;
+            --padding-start: 16px;
+            --padding-end: 16px;
+            font-weight: 600;
+        }
+    }
 }
 
 // Styles pour la section des badges débloqués
