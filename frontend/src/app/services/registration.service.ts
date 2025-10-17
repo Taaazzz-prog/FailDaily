@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { Observable, BehaviorSubject, firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { HttpAuthService } from './http-auth.service';
+import { AuthService, RegisterData as AuthRegisterData } from './auth.service';
 
 interface RegistrationData {
   email: string;
@@ -49,7 +49,7 @@ export class RegistrationService {
 
   constructor(
     private http: HttpClient,
-    private httpAuthService: HttpAuthService
+    private authService: AuthService
   ) {
     console.log('📝 RegistrationService: Service d\'inscription initialisé');
     this.loadSavedRegistrationData();
@@ -374,16 +374,39 @@ export class RegistrationService {
         referralCode: data.referralCode || null
       };
 
-      // Appeler le service d'authentification
-      const result = await this.httpAuthService.register(registrationPayload);
+      const age = this.calculateAge(new Date(data.birthDate!));
+      const registerPayload: AuthRegisterData = {
+        email: registrationPayload.email,
+        password: registrationPayload.password,
+        displayName: registrationPayload.displayName,
+        legalConsent: {
+          documentsAccepted: registrationPayload.agreeToTerms ? ['terms_of_service'] : [],
+          consentDate: new Date().toISOString(),
+          consentVersion: '1.0',
+          marketingOptIn: registrationPayload.agreeToNewsletter ?? false
+        },
+        ageVerification: {
+          birthDate: new Date(registrationPayload.birthDate),
+          isMinor: age < 18,
+          needsParentalConsent: age >= 13 && age < 17,
+          parentEmail: undefined,
+          parentConsentDate: undefined
+        }
+      };
 
-      if (result.success) {
-        this.clearRegistrationData();
-        console.log('✅ Inscription réussie');
-      }
+      const user = await firstValueFrom(this.authService.register(registerPayload));
+
+      this.clearRegistrationData();
+      console.log('✅ Inscription réussie');
 
       this.isLoading.next(false);
-      return result;
+      return {
+        success: true,
+        user,
+        message: user?.registrationCompleted === false
+          ? 'Inscription en attente de validation parentale'
+          : 'Inscription réussie'
+      };
 
     } catch (error: any) {
       this.isLoading.next(false);

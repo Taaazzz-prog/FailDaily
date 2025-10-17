@@ -44,6 +44,8 @@ export class NotificationService {
   private lastLoadTime = 0;
   private readonly LOAD_DEBOUNCE_MS = 2000; // 2 secondes entre chargements
   private isLoading = false;
+  private backendAvailable = true;
+  private backendWarningShown = false;
 
   private preferences: NotificationPreferences = {
     pushEnabled: true,
@@ -78,7 +80,9 @@ export class NotificationService {
   private async initializeNotifications(): Promise<void> {
     try {
       await this.loadNotifications();
-      this.scheduleNotificationCheck();
+      if (this.backendAvailable) {
+        this.scheduleNotificationCheck();
+      }
     } catch (error) {
       console.error('❌ Erreur initialisation notifications:', error);
     }
@@ -86,6 +90,10 @@ export class NotificationService {
 
   // Chargement des notifications avec debouncing
   async loadNotifications(): Promise<void> {
+    if (!this.backendAvailable) {
+      return;
+    }
+
     const now = Date.now();
     
     // Debouncing : éviter les appels trop fréquents
@@ -106,9 +114,12 @@ export class NotificationService {
       if (response.success) {
         this.notifications.next(response.notifications);
         this.updateUnreadCount(response.notifications);
+      } else {
+        this.handleBackendError(new Error('Réponse notifications invalide'));
       }
     } catch (error) {
       console.error('❌ Erreur chargement notifications:', error);
+      this.handleBackendError(error);
     } finally {
       this.isLoading = false;
     }
@@ -116,6 +127,9 @@ export class NotificationService {
 
   // Création de notifications
   async createNotification(notification: Omit<Notification, 'id' | 'createdAt'>): Promise<boolean> {
+    if (!this.backendAvailable) {
+      return false;
+    }
     try {
       const response: any = await this.http.post(
         `${environment.api.baseUrl}/notifications`,
@@ -127,15 +141,20 @@ export class NotificationService {
         await this.loadNotifications();
         return true;
       }
+      this.handleBackendError(new Error('Réponse création notification invalide'));
       return false;
     } catch (error) {
       console.error('❌ Erreur création notification:', error);
+      this.handleBackendError(error);
       return false;
     }
   }
 
   // Marquer comme lu
   async markAsRead(notificationId: string): Promise<boolean> {
+    if (!this.backendAvailable) {
+      return false;
+    }
     try {
       const response: any = await this.http.put(
         `${environment.api.baseUrl}/notifications/${notificationId}/read`,
@@ -147,15 +166,20 @@ export class NotificationService {
         await this.loadNotifications();
         return true;
       }
+      this.handleBackendError(new Error('Réponse markAsRead invalide'));
       return false;
     } catch (error) {
       console.error('❌ Erreur marquage lecture:', error);
+      this.handleBackendError(error);
       return false;
     }
   }
 
   // Marquer toutes comme lues
   async markAllAsRead(): Promise<boolean> {
+    if (!this.backendAvailable) {
+      return false;
+    }
     try {
       const response: any = await this.http.put(
         `${environment.api.baseUrl}/notifications/read-all`,
@@ -167,15 +191,20 @@ export class NotificationService {
         await this.loadNotifications();
         return true;
       }
+      this.handleBackendError(new Error('Réponse markAll invalide'));
       return false;
     } catch (error) {
       console.error('❌ Erreur marquage toutes lues:', error);
+      this.handleBackendError(error);
       return false;
     }
   }
 
   // Suppression de notification
   async deleteNotification(notificationId: string): Promise<boolean> {
+    if (!this.backendAvailable) {
+      return false;
+    }
     try {
       const response: any = await this.http.delete(
         `${environment.api.baseUrl}/notifications/${notificationId}`,
@@ -186,15 +215,20 @@ export class NotificationService {
         await this.loadNotifications();
         return true;
       }
+      this.handleBackendError(new Error('Réponse delete notification invalide'));
       return false;
     } catch (error) {
       console.error('❌ Erreur suppression notification:', error);
+      this.handleBackendError(error);
       return false;
     }
   }
 
   // Nettoyage des anciennes notifications
   async cleanupOldNotifications(): Promise<boolean> {
+    if (!this.backendAvailable) {
+      return false;
+    }
     try {
       const response: any = await this.http.delete(
         `${environment.api.baseUrl}/notifications/cleanup`,
@@ -205,9 +239,11 @@ export class NotificationService {
         await this.loadNotifications();
         return true;
       }
+      this.handleBackendError(new Error('Réponse cleanup notifications invalide'));
       return false;
     } catch (error) {
       console.error('❌ Erreur nettoyage notifications:', error);
+      this.handleBackendError(error);
       return false;
     }
   }
@@ -327,6 +363,12 @@ export class NotificationService {
   }
 
   async updatePreferences(preferences: Partial<NotificationPreferences>): Promise<boolean> {
+    if (!this.backendAvailable) {
+      this.preferences = { ...this.preferences, ...preferences };
+      this.savePreferences();
+      return true;
+    }
+
     try {
       this.preferences = { ...this.preferences, ...preferences };
       
@@ -340,9 +382,11 @@ export class NotificationService {
         this.savePreferences();
         return true;
       }
+      this.handleBackendError(new Error('Réponse update preferences invalide'));
       return false;
     } catch (error) {
       console.error('❌ Erreur mise à jour préférences:', error);
+      this.handleBackendError(error);
       return false;
     }
   }
@@ -399,42 +443,92 @@ export class NotificationService {
   }
 
   private scheduleNotificationCheck(): void {
-    // Vérifier les nouvelles notifications toutes les 60 secondes (réduit la fréquence)
-    setInterval(() => {
-      // Seulement si l'utilisateur est connecté et la fenêtre est active
-      if (document.visibilityState === 'visible') {
-        this.loadNotifications();
+    if (!this.backendAvailable) {
+      return;
+    }
+    const interval = setInterval(() => {
+      if (!this.backendAvailable) {
+        clearInterval(interval);
+        return;
       }
-    }, 60000); // Augmentation à 60 secondes
+      if (document.visibilityState === 'visible') {
+        void this.loadNotifications();
+      }
+    }, 60000);
   }
 
   // Statistiques
   async getNotificationStats(): Promise<any> {
+    if (!this.backendAvailable) {
+      return null;
+    }
     try {
       const response: any = await this.http.get(
         `${environment.api.baseUrl}/notifications/stats`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
 
-      return response.success ? response.stats : null;
+      if (response.success) {
+        return response.stats;
+      }
+      this.handleBackendError(new Error('Réponse stats notifications invalide'));
+      return null;
     } catch (error) {
       console.error('❌ Erreur récupération stats notifications:', error);
+      this.handleBackendError(error);
       return null;
     }
   }
 
   // Export des notifications
   async exportNotifications(): Promise<any[]> {
+    if (!this.backendAvailable) {
+      return [];
+    }
     try {
       const response: any = await this.http.get(
         `${environment.api.baseUrl}/notifications/export`,
         { headers: this.getAuthHeaders() }
       ).toPromise();
 
-      return response.success ? response.notifications : [];
+      if (response.success) {
+        return response.notifications;
+      }
+      this.handleBackendError(new Error('Réponse export notifications invalide'));
+      return [];
     } catch (error) {
       console.error('❌ Erreur export notifications:', error);
+      this.handleBackendError(error);
       return [];
+    }
+  }
+
+  private handleBackendError(error: any): void {
+    const status = error?.status ?? error?.response?.status;
+    if (status === 404 || status === 0 || status === 503 || error?.code === 'ERR_NETWORK') {
+      this.backendAvailable = false;
+      this.notifications.next([]);
+      this.updateUnreadCount([]);
+      console.warn('🔕 Backend notifications indisponible, désactivation des appels.', error);
+      if (!this.backendWarningShown) {
+        this.backendWarningShown = true;
+        void this.presentWarningToast('Notifications indisponibles dans cet environnement.');
+      }
+    }
+  }
+
+  private async presentWarningToast(message: string): Promise<void> {
+    try {
+      const toast = await this.toastController.create({
+        message,
+        duration: 3000,
+        color: 'warning',
+        icon: 'notifications-off-outline',
+        position: 'bottom'
+      });
+      await toast.present();
+    } catch (error) {
+      console.warn('⚠️ Impossible d\'afficher le toast de notification:', error);
     }
   }
 }

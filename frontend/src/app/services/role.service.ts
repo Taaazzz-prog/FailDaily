@@ -14,7 +14,7 @@ export class RoleService {
         if (['super_admin', 'super-admin', 'superadmin', 'owner', 'root'].includes(r)) {
             return UserRole.SUPER_ADMIN;
         }
-        if (['admin', 'administrator'].includes(r)) {
+        if (['admin', 'administrator', 'moderator_admin'].includes(r)) {
             return UserRole.ADMIN;
         }
         if (['moderator', 'mod'].includes(r)) {

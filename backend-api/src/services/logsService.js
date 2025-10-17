@@ -19,6 +19,12 @@ class LogsService {
     `;
     
     try {
+      if (!logsPool) {
+        console.warn('⚠️ Logs database disabled, writing log to fallback file only.');
+        await this.saveToFile({ ...logData, id: logId });
+        return logId;
+      }
+
       const params = [
         logId,
         String(logData.level || 'info'),
@@ -76,6 +82,11 @@ class LogsService {
    * Récupération des logs avec filtres
    */
   static async getLogs(filters = {}) {
+    if (!logsPool) {
+      console.warn('⚠️ Logs database disabled, returning empty logs list.');
+      return [];
+    }
+
     const { 
       limit = 50, 
       offset = 0, 
@@ -130,6 +141,11 @@ class LogsService {
    * Statistiques des logs
    */
   static async getLogStats(period = '24h') {
+    if (!logsPool) {
+      console.warn('⚠️ Logs database disabled, no stats available.');
+      return [];
+    }
+
     let timeCondition = '';
     
     switch (period) {
@@ -170,6 +186,11 @@ class LogsService {
    * Nettoyage des logs anciens
    */
   static async cleanOldLogs(retentionDays = 90) {
+    if (!logsPool) {
+      console.warn('⚠️ Logs database disabled, nothing to clean.');
+      return 0;
+    }
+
     const query = `
       DELETE FROM activity_logs 
       WHERE created_at < NOW() - INTERVAL ? DAY
@@ -184,11 +205,16 @@ class LogsService {
       throw error;
     }
   }
-  
+
   /**
    * Migration des logs existants vers la nouvelle base
    */
   static async migrateLogs(sourcePool) {
+    if (!logsPool) {
+      console.warn('⚠️ Logs database disabled, migration skipped.');
+      return { migrated: 0 };
+    }
+
     try {
       console.log('🔄 Début migration logs...');
       

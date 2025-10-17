@@ -33,7 +33,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = {
         canDeletePosts: true,
         canBanUsers: false,
         canManageBadges: false,
-        canAccessAdmin: false,
+        canAccessAdmin: true,
         canModerateComments: true,
         canViewAnalytics: true,
         canManageUsers: false,

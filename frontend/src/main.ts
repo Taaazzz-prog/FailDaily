@@ -10,7 +10,6 @@ import './app/utils/disable-console-prod';
 
 import { routes } from './app/app.routes';
 import { AppComponent } from './app/app.component';
-import { HttpAuthService } from './app/services/http-auth.service';
 import { MysqlService } from './app/services/mysql.service';
 import { FollowService } from './app/services/follow.service';
 import { LoggingSetupService } from './app/services/logging-setup.service';
@@ -27,7 +26,6 @@ bootstrapApplication(AppComponent, {
     provideRouter(routes, withPreloading(PreloadAllModules)),
     provideHttpClient(),
     importProvidersFrom(BrowserModule),
-    HttpAuthService,
     MysqlService,
     FollowService,
     LoggingSetupService, // Service pour configurer le logging

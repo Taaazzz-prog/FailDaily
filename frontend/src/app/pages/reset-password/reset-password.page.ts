@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { IonicModule } from '@ionic/angular';
-import { HttpAuthService } from '../../services/http-auth.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   standalone: true,
@@ -15,7 +15,7 @@ import { HttpAuthService } from '../../services/http-auth.service';
 export class ResetPasswordPage {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
-  private auth = inject(HttpAuthService);
+  private auth = inject(AuthService);
 
   token = signal<string>('');
   newPassword = signal<string>('');
@@ -41,7 +41,7 @@ export class ResetPasswordPage {
     this.success.set(null);
     this.isSubmitting.set(true);
     try {
-      const ok = await this.auth.resetPassword(this.token(), this.newPassword());
+      const ok = await this.auth.confirmPasswordReset(this.token(), this.newPassword());
       if (ok) {
         this.success.set('Votre mot de passe a été réinitialisé. Vous pouvez vous connecter.');
         // Optionnel: redirection vers login après un court délai
@@ -54,4 +54,3 @@ export class ResetPasswordPage {
     }
   }
 }
-

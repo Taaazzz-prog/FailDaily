@@ -1,5 +1,4 @@
 export { MysqlService } from './mysql.service';
-export { HttpAuthService } from './http-auth.service';
 export { FailService } from './fail.service';
 export { BadgeService } from './badge.service';
 export { AnalyticsService } from './analytics.service';

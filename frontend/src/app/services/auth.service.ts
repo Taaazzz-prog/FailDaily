@@ -646,6 +646,78 @@ export class AuthService {
     }
   }
 
+  async requestPasswordReset(email: string): Promise<boolean> {
+    const normalizedEmail = (email || '').trim();
+    if (!normalizedEmail) {
+      throw new Error('Adresse email requise');
+    }
+
+    try {
+      const response = await fetch(`${this.apiUrl}/auth/password-reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail })
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.success === false) {
+        throw new Error(result?.message || 'Erreur lors de la demande de réinitialisation');
+      }
+
+      try {
+        await this.logger.logAuth('password_reset_request', 'Demande de réinitialisation envoyée', { email: normalizedEmail }, true);
+      } catch {/* ignore logging errors */}
+
+      return true;
+    } catch (error: any) {
+      try {
+        await this.logger.logAuth(
+          'password_reset_request_failed',
+          'Échec demande de réinitialisation',
+          { email: normalizedEmail, error: error?.message },
+          false
+        );
+      } catch {/* ignore logging errors */}
+      throw new Error(error?.message || 'Erreur lors de la demande de réinitialisation');
+    }
+  }
+
+  async confirmPasswordReset(token: string, newPassword: string): Promise<boolean> {
+    const trimmedToken = (token || '').trim();
+    if (!trimmedToken || !newPassword) {
+      throw new Error('Token et nouveau mot de passe requis');
+    }
+
+    try {
+      const response = await fetch(`${this.apiUrl}/auth/password-reset/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: trimmedToken, newPassword })
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.success === false) {
+        throw new Error(result?.message || 'Erreur lors de la réinitialisation du mot de passe');
+      }
+
+      try {
+        await this.logger.logAuth('password_reset_confirm', 'Mot de passe réinitialisé', { token: trimmedToken }, true);
+      } catch {/* ignore logging errors */}
+
+      return true;
+    } catch (error: any) {
+      try {
+        await this.logger.logAuth(
+          'password_reset_confirm_failed',
+          'Échec réinitialisation mot de passe',
+          { token: trimmedToken, error: error?.message },
+          false
+        );
+      } catch {/* ignore logging errors */}
+      throw new Error(error?.message || 'Erreur lors de la réinitialisation du mot de passe');
+    }
+  }
+
   // ✅ Validation temps réel du display_name
   async validateDisplayNameRealTime(displayName: string): Promise<{
     isAvailable: boolean;

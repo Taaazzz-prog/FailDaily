@@ -13,6 +13,11 @@ const { authenticateToken, requireAdmin } = require('../middleware/auth');
 
 // Helper pour exécuter des requêtes sur la base logs
 async function executeLogsQuery(query, params = []) {
+  if (!logsPool) {
+    const error = new Error('Logs database disabled');
+    error.code = 'LOGS_DB_DISABLED';
+    throw error;
+  }
   let connection;
   try {
     connection = await logsPool.getConnection();
@@ -166,6 +171,50 @@ router.post('/system', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 /**
+ * POST /api/logs/public/login
+ * Permet de journaliser les connexions utilisateurs sans rôle admin.
+ */
+router.post('/public/login', authenticateToken, async (req, res) => {
+  try {
+    if (!LogsService) {
+      return res.status(503).json({
+        success: false,
+        message: 'Service de logs indisponible',
+        code: 'LOGS_DB_DISABLED'
+      });
+    }
+
+    const { ipAddress = req.ip, userAgent = req.get('User-Agent') || '' } = req.body || {};
+    const logId = await LogsService.saveLog({
+      id: require('uuid').v4(),
+      level: 'info',
+      message: 'User login',
+      details: { ipAddress, userAgent },
+      user_id: req.user?.id || null,
+      action: 'user_login',
+      ip_address: ipAddress,
+      user_agent: userAgent
+    });
+
+    res.json({ success: true, logId });
+  } catch (error) {
+    if (error?.code === 'LOGS_DB_DISABLED') {
+      return res.status(503).json({
+        success: false,
+        message: 'Service de logs indisponible',
+        code: 'LOGS_DB_DISABLED'
+      });
+    }
+    console.error('❌ Erreur journalisation login public:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur journalisation login',
+      code: 'LOG_PUBLIC_LOGIN_ERROR'
+    });
+  }
+});
+
+/**
  * DELETE /api/logs/cleanup
  * Nettoie les anciens logs (plus de 30 jours)
  */
@@ -194,6 +243,13 @@ router.delete('/cleanup', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ Erreur nettoyage logs:', error);
+    if (error?.code === 'LOGS_DB_DISABLED') {
+      return res.status(503).json({
+        success: false,
+        message: 'Base de logs indisponible',
+        code: 'LOGS_DB_DISABLED'
+      });
+    }
     res.status(500).json({
       error: 'Erreur lors du nettoyage des logs',
       code: 'LOGS_CLEANUP_ERROR'

@@ -22,6 +22,20 @@ cd FailDaily
 
 **🔗 Documentation :** [Scripts Guide](docs/guides/SCRIPTS_GUIDE.md) | [API Reference](docs/specs/API_ENDPOINTS.md) | [Badges System](docs/guides/BADGES_GUIDE.md) | [Changements API](docs/specs/DOC_CHANGEMENTS_API.md) | [Plan de tests](docs/reports/TEST_PLAN_MANUEL.md) | [SMTP OVH](docs/OVH_EMAIL_SMTP.md)
 
+### 🔐 Variables d’environnement indispensables (Backend)
+
+Le module de logs utilise désormais uniquement des variables d’environnement. Ajoutez les clés suivantes à votre fichier `.env` backend :
+
+```
+LOGS_DB_HOST=...
+LOGS_DB_PORT=...
+LOGS_DB_USER=...
+LOGS_DB_PASSWORD=...
+LOGS_DB_NAME=...
+```
+
+> Si l’une de ces variables manque, l’API arrêtera son démarrage pour éviter l’utilisation de secrets codés en dur.
+
 ## 🎯 **Concept & Vision**
 
 FailDaily révolutionne les réseaux sociaux en encourageant la **vulnérabilité positive** et l'**apprentissage par l'échec**. Contrairement aux plateformes traditionnelles qui cultivent la perfection artificielle, FailDaily célèbre l'imperfection humaine et transforme les échecs en opportunités de croissance collective.
@@ -85,6 +99,7 @@ FailDaily/
 - **Catégorisation** (professionnel, personnel, social, etc.)
 - **Mode anonyme** optionnel
 - **Modération IA** (OpenAI) anti-toxicité
+- **Accès sécurisé** : les fails ne sont visibles que par des utilisateurs authentifiés
 
 ### 🏆 **Système de Badges Gamifié**
 - **58 badges disponibles** dans 6 catégories
@@ -207,7 +222,7 @@ FailDaily/
 
 ### **Services Angular Implémentés**
 ```typescript
-✅ HttpAuthService      // Authentification HTTP/JWT
+✅ AuthService         // Authentification, gestion session
 ✅ MysqlService         // Communication base de données  
 ✅ BadgeService         // Gestion système de badges
 ✅ FailService          // Gestion des posts/fails

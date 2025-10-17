@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { HttpAuthService } from '../../services/http-auth.service';
+import { AuthService } from '../../services/auth.service';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel,
   IonInput, IonButton, IonText, IonSpinner, IonProgressBar
@@ -26,7 +26,7 @@ export class ForgotPasswordPage {
   error: string | null = null;
   success: string | null = null;
 
-  constructor(private auth: HttpAuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   get canSubmit(): boolean {
     return !!this.email && this.email.includes('@') && !this.isSubmitting;
@@ -38,7 +38,7 @@ export class ForgotPasswordPage {
     this.success = null;
     this.isSubmitting = true;
     try {
-      const ok = await this.auth.forgotPassword(this.email);
+      const ok = await this.auth.requestPasswordReset(this.email);
       if (ok) {
         this.success = 'Si cet email existe, un lien a été envoyé.';
         // Optionnel: redirection vers login après un court délai
@@ -53,4 +53,3 @@ export class ForgotPasswordPage {
     }
   }
 }
-

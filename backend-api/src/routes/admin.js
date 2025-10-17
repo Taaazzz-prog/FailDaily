@@ -815,6 +815,50 @@ router.put('/points/config', authenticateToken, requireAdmin, async (req, res) =
   }
 });
 
+// POST /api/admin/restore-configs - réinitialise les configurations essentielles
+router.post('/restore-configs', authenticateToken, requireStrictAdmin, async (req, res) => {
+  try {
+    const defaults = {
+      points: {
+        failCreate: 10,
+        commentCreate: 2,
+        reactionRemovePenalty: true,
+        dailyBonus: 5
+      },
+      reaction_points: {
+        courage: 5,
+        laugh: 3,
+        empathy: 2,
+        support: 3
+      },
+      moderation: {
+        failReportThreshold: 3,
+        commentReportThreshold: 2,
+        panelAutoRefreshSec: 20
+      }
+    };
+
+    await executeQuery(
+      `INSERT INTO app_config (id, \`key\`, value, created_at, updated_at)
+       VALUES 
+         (UUID(), 'points', ?, NOW(), NOW()),
+         (UUID(), 'reaction_points', ?, NOW(), NOW()),
+         (UUID(), 'moderation', ?, NOW(), NOW())
+       ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()`,
+      [
+        JSON.stringify(defaults.points),
+        JSON.stringify(defaults.reaction_points),
+        JSON.stringify(defaults.moderation)
+      ]
+    );
+
+    res.json({ success: true, restoredKeys: Object.keys(defaults) });
+  } catch (error) {
+    console.error('❌ /admin/restore-configs error:', error);
+    res.status(500).json({ success: false, message: 'Erreur restauration configurations' });
+  }
+});
+
 /**
  * =========================== CONFIG CONSOLIDÉE ===========================
  */
