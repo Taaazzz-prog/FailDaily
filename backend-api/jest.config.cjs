@@ -8,12 +8,11 @@ module.exports = {
   detectOpenHandles: false,
   setupFiles: ['<rootDir>/tests/tools/setup-env.js'],
   testPathIgnorePatterns: [
-    '/tests/1_database/',
-    '/tests/2_auth/',
-    '/tests/3_fails/',
-    '/tests/4_integration/',
     '/tests/run-all-tests\\.js$',
     '/tests/run-one\\.js$',
+    '/tests/run-functional-tests\\.js$',
+    '/tests/validate-user-features\\.js$',
+    '/tests/diagnostic-simple\\.js$',
     '/tests/tools/'
   ]
 };

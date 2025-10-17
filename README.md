@@ -3,8 +3,29 @@
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)](https://github.com/Taaazzz-prog/FailDaily)
 [![Platform](https://img.shields.io/badge/Platform-iOS%20%7C%20Android%20%7C%20Web-blue.svg)](#)
 [![Tech](https://img.shields.io/badge/Tech-Angular%2020%20%7C%20Ionic%208%20%7C%20Node.js%2022%20%7C%20MySQL%208-orange.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-16%20Backend%20%7C%2011%20Frontend-success.svg)](#)
 
-## 🚀 **Démarrage Rapide**
+## 🏗️ **Structure du Projet**
+
+```
+FailDaily/
+├── 📁 backend-api/          # API Node.js + Express
+├── � frontend/             # Application Ionic/Angular  
+├── 📁 docker/               # Configuration Docker
+├── 📁 docs/                 # Documentation complète
+│   ├── 📁 guides/           # Guides techniques
+│   ├── 📁 reports/          # Rapports de validation
+│   └── 📁 planning/         # Planification et todo
+├── 📁 scripts/              # Scripts d'automatisation
+│   ├── 📁 development/      # Scripts de développement
+│   ├── 📁 deployment/       # Scripts de déploiement
+│   └── 📁 maintenance/      # Scripts de maintenance
+├── 📁 tools/                # Outils de debug et analyse
+├── 📁 config/               # Configuration système
+└── 📁 e2e/                  # Tests end-to-end Cypress
+```
+
+## �🚀 **Démarrage Rapide**
 
 ```bash
 # 1. Cloner le projet
@@ -12,12 +33,13 @@ git clone https://github.com/Taaazzz-prog/FailDaily.git
 cd FailDaily
 
 # 2. Lancer avec Docker (recommandé)
-.\docker\start-local.ps1 --with-data
+.\scripts\development\start-dev.ps1
 
 # 3. Accéder à l'application
-# Frontend: http://localhost:8080
-# Backend:  http://localhost:3000
-# MySQL:    localhost:3306
+# Frontend: http://localhost:8000 (via Traefik)
+# API:      http://localhost:3002/api
+# MySQL:    localhost:3308
+# Admin:    http://localhost:8090 (Traefik Dashboard)
 ```
 
 **🔗 Documentation :** [Scripts Guide](docs/guides/SCRIPTS_GUIDE.md) | [API Reference](docs/specs/API_ENDPOINTS.md) | [Badges System](docs/guides/BADGES_GUIDE.md) | [Changements API](docs/specs/DOC_CHANGEMENTS_API.md) | [Plan de tests](docs/reports/TEST_PLAN_MANUEL.md) | [SMTP OVH](docs/OVH_EMAIL_SMTP.md)
@@ -40,28 +62,37 @@ LOGS_DB_NAME=...
 
 FailDaily révolutionne les réseaux sociaux en encourageant la **vulnérabilité positive** et l'**apprentissage par l'échec**. Contrairement aux plateformes traditionnelles qui cultivent la perfection artificielle, FailDaily célèbre l'imperfection humaine et transforme les échecs en opportunités de croissance collective.
 
-## 🏗️ **Architecture Projet**
+## 🏗️ **Architecture Projet** (Restructurée)
 
 ```
 FailDaily/
-├── frontend/                   # 📱 Application Ionic/Angular
-│   ├── src/                   # Code source frontend
-│   ├── android/               # Build Android
-│   ├── ios/                   # Build iOS
-│   ├── capacitor.config.ts    # Config Capacitor
-│   ├── ionic.config.json      # Config Ionic
-│   └── package.json           # Dépendances frontend
-├── backend-api/               # 🚀 API Node.js
-│   ├── src/                   # Code source API
-│   ├── tests/                 # Tests API
-│   ├── package.json           # Dépendances backend
-│   └── .env                   # Config backend
-├── docker/                    # 🐳 Configuration Docker
-│   ├── frontend.Dockerfile
-│   ├── backend.Dockerfile
-│   └── docker-compose.yaml
-├── docs/                      # 📚 Documentation
-└── README.md                  # Documentation principale
+├── 📁 backend-api/              # 🚀 API Node.js + Express
+│   ├── src/                     # Code source (routes, services, middleware)
+│   ├── tests/                   # Tests Jest (16 suites + tests fonctionnels)
+│   ├── migrations/              # Migrations base de données
+│   └── uploads/                 # Fichiers uploadés (avatars)
+├── 📁 frontend/                 # 📱 Application Ionic/Angular  
+│   ├── src/                     # Code source (components, services, pages)
+│   ├── android/                 # Build Android (Capacitor)
+│   ├── ios/                     # Build iOS (Capacitor)
+│   └── www/                     # Build production web
+├── 📁 docker/                   # 🐳 Infrastructure conteneurisée
+│   ├── local/                   # Environnement développement
+│   ├── production/              # Environnement production
+│   └── e2e/                     # Tests end-to-end
+├── 📁 docs/                     # � Documentation complète
+│   ├── guides/                  # Guides techniques (déploiement, tests)
+│   ├── reports/                 # Rapports de validation et status
+│   ├── planning/                # Planification et todo lists
+│   └── specs/                   # Spécifications techniques
+├── 📁 scripts/                  # � Automatisation
+│   ├── development/             # Scripts de développement (start-dev.*)
+│   ├── deployment/              # Scripts de déploiement (OVH, monitoring)
+│   └── maintenance/             # Scripts de maintenance et synchronisation
+├── 📁 tools/                    # 🛠️ Outils de debug et analyse
+├── 📁 config/                   # ⚙️ Configuration système
+├── 📁 e2e/                      # 🧪 Tests Cypress end-to-end
+└── 📁 devops/                   # 🚀 CI/CD et infrastructure
 ```
 
 ### **Stack Technologique**
